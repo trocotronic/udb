@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.4 2004-07-04 13:19:21 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -40,7 +40,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.4 2004-07-04 13:19:21 Trocotronic Exp $
  */
 
 /*
@@ -96,7 +96,8 @@ char *unrealcredits[] =
 	"Andy Hansis - irc.technerd.net, Crimson - www.n00bstories.com",
 	"Devin Reams, Cleggo - irc.ugcentral.net, Tillo - irc.OSirc.net,",
 	"Matthew Burdine - irc.owns.us, Philip Veale - flame.tiefighter.org,",
-	"Windfyre IRC Network - irc.windfyre.net",
+	"Latinus - irc.lokanova.com, Vincent Guesnard - irc.rs2i.net,",
+	"Windfyre IRC Network - irc.windfyre.net, SetNine - www.setnine.com",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",
@@ -106,7 +107,7 @@ char *unrealcredits[] =
 	"- Donating a FreeBSD box to the Unreal project to host some stuff",
 	"KIREnet.com - http://www.kirenet.com",
 	"- Donating hosting for the above box on their line :)",
-	"Digital Intensity Webhosting - http://www.digital-intensity.net"
+	"Digital Intensity Webhosting - http://www.digital-intensity.net",
 	"- Donating hosting for the Unreal forums",
 	" ",
 	"Thanks go to all current mirror & DNS hosters. We really value",
