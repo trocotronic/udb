@@ -2,5 +2,9 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.1 2005-03-21 11:31:01 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.2 2005-03-21 11:56:01 Trocotronic Exp $
  */
+
+210305001 - Paso toda la documentación de la web a doc/technical/udb.html
+210305002 - Creo este archivo cambios.udb para loguear todos los cambios
+210305003 - *** Unreal 3.2.3 + UDB 3.1 es

@@ -54,6 +54,7 @@ Source: "..\..\badwords.quit.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\spamfilter.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\dccallow.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\Changes"; DestDir: "{app}"; DestName: "Changes.txt"; Flags: ignoreversion
+Source: "..\..\cambios.udb"; DestDir: "{app}"; DestName: "cambios.udb.txt"; Flags: ignoreversion
 Source: "..\..\Changes.old"; DestDir: "{app}"; DestName: "Changes.old.txt"; Flags: ignoreversion
 Source: "..\..\Donation"; DestDir: "{app}"; DestName: "Donation.txt"; Flags: ignoreversion
 Source: "..\..\help.conf"; DestDir: "{app}"; Flags: ignoreversion
