@@ -815,7 +815,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 	
 	if (MyConnect(sptr))
 	{
-		if ((i = check_client(sptr))) {
+		if ((i = check_client(sptr, username))) {
 			/* This had return i; before -McSkaf */
 			if (i == -5)
 				return FLUSH_BUFFER;
@@ -1110,8 +1110,9 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 	    sptr->hopcount + 1, sptr->lastnick, user->username, user->realhost,
 	    user->server, user->servicestamp, sptr->info,
 	    (!buf || *buf == '\0' ? "+" : buf),
-	    ((IsHidden(sptr)
-	    && (sptr->umodes & UMODE_SETHOST)) ? sptr->user->virthost : "*"));
+/*	    ((IsHidden(sptr)
+	    && (sptr->umodes & UMODE_SETHOST)) ? sptr->user->virthost : "*"));*/
+	    sptr->user->virthost);
 
 	/* Send password from sptr->passwd to NickServ for identification,
 	 * if passwd given and if NickServ is online.
@@ -2558,9 +2559,10 @@ CMD_FUNC(m_umode)
 #else
 		sptr->user->virthost = (char *)make_virthost(sptr->user->realhost,
 		    sptr->user->virthost, 1);
+		if (!dontspread)
+			sendto_serv_butone_token_opt(cptr, OPT_VHP, sptr->name,
+				MSG_SETHOST, TOK_SETHOST, "%s", sptr->user->virthost);
 #endif			    
-		sendto_serv_butone_token_opt(cptr, OPT_VHP, sptr->name,
-			MSG_SETHOST, TOK_SETHOST, "%s", sptr->user->virthost);
 		if (UHOST_ALLOWED == UHALLOW_REJOIN)
 		{
 			/* LOL, this is ugly ;) */

@@ -52,13 +52,20 @@ DLLFUNC int m_%COMMAND%(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_%COMMAND%)
   = {
 <<<<<<< m_template.c
+<<<<<<< m_template.c
   	2,
 	"test",
-	"$Id: m_template.c,v 1.1.1.2 2004-02-18 18:22:15 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.3 2004-02-19 15:33:28 Trocotronic Exp $",
 =======
+=======
+>>>>>>> 1.1.1.1.2.4
 	"m_%COMMAND%",
-	"$Id: m_template.c,v 1.1.1.2 2004-02-18 18:22:15 Trocotronic Exp $",
+<<<<<<< m_template.c
+	"$Id: m_template.c,v 1.1.1.3 2004-02-19 15:33:28 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.2
+=======
+	"$Id: m_template.c,v 1.1.1.3 2004-02-19 15:33:28 Trocotronic Exp $",
+>>>>>>> 1.1.1.1.2.4
 	"command /%COMMAND%", 
 	NULL,
 	NULL 

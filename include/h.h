@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.3 2004-02-19 15:33:28 Trocotronic Exp $
  */
 
 /*
@@ -129,7 +129,7 @@ ConfigItem_vhost	*Find_vhost(char *name);
 ConfigItem_deny_channel *Find_channel_allowed(char *name);
 ConfigItem_alias	*Find_alias(char *name);
 ConfigItem_help 	*Find_Help(char *command);
-int			AllowClient(aClient *cptr, struct hostent *hp, char *sockhost);
+int			AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *username);
 int parse_netmask(const char *text, struct IN_ADDR *addr, int *b);
 int match_ipv4(struct IN_ADDR *addr, struct IN_ADDR *mask, int b);
 #ifdef INET6
@@ -231,7 +231,7 @@ extern int readcalls, udpfd, resfd;
 extern aClient *add_connection(aClient *, int);
 extern int add_listener(aConfItem *);
 extern void add_local_domain(char *, int);
-extern int check_client(aClient *);
+extern int check_client(aClient *, char *);
 extern int check_server(aClient *, struct hostent *, aConfItem *,
     aConfItem *, int);
 extern int check_server_init(aClient *);

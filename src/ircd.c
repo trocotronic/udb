@@ -1333,7 +1333,7 @@ int InitwIRCD(int argc, char *argv[])
 	check_fdlists(TStime());
 #endif
 #ifdef UDB	
-	loadbdds();
+	bdd_init();
 #endif	
 
 #ifdef _WIN32
