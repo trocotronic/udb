@@ -56,12 +56,15 @@ ModuleHeader MOD_HEADER(m_%COMMAND%)
 <<<<<<< m_template.c
 <<<<<<< m_template.c
 <<<<<<< m_template.c
+<<<<<<< m_template.c
   	2,
 	"test",
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 =======
 =======
 >>>>>>> 1.1.1.1.2.4
+=======
+>>>>>>> 1.1.1.1.2.5
 =======
 >>>>>>> 1.1.1.1.2.5
 =======
@@ -73,19 +76,23 @@ ModuleHeader MOD_HEADER(m_%COMMAND%)
 <<<<<<< m_template.c
 <<<<<<< m_template.c
 <<<<<<< m_template.c
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+<<<<<<< m_template.c
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.2
 =======
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.4
 =======
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.5
 =======
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.5
 =======
-	"$Id: m_template.c,v 1.1.1.6 2004-05-17 15:46:28 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
+>>>>>>> 1.1.1.1.2.5
+=======
+	"$Id: m_template.c,v 1.1.1.7 2004-05-17 16:58:18 Trocotronic Exp $",
 >>>>>>> 1.1.1.1.2.5
 	"command /%COMMAND%", 
 	"3.2-b8-1",
