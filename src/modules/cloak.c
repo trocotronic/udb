@@ -68,7 +68,7 @@ Callback *cloak = NULL, *cloak_csum = NULL;
 ModuleHeader MOD_HEADER(cloak)
   = {
   "cloak",
-  "$Id: cloak.c,v 1.2 2004-07-04 02:47:35 Trocotronic Exp $",
+  "$Id: cloak.c,v 1.2.2.1 2004-07-04 02:58:05 Trocotronic Exp $",
   "Official cloaking module (md5)",
   "3.2-b8-1",
   NULL

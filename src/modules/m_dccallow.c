@@ -52,7 +52,7 @@ DLLFUNC int m_dccallow(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_dccallow)
   = {
 	"m_dccallow",
-	"$Id: m_dccallow.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
+	"$Id: m_dccallow.c,v 1.2.2.1 2004-07-04 02:58:05 Trocotronic Exp $",
 	"command /dccallow", 
 	"3.2-b8-1",
 	NULL 
