@@ -75,8 +75,19 @@ DLLFUNC int MOD_UNLOAD(m_privdeaf)(int module_unload)
 
 DLLFUNC char *privdeaf_checkmsg(aClient *cptr, aClient *sptr, aClient *acptr, char *text, int notice)
 {
-	if ((acptr->umodes & UMODE_PRIVDEAF) && !IsAnOper(sptr) && !IsULine(sptr) && !IsServer(sptr))
+	if ((acptr->umodes & UMODE_PRIVDEAF) && !IsAnOper(sptr) && !IsULine(sptr) && !IsServer(sptr)
+#ifdef UDB
+	&& acptr != sptr
+#endif
+	)
+#ifdef UDB
+	{
+		sendto_one(sptr, rpl_str(ERR_USERSILENCED), me.name, sptr->name, acptr->name, " (+D)");
+#endif
 		return NULL; /* Silently ignored >:) */
+#ifdef UDB
+	}
+#endif	
 	else
 		return text;
 }

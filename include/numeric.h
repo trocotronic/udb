@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
  */
 
 /*
@@ -130,6 +130,9 @@
 #define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502
 
+#ifdef UDB
+#define ERR_USERSILENCED     510
+#endif
 #define ERR_SILELISTFULL     511
 #define ERR_TOOMANYWATCH     512
 #define ERR_NEEDPONG         513
@@ -271,6 +274,7 @@
 #define RPL_STATSNLINE	     226
 #define RPL_STATSVLINE	     227
 #define RPL_STATSBANVER	     228
+#define RPL_STATSSPAMF       229
 #define RPL_SERVICEINFO      231
 #define RPL_RULES            232
 #define	RPL_SERVICE          233

@@ -32,8 +32,8 @@ static char sccsid[] = "@(#)support.c	2.21 4/13/94 1990, 1991 Armin Gruner;\
 #include <io.h>
 #else
 #include <string.h>
-
-
+#include <fcntl.h>
+#include <sys/stat.h>
 extern int errno;		/* ...seems that errno.h doesn't define this everywhere */
 #endif
 extern void outofmemory();
@@ -65,7 +65,7 @@ char	*my_itoa(int i)
 **			of separators
 **			argv 9/90
 **
-**	$Id: support.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.2 2004-02-18 18:24:13 Trocotronic Exp $
 */
 
 char *strtoken(char **save, char *str, char *fs)
@@ -116,7 +116,7 @@ char *strtok2(char *str, char *fs)
 **	strerror - return an appropriate system error string to a given errno
 **
 **		   argv 11/90
-**	$Id: support.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.2 2004-02-18 18:24:13 Trocotronic Exp $
 */
 
 char *strerror(int err_no)
@@ -133,15 +133,15 @@ char *strerror(int err_no)
 	{
 		errp = buff;
 #ifndef _WIN32
-		(void)ircsprintf(errp, "Unknown Error %d", err_no);
+		(void)ircsprintf(errp, "Error desconocido %d", err_no);
 #else
 		switch (err_no)
 		{
 		  case WSAECONNRESET:
-			  ircsprintf(errp, "Connection reset by peer");
+			  ircsprintf(errp, "Conexión reseteada");
 			  break;
 		  default:
-			  ircsprintf(errp, "Unknown Error %d", err_no);
+			  ircsprintf(errp, "Error desconocido %d", err_no);
 			  break;
 		}
 #endif
@@ -159,7 +159,7 @@ char *strerror(int err_no)
 **			internet number (some ULTRIX don't have this)
 **			argv 11/90).
 **	inet_ntoa --	its broken on some Ultrix/Dynix too. -avalon
-**	$Id: support.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.2 2004-02-18 18:24:13 Trocotronic Exp $
 */
 
 char *inetntoa(char *in)
@@ -181,7 +181,7 @@ char *inetntoa(char *in)
 /*
 **	inet_netof --	return the net portion of an internet number
 **			argv 11/90
-**	$Id: support.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.2 2004-02-18 18:24:13 Trocotronic Exp $
 **
 */
 
@@ -1685,3 +1685,102 @@ void	*MyMallocEx(size_t size)
 	return (p);
 }
 
+/* Returns a unique filename in the specified directory
+ * using the specified suffix. The returned value will
+ * be of the form <dir>/<random-hex>.<suffix>
+ */
+char *unreal_mktemp(char *dir, char *suffix)
+{
+	FILE *fd;
+	unsigned int i;
+	static char tempbuf[PATH_MAX+1];
+
+	for (i = 500; i > 0; i--)
+	{
+		snprintf(tempbuf, PATH_MAX, "%s/%X.%s", dir, getrandom32(), suffix);
+		fd = fopen(tempbuf, "r");
+		if (!fd)
+			return tempbuf;
+		fclose(fd);
+	}
+	config_error("Unable to create temporary file in directory '%s': %s",
+		dir, strerror(ERRNO)); /* eg: permission denied :p */
+	return NULL; 
+}
+
+/* Returns the filename portion of the given path
+ * The original string is not modified
+ */
+char *unreal_getfilename(char *path)
+{
+        int len = strlen(path);
+        char *end;
+        if (!len)
+                return NULL;
+        end = path+len-1;
+	if (*end == '\\' || *end == '/')
+		return NULL;
+        while (end > path)
+        {
+                if (*end == '\\' || *end == '/')
+                {
+                        end++;
+                        break;
+                }
+                end--;
+        }
+        return end;
+}
+
+/* Copys the contents of the src file to the dest file.
+ * The dest file will have permissions r-x------
+ */
+int unreal_copyfile(char *src, char *dest)
+{
+#ifndef _WIN32
+	char buf[2048];
+	int srcfd = open(src, O_RDONLY);
+	int destfd;
+	int len;
+
+	if (srcfd < 0)
+		return 0;
+
+	destfd  = open(dest, O_WRONLY|O_CREAT, DEFAULT_PERMISSIONS);
+
+	if (destfd < 0)
+	{
+		config_error("Unable to create file '%s': %s", dest, strerror(ERRNO));
+		return 0;
+	}
+
+	while ((len = read(srcfd, buf, 1023)) > 0)
+		if (write(destfd, buf, len) != len)
+		{
+			config_error("Write error to file '%s': %s [not enough free hd space / quota? need several mb's!]",
+				dest, strerror(ERRNO));
+			goto fail;
+		}
+
+	if (len < 0) /* very unusual.. perhaps an I/O error */
+	{
+		config_error("Read error from file '%s': %s", src, strerror(ERRNO));
+		goto fail;
+	}
+
+	close(srcfd);
+	close(destfd);
+#if defined(IRC_UID) && defined(IRC_GID)
+	if (!loop.ircd_booted)
+		chown(dest, IRC_UID, IRC_GID);
+#endif
+	return 1;
+fail:
+	close(srcfd);
+	close(destfd);
+	unlink(dest); /* make sure our corrupt file isn't used */
+	return 0;
+#else
+	return 0;
+#endif
+}

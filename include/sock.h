@@ -20,9 +20,18 @@
  */
 
 /*
- * $Id: sock.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ * $Id: sock.h,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
  *
+<<<<<<< sock.h
  * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.1  2003/11/28 22:55:50  Trocotronic
+ * Empezamos
+=======
+ * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.1.2.1  2004/02/16 16:48:03  Trocotronic
+ * Subimos a versión 3.2-RC1 y UDB v1.0
+>>>>>>> 1.1.1.1.2.1
+ *
  * Revision 1.1.1.1.6.1.2.1  2000/07/14 20:22:57  stskeeps
  * +- Indentation and more SJ3 fixes
  *

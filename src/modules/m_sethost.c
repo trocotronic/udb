@@ -53,7 +53,7 @@ DLLFUNC int m_sethost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sethost)
   = {
 	"sethost",	/* Name of module */
-	"$Id: m_sethost.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_sethost.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $", /* Version */
 	"command /sethost", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -185,7 +185,7 @@ DLLFUNC int m_sethost(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		return 0;
 	}
 
-	if (!strcmp(GetHost(sptr), vhost))
+	if (MyClient(sptr) && !strcmp(GetHost(sptr), vhost))
 	{
 		sendto_one(sptr,
 		    ":%s NOTICE %s :*** /SetHost Error: requested host is same as current host.",

@@ -350,7 +350,7 @@ static char *replies[] = {
 #endif
 /* 311    RPL_WHOISUSER */ ":%s 311 %s %s %s %s * :%s",
 /* 312    RPL_WHOISSERVER */ ":%s 312 %s %s %s :%s",
-/* 313    RPL_WHOISOPERATOR */ ":%s 313 %s %s :is %s",
+/* 313    RPL_WHOISOPERATOR */ ":%s 313 %s %s :es %s",
 /* 314    RPL_WHOWASUSER */ ":%s 314 %s %s %s %s * :%s",
 /* 315    RPL_ENDOFWHO */ ":%s 315 %s %s :Fin de /WHO",
 /* 316 */ NULL, /* Used */
@@ -384,7 +384,7 @@ static char *replies[] = {
 /* 340 */ NULL,
 /* 341    RPL_INVITING */ ":%s 341 %s %s %s",
 #ifdef UDB
-/* 342    RPL_MSGONLYREG */ ":%s 342 %s %s :Solo admite privados de usuarios registrados",
+/* 342    RPL_MSGONLYREG */ ":%s 342 %s %s :Sólo admite privados de usuarios registrados",
 /* 343	  RPL_SUMMONING */ ":%s 342 %s %s :User bajo shun",
 #else
 /* 342    RPL_SUMMONING */ ":%s 342 %s %s :User summoned to irc",
@@ -428,7 +428,7 @@ static char *replies[] = {
 /* 375    RPL_MOTDSTART */ ":%s 375 %s :- %s Mensaje del día - ",
 /* 376    RPL_ENDOFMOTD */ ":%s 376 %s :Fin de /MOTD",
 /* 377 */ NULL,
-/* 378    RPL_WHOISHOST */ ":%s 378 %s %s :Dirección VIRTUAL *@%s",
+/* 378    RPL_WHOISHOST */ ":%s 378 %s %s :Dirección VIRTUAL %s",
 /* 379    RPL_WHOISMODES */ ":%s 379 %s %s :utiliza los modos [%s]",
 /* 380 */ NULL, 
 /* 381    RPL_YOUREOPER */ ":%s 381 %s :Eres un IRCop",
@@ -558,7 +558,7 @@ static char *replies[] = {
 /* 483    ERR_CANTKILLSERVER */ ":%s 483 %s :No puedes hacer kill a un servidor",
 /* 484    ERR_ATTACKDENY */ ":%s 484 %s %s :No puedes echar a %s porque está protegido",
 /* 485    ERR_KILLDENY */ ":%s 485 %s :No puedes hacer kill a %s porque está protegido",
-/* 486    ERR_NONONREG */ ":%s 486 %s :No puedes enviar texto a %s (+M)",
+/* 486    ERR_NONONREG */ ":%s 486 %s :No puedes enviar texto a %s (+R)",
 /* 487    ERR_NOTFORUSERS */ ":%s 487 %s :%s comando para servidores",
 /* 488    ERR_HTMDISABLED */ ":%s 488 %s :%s desactivado.",
 /* 489    ERR_SECUREONLYCHAN */ ":%s 489 %s %s :No puedes entrar (+z)",
@@ -582,7 +582,11 @@ static char *replies[] = {
 /* 507 */ NULL,
 /* 508 */ NULL,
 /* 509 */ NULL,
+#ifdef UDB
+/* 510    ERR_USERSILENCED */ ":%s 510 %s :No puedes hablar con %s, te está silenciando%s", 
+#else
 /* 510 */ NULL,
+#endif
 /* 511    ERR_SILELISTFULL */ ":%s 511 %s %s :Tu lista de silences está llena",
 /* 512    ERR_TOOMANYWATCH */ ":%s 512 %s %s :Tamaño máximo de tu lista WATCH es 128",
 /* 513    ERR_NEEDPONG */ ":%s 513 %s :Para conectar escribe /QUOTE PONG %lX",

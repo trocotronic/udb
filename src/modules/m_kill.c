@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.2 2004-02-18 18:24:15 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -266,7 +266,7 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		 * By otherguy
 		*/
                 ircd_log
-                    (LOG_KILL, "KILL (%s por  %s(%s!%s)",
+                    (LOG_KILL, "KILL (%s) by  %s(%s!%s)",
                            make_nick_user_host
                      (acptr->name, acptr->user->username, GetHost(acptr)),
                             parv[0],
@@ -308,8 +308,9 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		 */
 		if (MyConnect(acptr) && MyConnect(sptr) && IsAnOper(sptr))
 
-			(void)ircsprintf(buf2, "Killed (%s)",
-			    parv[2]);
+			(void)ircsprintf(buf2, "[%s] Local kill by %s (%s)",
+			    me.name, sptr->name,
+			    BadPtr(parv[2]) ? sptr->name : parv[2]);
 		else
 		{
 			if ((killer = index(path, ' ')))

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: common.h,v 1.1.1.1 2003-11-28 22:55:48 Trocotronic Exp $
+ *   $Id: common.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
  */
 
 #ifndef	__common_include__
@@ -250,7 +250,7 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
 		" KICKLEN=%i"     \
 		" MAXTARGETS=%i"  \
 		" AWAYLEN=%i"	  \
-		" :are supported by this server"
+		" :se soportan por este servidor"
 #define PROTOCTL_PARAMETERS_1	  \
 		MAXCHANNELSPERUSER, \
 		MAXBANS, \
@@ -286,11 +286,12 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
 		" CHANMODES=%s%s,%s%s,%s%s,%s%s" \
 		" NETWORK=%s" 	  \
 		" CASEMAPPING=%s" \
-		" :are supported by this server"
+		" EXTBAN=~,%s" \
+		" :se soportan por este servidor"
 
 #define PROTOCTL_PARAMETERS_2	  \
 		MAXWATCH, \
-		MAXSILES, \
+		SILENCE_LIMIT, \
 		MAXMODEPARAMS, \
 		"#", \
 		CHPFIX, \
@@ -299,7 +300,8 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
 		CHPAR3, EXPAR3, \
 		"psmntirRcOAQKVGCuzNSM", EXPAR4, \
 		ircnet005, \
-		"ascii"
+		"ascii", \
+		extbanstr
 
 /* Server-Server PROTOCTL -Stskeeps
  * Please check send_proto() for more. -- Syzop

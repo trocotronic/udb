@@ -58,7 +58,7 @@ extern ircstats IRCstats;
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 
@@ -88,7 +88,6 @@ DLLFUNC int MOD_UNLOAD(m_svsmode)(int module_unload)
 }
 
 extern void add_send_mode_param(aChannel *chptr, aClient *from, char what, char mode, char *param);
-extern char modebuf[MODEBUFLEN], parabuf[MODEBUFLEN];
 int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[]) 
 {
 	aChannel *chptr;
@@ -328,16 +327,29 @@ char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
 				if ((what == MODE_DEL) && (acptr->umodes & UMODE_INVISIBLE))
 					IRCstats.invisible--;
 				goto setmodex;
+			case 'O': /* Locops are opers too! */
+				if (what == MODE_ADD)
+				{
+#ifndef NO_FDLIST
+					if (!IsAnOper(acptr) && MyClient(acptr))
+						addto_fdlist(acptr->slot, &oper_fdlist);
+#endif
+					acptr->umodes &= ~UMODE_OPER;
+				}
+#ifndef NO_FDLIST
+				if (what == MODE_DEL && (acptr->umodes & UMODE_LOCOP) && MyClient(acptr))
+					delfrom_fdlist(acptr->slot, &oper_fdlist);
+#endif
+				goto setmodex;					
 			case 'o':
 				if ((what == MODE_ADD) && !(acptr->umodes & UMODE_OPER))
 				{
-					if (IsLocOp(acptr))
-						acptr->umodes &= ~UMODE_LOCOP; /* can't be both local and global */
-					IRCstats.operators++;
 #ifndef NO_FDLIST
-					if (MyClient(acptr))
+					if (MyClient(acptr) && !IsLocOp(acptr))
 						addto_fdlist(acptr->slot, &oper_fdlist);
 #endif
+					acptr->umodes &= ~UMODE_LOCOP; /* can't be both local and global */
+					IRCstats.operators++;
 				}
 				if ((what == MODE_DEL) && (acptr->umodes & UMODE_OPER))
 				{

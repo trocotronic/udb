@@ -112,7 +112,7 @@ DLLFUNC int m_getinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_getinfo)
   = {
 	"getinfo",
-	"$Id: m_getinfo.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_getinfo.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $",
 	"command /getinfo",
 	"3.2-b8-1",
 	NULL 
@@ -156,7 +156,6 @@ DLLFUNC int MOD_UNLOAD(m_getinfo)(int module_unload)
 // Buffers
 // =================================================================
 
-char modebuf[MAXMODEPARAMS*2+1], parabuf[504];
 char mybuf[201];
 
 // =================================================================
@@ -394,19 +393,6 @@ void messagestats(aClient *cptr, MessageStats *ms)
 		ms->recvB &= 0x3ff;
 	}
 }
-
-// =================================================================
-// cFlagTab[] (referring to src/channel.c)
-// =================================================================
-
-typedef struct {
-        long mode;
-        char flag;
-        unsigned  halfop : 1;           /* 1 = yes 0 = no */
-        unsigned  parameters : 1;
-} aCtab;
-
-extern aCtab cFlagTab[];
 
 // =================================================================
 // I needed a FULL channel mode string,

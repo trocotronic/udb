@@ -43,6 +43,9 @@ static char sccsid[] =
 #include "h.h"
 #include "proto.h"
 #include <string.h>
+#ifdef USE_LIBCURL
+#include <curl/curl.h>
+#endif
 #ifdef UDB
 #include "s_bdd.h"
 #endif
@@ -151,6 +154,18 @@ CMD_FUNC(m_version)
 		    serveropts, extraflags ? extraflags : "",
 		    tainted ? "3" : "",
 		    (IsAnOper(sptr) ? MYOSNAME : "*"), UnrealProtocol);
+#ifdef USE_SSL
+		if (IsAnOper(sptr))
+			sendto_one(sptr, ":%s NOTICE %s :%s", me.name, sptr->name, OPENSSL_VERSION_TEXT);
+#endif
+#ifdef ZIP_LINKS
+		if (IsAnOper(sptr))
+			sendto_one(sptr, ":%s NOTICE %s :zlib %s", me.name, sptr->name, zlibVersion());
+#endif
+#ifdef USE_LIBCURL
+		if (IsAnOper(sptr))
+			sendto_one(sptr, ":%s NOTICE %s :%s", me.name, sptr->name, curl_version());
+#endif
 		if (MyClient(sptr)) {
 normal:
 			sendto_one(sptr, ":%s 005 %s " PROTOCTL_CLIENT_1, me.name, sptr->name, PROTOCTL_PARAMETERS_1);
@@ -161,407 +176,6 @@ normal:
 			sendto_one(sptr, ":%s 105 %s " PROTOCTL_CLIENT_2, me.name, sptr->name, PROTOCTL_PARAMETERS_2);
 		}
 	}
-	return 0;
-}
-
-/*
-** m_squit
-**	parv[0] = sender prefix
-**	parv[1] = server name
-**	parv[parc-1] = comment
-*/
-CMD_FUNC(m_squit)
-{
-	char *server;
-	aClient *acptr;
-	char *comment = (parc > 2 && parv[parc - 1]) ?
-	    parv[parc - 1] : cptr->name;
-
-
-	if (!IsPrivileged(sptr))
-	{
-		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-		return 0;
-	}
-
-	if (parc > 1)
-	{
-		if (!(*parv[1] == '@'))
-		{
-			server = parv[1];
-
-			/*
-			   ** The following allows wild cards in SQUIT. Only usefull
-			   ** when the command is issued by an oper.
-			 */
-			for (acptr = client;
-			    (acptr = next_client(acptr, server));
-			    acptr = acptr->next)
-				if (IsServer(acptr) || IsMe(acptr))
-					break;
-			if (acptr && IsMe(acptr))
-			{
-				acptr = cptr;
-				server = cptr->sockhost;
-			}
-		}
-		else
-		{
-			server = parv[1];
-			acptr = (aClient *)find_server_by_base64(server + 1);
-			if (acptr && IsMe(acptr))
-			{
-				acptr = cptr;
-				server = cptr->sockhost;
-			}
-		}
-	}
-	else
-	{
-		/*
-		   ** This is actually protocol error. But, well, closing
-		   ** the link is very proper answer to that...
-		 */
-		server = cptr->sockhost;
-		acptr = cptr;
-	}
-
-	/*
-	   ** SQUIT semantics is tricky, be careful...
-	   **
-	   ** The old (irc2.2PL1 and earlier) code just cleans away the
-	   ** server client from the links (because it is never true
-	   ** "cptr == acptr".
-	   **
-	   ** This logic here works the same way until "SQUIT host" hits
-	   ** the server having the target "host" as local link. Then it
-	   ** will do a real cleanup spewing SQUIT's and QUIT's to all
-	   ** directions, also to the link from which the orinal SQUIT
-	   ** came, generating one unnecessary "SQUIT host" back to that
-	   ** link.
-	   **
-	   ** One may think that this could be implemented like
-	   ** "hunt_server" (e.g. just pass on "SQUIT" without doing
-	   ** nothing until the server having the link as local is
-	   ** reached). Unfortunately this wouldn't work in the real life,
-	   ** because either target may be unreachable or may not comply
-	   ** with the request. In either case it would leave target in
-	   ** links--no command to clear it away. So, it's better just
-	   ** clean out while going forward, just to be sure.
-	   **
-	   ** ...of course, even better cleanout would be to QUIT/SQUIT
-	   ** dependant users/servers already on the way out, but
-	   ** currently there is not enough information about remote
-	   ** clients to do this...   --msa
-	 */
-	if (!acptr)
-	{
-		sendto_one(sptr, err_str(ERR_NOSUCHSERVER),
-		    me.name, parv[0], server);
-		return 0;
-	}
-	if (MyClient(sptr) && ((!OPCanGRoute(sptr) && !MyConnect(acptr)) ||
-	    (!OPCanLRoute(sptr) && MyConnect(acptr))))
-	{
-		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-		return 0;
-	}
-	/*
-	   **  Notify all opers, if my local link is remotely squitted
-	 */
-	if (MyConnect(acptr) && !IsAnOper(cptr))
-	{
-
-		sendto_locfailops("SQUIT recibido %s de %s (%s)",
-		    acptr->name, get_client_name(sptr, FALSE), comment);
-		sendto_serv_butone(&me,
-		    ":%s GLOBOPS :SQUIT recibido %s de %s (%s)", me.name,
-		    server, get_client_name(sptr, FALSE), comment);
-	}
-	else if (MyConnect(acptr))
-	{
-		if (acptr->user)
-		{
-			sendto_one(sptr,
-			    ":%s %s %s :*** Cannot do fake kill by SQUIT !!!",
-			    me.name, IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name);
-			sendto_ops
-			    ("%s tried to do a fake kill using SQUIT (%s (%s))",
-			    sptr->name, acptr->name, comment);
-			sendto_serv_butone(&me,
-			    ":%s GLOBOPS :%s tried to fake kill using SQUIT (%s (%s))",
-			    me.name, sptr->name, acptr->name, comment);
-			return 0;
-		}
-		sendto_locfailops("SQUIT recibido %s de %s (%s)",
-		    acptr->name, get_client_name(sptr, FALSE), comment);
-		sendto_serv_butone(&me,
-		    ":%s GLOBOPS :SQUIT recibido %s de %s (%s)", me.name,
-		    acptr->name, get_client_name(sptr, FALSE), comment);
-	}
-	if (IsAnOper(sptr))
-	{
-		/*
-		 * It was manually /squit'ed by a human being(we hope),
-		 * there is a very good chance they don't want us to
-		 * reconnect right away.  -Cabal95
-		 */
-		acptr->flags |= FLAGS_SQUIT;
-	}
-
-	return exit_client(cptr, acptr, sptr, comment);
-}
-
-/*
- * m_protoctl
- *	parv[0] = Sender prefix
- *	parv[1+] = Options
- */
-CMD_FUNC(m_protoctl)
-{
-	int  i;
-#ifndef PROTOCTL_MADNESS
-	int  remove = 0;
-#endif
-	char proto[128], *s;
-/*	static char *dummyblank = "";	Yes, it is kind of ugly */
-
-#ifdef PROTOCTL_MADNESS
-	if (GotProtoctl(sptr))
-	{
-		/*
-		 * But we already GOT a protoctl msg!
-		 */
-		if (!IsServer(sptr))
-			sendto_one(cptr,
-			    "ERROR :Already got a PROTOCTL from you.");
-		return 0;
-	}
-#endif
-	cptr->flags |= FLAGS_PROTOCTL;
-	/* parv[parc - 1] */
-	for (i = 1; i < parc; i++)
-	{
-		strncpyzt(proto, parv[i], sizeof proto);
-		s = proto;
-#ifndef PROTOCTL_MADNESS
-		if (*s == '-')
-		{
-			s++;
-			remove = 1;
-		}
-		else
-			remove = 0;
-#endif
-/*		equal = (char *)index(proto, '=');
-		if (equal == NULL)
-			options = dummyblank;
-		else
-		{
-			options = &equal[1];
-			equal[0] = '\0';
-		}
-*/
-		if (strcmp(s, "NOQUIT") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearNoQuit(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetNoQuit(cptr);
-
-		}
-		else if (strcmp(s, "TOKEN") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearToken(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetToken(cptr);
-		}
-		else if (strcmp(s, "HCN") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearHybNotice(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetHybNotice(cptr);
-		}
-		else if (strcmp(s, "SJOIN") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearSJOIN(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetSJOIN(cptr);
-		}
-		else if (strcmp(s, "SJOIN2") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearSJOIN2(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetSJOIN2(cptr);
-		}
-		else if (strcmp(s, "NICKv2") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearNICKv2(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetNICKv2(cptr);
-		}
-		else if (strcmp(s, "UMODE2") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearUMODE2(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetUMODE2(cptr);
-		}
-		else if (strcmp(s, "NS") == 0)
-		{
-#ifdef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearNS(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetNS(cptr);
-		}
-		else if (strcmp(s, "VL") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearVL(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetVL(cptr);
-		}
-		else if (strcmp(s, "VHP") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearVHP(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetVHP(cptr);
-		}
-		else if (strcmp(s, "SJ3") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearSJ3(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetSJ3(cptr);
-		}
-		else if (strcmp(s, "SJB64") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				cptr->proto &= ~PROTO_SJB64;
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR,
-			    "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			cptr->proto |= PROTO_SJB64;
-		}
-		else if (strcmp(s, "ZIP") == 0)
-		{
-			if (remove)
-			{
-				cptr->proto &= ~PROTO_ZIP;
-				continue;
-			}
-			Debug((DEBUG_ERROR,
-				"Chose protocol %s for link %s",
-				proto, cptr->name));
-			cptr->proto |= PROTO_ZIP;
-		}
-		/*
-		 * Add other protocol extensions here, with proto
-		 * containing the base option, and options containing
-		 * what it equals, if anything.
-		 *
-		 * DO NOT error or warn on unknown proto; we just don't
-		 * support it.
-		 */
-#ifdef UDB
- 		else if (strcmp(s, "UDB") == 0)
-		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
-			{
-				ClearUDB(cptr);
-				continue;
-			}
-#endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			SetUDB(cptr);
-		}
-#endif			 
-	}
-
 	return 0;
 }
 
@@ -1061,7 +675,6 @@ CMD_FUNC(m_server_remote)
 	add_server_to_table(acptr);
 	IRCstats.servers++;
 	(void)find_or_add(acptr->name);
-   /*	acptr->flags |= FLAGS_TS8; */
 	add_client_to_list(acptr);
 	(void)add_to_client_hash_table(acptr->name, acptr);
 	RunHook(HOOKTYPE_SERVER_CONNECT, acptr);
@@ -1198,7 +811,6 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 #endif
 	if ((Find_uline(cptr->name)))
 		cptr->flags |= FLAGS_ULINE;
-  /*	cptr->flags |= FLAGS_TS8; */
 	nextping = TStime();
 	(void)find_or_add(cptr->name);
 #ifdef USE_SSL
@@ -1383,10 +995,10 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 					    && acptr->srvptr->serv->numeric)
 					{
 						sendto_one(cptr,
-						    cptr->proto & PROTO_SJB64 ?
+						    ((cptr->proto & PROTO_SJB64) ?
 						    "%s %s %d %B %s %s %b %lu %s %s :%s"
 						    :
-						    "%s %s %d %ld %s %s %b %lu %s %s :%s",
+						    "%s %s %d %lu %s %s %b %lu %s %s :%s"),
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
@@ -1405,7 +1017,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    (cptr->proto & PROTO_SJB64 ?
 						    "%s %s %d %B %s %s %s %lu %s %s :%s"
 						    :
-						    "%s %s %d %ld %s %s %s %lu %s %s :%s"),
+						    "%s %s %d %lu %s %s %s %lu %s %s :%s"),
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
@@ -2854,56 +2466,6 @@ CMD_FUNC(m_goper)
 	sendto_opers("desde %s: %s", parv[0], message);
 	return 0;
 }
-/*
-** m_time
-**	parv[0] = sender prefix
-**	parv[1] = servername
-*/
-CMD_FUNC(m_time)
-{
-	if (hunt_server_token(cptr, sptr, MSG_TIME, TOK_TIME, ":%s", 1, parc,
-	    parv) == HUNTED_ISME)
-		sendto_one(sptr, rpl_str(RPL_TIME), me.name, parv[0], me.name,
-		    date((long)0));
-	return 0;
-}
-
-/*
-** m_svskill
-**	parv[0] = servername
-**	parv[1] = client
-**	parv[2] = kill message
-*/
-CMD_FUNC(m_svskill)
-{
-	aClient *acptr;
-	/* this is very wierd ? */
-	char *comment = NULL;
-
-
-	if (parc < 2)
-		return -1;
-	if (parc > 3)
-		return -1;
-	if (parc == 3)
-		comment = parv[2];
-
-	if (parc == 2)
-		comment = "SVS Killed";
-
-	if (!IsULine(sptr))
-		return -1;
-
-
-	if (!(acptr = find_person(parv[1], NULL)))
-		return 0;
-
-	sendto_serv_butone_token(cptr, parv[0],
-	    MSG_SVSKILL, TOK_SVSKILL, "%s :%s", parv[1], comment);
-
-	return exit_client(cptr, acptr, sptr, comment);
-
-}
 
 /*
 ** m_admin
@@ -2964,6 +2526,15 @@ ConfigItem_tld *tlds;
 	}
 }
 
+static void reread_motdsandrules()
+{
+	motd = (aMotd *) read_file_ex(MPATH, &motd, &motd_tm);
+	rules = (aMotd *) read_file(RPATH, &rules);
+	smotd = (aMotd *) read_file_ex(SMPATH, &smotd, &smotd_tm);
+	botmotd = (aMotd *) read_file(BPATH, &botmotd);
+	opermotd = (aMotd *) read_file(OPATH, &opermotd);
+}
+
 /*
 ** m_rehash
 ** remote rehash by binary
@@ -2971,11 +2542,12 @@ ConfigItem_tld *tlds;
 ** ugly code but it seems to work :) -- codemastr
 ** added -all and fixed up a few lines -- niquil (niquil@programmer.net)
 ** fixed remote rehashing, but it's getting a bit weird code again -- Syzop
+** removed '-all' code, this is now considered as '/rehash', this is ok
+** since we rehash everything with simple '/rehash' now. Syzop/20040205
 */
 CMD_FUNC(m_rehash)
 {
 	int  x;
-
 
 	if (MyClient(sptr) && !OPCanRehash(sptr))
 	{
@@ -3012,12 +2584,19 @@ CMD_FUNC(m_rehash)
 #endif
 		if (parv[2] == NULL)
 		{
+			if (loop.ircd_rehashing)
+			{
+				sendto_one(sptr, ":%s NOTICE %s :A rehash is already in progress",
+					me.name, sptr->name);
+				return 0;
+			}
 			sendto_serv_butone(&me,
 			    ":%s GLOBOPS :%s refresca configuración",
 			    me.name, sptr->name);
 			sendto_ops
 			    ("%s refresca configuración",
 			    parv[0]);
+			reread_motdsandrules();
 			return rehash(cptr, sptr,
 			    (parc > 1) ? ((*parv[1] == 'q') ? 2 : 0) : 0);
 		}
@@ -3035,22 +2614,10 @@ CMD_FUNC(m_rehash)
 
 		if (*parv[1] == '-')
 		{
-			if (!_match("-all", parv[1]))
-			{
-				sendto_ops("%sRehashing everything on the request of %s",
-					cptr != sptr ? "Remotely " : "",sptr->name);
-				if (cptr != sptr)
-					sendto_serv_butone(&me, ":%s GLOBOPS :%s is remotely rehashing everything", me.name, sptr->name);
-				opermotd = (aMotd *) read_file(OPATH, &opermotd);
-				botmotd = (aMotd *) read_file(BPATH, &botmotd);
-				rehash_motdrules();
-				RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
-				return 0;
-			}
 			if (!strnicmp("-gar", parv[1], 4))
 			{
 				loop.do_garbage_collect = 1;
-				RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
+				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
 				return 0;
 			}
 			if (!_match("-o*motd", parv[1]))
@@ -3062,7 +2629,7 @@ CMD_FUNC(m_rehash)
 				if (cptr != sptr)
 					sendto_serv_butone(&me, ":%s GLOBOPS :%s is remotely rehashing OperMOTD", me.name, sptr->name);
 				opermotd = (aMotd *) read_file(OPATH, &opermotd);
-				RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
+				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
 				return 0;
 			}
 			if (!_match("-b*motd", parv[1]))
@@ -3074,7 +2641,7 @@ CMD_FUNC(m_rehash)
 				if (cptr != sptr)
 					sendto_serv_butone(&me, ":%s GLOBOPS :%s is remotely rehashing BotMOTD", me.name, sptr->name);
 				botmotd = (aMotd *) read_file(BPATH, &botmotd);
-				RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
+				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
 				return 0;
 			}
 			if (!strnicmp("-motd", parv[1], 5)
@@ -3087,24 +2654,26 @@ CMD_FUNC(m_rehash)
 				if (cptr != sptr)
 					sendto_serv_butone(&me, ":%s GLOBOPS :%s is remotely rehashing all MOTDs and RULES", me.name, sptr->name);
 				rehash_motdrules();
-				RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
+				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
 				return 0;
 			}
-			RunHook(HOOKTYPE_REHASHFLAG, parv[1]);
+			RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
 			return 0;
 		}
 	}
 	else
+	{
+		if (loop.ircd_rehashing)
+		{
+			sendto_one(sptr, ":%s NOTICE %s :Ya se está refrescando",
+				me.name, sptr->name);
+			return 0;
+		}
 		sendto_ops("%s refresca configuración", parv[0]);
-#ifdef UDB
-	loadbdds();
-#endif
-	/* Normal rehash, rehash main motd&rules too, just like the on in the tld block will :p */
-	motd = (aMotd *) read_file_ex(MPATH, &motd, &motd_tm);
-	rules = (aMotd *) read_file(RPATH, &rules);
-	smotd = (aMotd *) read_file_ex(SMPATH, &smotd, &smotd_tm);
-	botmotd = (aMotd *) read_file(BPATH, &botmotd);
-	opermotd = (aMotd *) read_file(OPATH, &opermotd);
+	}
+
+	/* Normal rehash, rehash motds&rules too, just like the on in the tld block will :p */
+	reread_motdsandrules();
 	if (cptr == sptr)
 		sendto_one(sptr, rpl_str(RPL_REHASHING), me.name, parv[0], configfile);
 	return rehash(cptr, sptr, (parc > 1) ? ((*parv[1] == 'q') ? 2 : 0) : 0);
@@ -3121,73 +2690,70 @@ CMD_FUNC(m_rehash)
 */
 CMD_FUNC(m_restart)
 {
-	int  x;
-	if (MyClient(sptr) && !OPCanRestart(sptr))
-	{
-		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-		return 0;
-	}
-	if (!MyClient(sptr) && !IsNetAdmin(sptr)
-	    && !IsULine(sptr))
-	{
-		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-		return 0;
-	}
-	if (parc > 3)
-	{
-		/* Remote restart. */
-		if (MyClient(sptr) && !IsNetAdmin(sptr))
-		{
-			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
-			    parv[0]);
-			return 0;
-		}
+	char *reason = NULL;
+	/* Check permissions */
+        if (MyClient(sptr) && !OPCanRestart(sptr))
+        {
+                sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+                return 0;
+        }
+        if (!MyClient(sptr) && !IsNetAdmin(sptr)
+            && !IsULine(sptr))
+        {
+                sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+                return 0;
+        }
 
-		if ((x =
-		    hunt_server_token(cptr, sptr, MSG_RESTART, TOK_RESTART, "%s %s :%s", 2, parc,
-		    parv)) != HUNTED_ISME)
-			return 0;
-	}
-
-	if (conf_drpass)
+	/* Syntax: /restart */
+	if (parc == 1)
 	{
-		if (parc < 2)
+		if (conf_drpass)
 		{
 			sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name,
-			    parv[0], "RESTART");
-			return 0;
+                            parv[0], "RESTART");
+                        return 0;
 		}
-		x = Auth_Check(cptr, conf_drpass->restartauth, parv[1]);
-		if (x == -1)
-		{
-			sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name,
-			    parv[0]);
-			return 0;
-		}
-		if (x < 1)
-		{
-			return 0;
-		}
-		/* Hack to make the code after this if { } easier: we assign the comment to the
-		 * first param, as if we had not had an X:line. We do not need the password
-		 * now anyways. Accordingly we decrement parc ;)    -- NikB
-		 */
-		parv[1] = parv[2];
-		parc--;
 	}
-	if (cptr != sptr)
+	else if (parc == 2)
 	{
-		sendto_serv_butone(&me,
-		    ":%s GLOBOPS :%s reinicia servidor (%s)",
-		    me.name, sptr->name, parv[3]);
-		sendto_ops("%s reinicia servidor (%s)", parv[0],
-		    parv[3]);
-
+		/* Syntax: /restart <pass> */
+		if (conf_drpass)
+		{
+			int ret;
+			ret = Auth_Check(cptr, conf_drpass->restartauth, parv[1]);
+			if (ret == -1)
+			{
+				sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name,
+					   parv[0]);
+				return 0;
+			}
+			if (ret < 1)
+				return 0;
+		}
+		/* Syntax: /rehash <reason> */
+		else 
+			reason = parv[1];
 	}
-
-	sendto_ops("%s reinicia el servidor", parv[0]);
-	server_reboot((!MyClient(sptr) ? (parc > 2 ? parv[3] : "Sin razón")
-	    : (parc > 1 ? parv[2] : "Sin razón")));
+	else if (parc == 3)
+	{
+		/* Syntax: /restart <pass> <reason> */
+		if (conf_drpass)
+		{
+			int ret;
+			ret = Auth_Check(cptr, conf_drpass->restartauth, parv[1]);
+			if (ret == -1)
+			{
+				sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name,
+					   parv[0]);
+				return 0;
+			}
+			if (ret < 1)
+				return 0;
+		}
+		reason = parv[2];
+	}
+	sendto_ops("%s resetea el servidor", parv[0]);
+	server_reboot(reason ? reason : "Sin razó");
 	return 0;
 }
 
@@ -3666,20 +3232,20 @@ CMD_FUNC(m_botmotd)
 
 	if (botmotd == (aMotd *) NULL)
 	{
-		sendto_one(sptr, ":%s NOTICE AUTH :BOTMOTD No se encuentra archivo",
-		    me.name);
+		sendto_one(sptr, ":%s NOTICE %s :BOTMOTD No se encuentra archivo",
+		    me.name, sptr->name);
 		return 0;
 	}
-	sendto_one(sptr, ":%s NOTICE AUTH :- %s Bot Message of the Day - ",
-	    me.name, me.name);
+	sendto_one(sptr, ":%s NOTICE %s :- %s Bot Message of the Day - ",
+	    me.name, sptr->name, me.name);
 
 	temp = botmotd;
 	while (temp)
 	{
-		sendto_one(sptr, ":%s NOTICE AUTH :- %s", me.name, temp->line);
+		sendto_one(sptr, ":%s NOTICE %s :- %s", me.name, sptr->name, temp->line);
 		temp = temp->next;
 	}
-	sendto_one(sptr, ":%s NOTICE AUTH :Fin de /BOTMOTD.", me.name);
+	sendto_one(sptr, ":%s NOTICE %s :Fin de /BOTMOTD.", me.name, sptr->name);
 	return 0;
 }
 

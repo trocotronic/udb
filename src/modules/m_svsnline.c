@@ -55,7 +55,7 @@ DLLFUNC int m_svsnline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnline)
   = {
 	"svsnline",	/* Name of module */
-	"$Id: m_svsnline.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_svsnline.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $", /* Version */
 	"command /svsnline", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -172,7 +172,7 @@ DLLFUNC int m_svsnline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				continue;
 			if (bconf->flag.type2 != CONF_BAN_TYPE_AKILL)
 				continue;
-			if (!stricmp(bconf->mask, parv[3]))
+			if (!stricmp(bconf->mask, parv[2]))
 				break;
 		  }
 		  if (bconf)

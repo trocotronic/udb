@@ -42,6 +42,9 @@
 #include <dlfcn.h>
 #endif
 #include <fcntl.h>
+#ifndef _WIN32
+#include <dirent.h>
+#endif
 #include "h.h"
 #include "proto.h"
 #ifndef RTLD_NOW
@@ -75,6 +78,34 @@ void *obsd_dlsym(void *handle, char *symbol) {
 }
 #endif
 
+
+void DeleteTempModules(void)
+{
+#ifndef _WIN32
+	DIR *fd = opendir("tmp");
+	struct dirent *dir;
+	char tempbuf[PATH_MAX+1];
+
+	if (!fd) /* Ouch.. this is NOT good!! */
+	{
+		config_error("Unable to open 'tmp' directory: %s, please create one with the appropriate permissions",
+			strerror(ERRNO));
+		if (!loop.ircd_booted)
+			exit(7);
+		return; 
+	}
+
+	while ((dir = readdir(fd)))
+	{
+		if (!strcmp(dir->d_name, ".") || !strcmp(dir->d_name, ".."))
+			continue;
+		strcpy(tempbuf, "tmp/");
+		strcat(tempbuf, dir->d_name);
+		remove(tempbuf);
+	}
+	closedir(fd);
+#endif
+}
 
 void Module_Init(void)
 {
@@ -115,8 +146,9 @@ char  *Module_Create(char *path_)
 	int		(*Mod_Init)();
 	int             (*Mod_Load)();
 	int             (*Mod_Unload)();
+	char    *Mod_Version;
 	static char 	errorbuf[1024];
-	char 		*path;
+	char 		*path, *tmppath;
 	ModuleHeader    *mod_header;
 	int		ret = 0;
 	Module          *mod = NULL, **Mod_Handle = NULL;
@@ -126,25 +158,41 @@ char  *Module_Create(char *path_)
 	       path_));
 	path = path_;
 
+	
+	tmppath = unreal_mktemp("tmp", unreal_getfilename(path));
+	if (!tmppath)
+		return "Unable to create temporary file!";
 	if(!strchr(path, '/'))
 	{
 		path = MyMalloc(strlen(path) + 3);
 		strcpy(path, "./");
 		strcat(path, path_);
 	}
-	
-	if ((Mod = irc_dlopen(path, RTLD_NOW)))
+	unreal_copyfile(path, tmppath);
+	if ((Mod = irc_dlopen(tmppath, RTLD_NOW)))
 	{
 		/* We have engaged the borg cube. Scan for lifesigns. */
+		irc_dlsym(Mod, "Mod_Version", Mod_Version);
+		if (Mod_Version && strcmp(version, Mod_Version))
+		{
+			snprintf(errorbuf, sizeof(errorbuf),
+			         "Module was compiled for '%s', we are '%s', please recompile the module",
+			         Mod_Version, version);
+			irc_dlclose(Mod);
+			remove(tmppath);
+			return errorbuf;
+		}
 		irc_dlsym(Mod, "Mod_Header", mod_header);
 		if (!mod_header)
 		{
 			irc_dlclose(Mod);
+			remove(tmppath);
 			return ("Unable to locate Mod_Header");
 		}
 		if (!mod_header->modversion)
 		{
 			irc_dlclose(Mod);
+			remove(tmppath);
 			return ("Lacking mod_header->modversion");
 		}
 		if (sscanf(mod_header->modversion, "3.2-b%d-%d", &betaversion, &tag)) {
@@ -152,6 +200,7 @@ char  *Module_Create(char *path_)
 				snprintf(errorbuf, 1023, "Unsupported version, we support %s, %s is %s",
 					   MOD_WE_SUPPORT, path, mod_header->modversion);
 				irc_dlclose(Mod);
+				remove(tmppath);
 				return(errorbuf);
 			}
 		}
@@ -159,14 +208,19 @@ char  *Module_Create(char *path_)
 		    !mod_header->description)
 		{
 			irc_dlclose(Mod);
+			remove(tmppath);
 			return("Lacking sane header pointer");
 		}
 		if (Module_Find(mod_header->name))
 		{
 		        irc_dlclose(Mod);
+			remove(tmppath);
 			return (NULL);
 		}
 		mod = (Module *)Module_make(mod_header, Mod);
+		mod->tmp_file = strdup(tmppath);
+		if (Mod_Version)
+			mod->compilecheck = 1;
 		irc_dlsym(Mod, "Mod_Init", Mod_Init);
 		if (!Mod_Init)
 		{
@@ -353,6 +407,9 @@ void Unload_all_loaded_modules(void)
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
 			}
+			else if (objs->type == MOBJ_EXTBAN) {
+				ExtbanDel(objs->object.extban);
+			}
 		}
 		for (child = mi->children; child; child = childnext)
 		{
@@ -362,6 +419,8 @@ void Unload_all_loaded_modules(void)
 		}
 		DelListItem(mi,Modules);
 		irc_dlclose(mi->dll);
+		remove(mi->tmp_file);
+		MyFree(mi->tmp_file);
 		MyFree(mi);
 	}
 }
@@ -405,6 +464,9 @@ void Unload_all_testing_modules(void)
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
 			}
+			else if (objs->type == MOBJ_EXTBAN) {
+				ExtbanDel(objs->object.extban);
+			}
 		}
 		for (child = mi->children; child; child = childnext)
 		{
@@ -414,6 +476,8 @@ void Unload_all_testing_modules(void)
 		}
 		DelListItem(mi,Modules);
 		irc_dlclose(mi->dll);
+		remove(mi->tmp_file);
+		MyFree(mi->tmp_file);
 		MyFree(mi);
 	}
 }
@@ -463,6 +527,9 @@ int    Module_free(Module *mod)
 		else if (objs->type == MOBJ_CMDOVERRIDE) {
 			CmdoverrideDel(objs->object.cmdoverride);
 		}
+		else if (objs->type == MOBJ_EXTBAN) {
+			ExtbanDel(objs->object.extban);
+		}
 	}
 	for (p = Modules; p; p = p->next)
 	{
@@ -480,6 +547,7 @@ int    Module_free(Module *mod)
 	}
 	DelListItem(mod, Modules);
 	irc_dlclose(mod->dll);
+	MyFree(mod->tmp_file);
 	MyFree(mod);
 	return 1;
 }
@@ -606,7 +674,7 @@ void	module_loadall(int module_load)
 {
 #ifndef STATIC_LINKING
 	iFP	fp, fpp;
-	Module *mi;
+	Module *mi, *next;
 	
 	if (!loop.ircd_booted)
 	{
@@ -614,8 +682,9 @@ void	module_loadall(int module_load)
 		return ;
 	}
 	/* Run through all modules and check for module load */
-	for (mi = Modules; mi; mi = mi->next)
+	for (mi = Modules; mi; mi = next)
 	{
+		next = mi->next;
 		if (mi->flags & MODFLAG_LOADED)
 			continue;
 		irc_dlsym(mi->dll, "Mod_Load", fp);
@@ -631,11 +700,10 @@ void	module_loadall(int module_load)
 		if ((*fp)(module_load) != MOD_SUCCESS)
 		{
 			config_status("cannot load module %s", mi->header->name);
+			Module_free(mi);
 		}
 		else
-		{
 			mi->flags = MODFLAG_LOADED;
-		}
 		
 	}
 #endif
@@ -741,6 +809,8 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			strcat(tmp, "[PERM] ");
 		if (!(mi->options & MOD_OPT_OFFICIAL))
 			strcat(tmp, "[3RD] ");
+		if (!mi->compilecheck)
+			strcat(tmp, "[OLD?] ");
 		if (!IsOper(sptr))
 			sendto_one(sptr, ":%s NOTICE %s :*** %s (%s)%s", me.name, sptr->name,
 				mi->header->name, mi->header->description,
@@ -1118,6 +1188,7 @@ void	unload_all_modules(void)
 		irc_dlsym(m->dll, "Mod_Unload", Mod_Unload);
 		if (Mod_Unload)
 			(*Mod_Unload)(0);
+		remove(m->tmp_file);
 	}
 }
 
@@ -1150,3 +1221,4 @@ const char *ModuleGetErrorStr(Module *module)
 {
 	return module_error_str[module->errorcode];
 }
+
