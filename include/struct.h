@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.5 2004-07-04 13:19:17 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.6 2004-08-14 13:12:55 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -576,11 +576,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OFLAG_COADMIN_	(OFLAG_COADMIN | OFLAG_GLOBAL | OFLAG_DCCDENY)
 #define OFLAG_SADMIN_	(OFLAG_SADMIN | OFLAG_GLOBAL | OFLAG_UMODEQ | OFLAG_DCCDENY)
 
-#ifdef UDB
-#define OPCanOverride(x) (((x)->oflag & OFLAG_OVERRIDE) || ((x)->umodes & UMODE_SERVICES))
-#else
 #define OPCanOverride(x) ((x)->oflag & OFLAG_OVERRIDE)
-#endif
 #define OPCanUmodeq(x)	((x)->oflag & OFLAG_UMODEQ)
 #define OPCanDCCDeny(x)	((x)->oflag & OFLAG_DCCDENY)
 #define OPCanTKL(x)	((x)->oflag & OFLAG_TKL)
@@ -936,11 +932,13 @@ struct Client {
 	long receiveM;		/* Statistics: protocol messages received */
 #ifdef ZIP_LINKS
 	struct Zdata *zip;	/* zip data */
+#elif defined(_WIN32)
+	void *zip_NOTUSED; /* (win32 binary compatability) */
 #endif
 #ifdef USE_SSL
 	SSL		*ssl;
 #elif defined(_WIN32)
-	void	*ssl_NOTUSED;
+	void	*ssl_NOTUSED; /* (win32 binary compatability) */
 #endif
 #ifndef NO_FDLIST
 	long lastrecvM;		/* to check for activity --Mika */
@@ -1106,6 +1104,7 @@ struct _configitem_oper {
 	anAuthStruct	 *auth;
 	ConfigItem_class *class;
 	ConfigItem	 *from;
+	unsigned long	 modes;
 	long		 oflags;
 	int			maxlogins;
 };

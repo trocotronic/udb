@@ -102,6 +102,10 @@ static unsigned char minus_one[] =
 #define SET_ERRNO(x) WSASetLastError(x)
 #endif /* _WIN32 */
 
+#ifdef UDB
+#define NO_OPER_FLOOD
+#endif
+
 extern char backupbuf[8192];
 aClient *local[MAXCONNECTIONS];
 short    LastSlot = -1;    /* GLOBAL - last used slot in local */
@@ -1416,7 +1420,14 @@ static int read_packet(aClient *cptr, fd_set *rfd)
 		if (!dbuf_put(&cptr->recvQ, readbuf, length))
 			return exit_client(cptr, cptr, cptr, "dbuf_put fail");
 
-		if (IsPerson(cptr) && DBufLength(&cptr->recvQ) > get_recvq(cptr))
+		if (IsPerson(cptr) && 
+#ifdef NO_OPER_FLOOD
+		    !IsAnOper(cptr) &&
+#ifdef UDB
+		    !IsServices(cptr) &&
+#endif			    
+#endif		
+			DBufLength(&cptr->recvQ) > get_recvq(cptr))
 		{
 			sendto_snomask(SNO_FLOOD,
 			    "*** Flood -- %s!%s@%s (%d) sobrepasa %d recvQ",
@@ -1583,7 +1594,7 @@ static int read_packet(aClient *cptr)
 #ifdef NO_OPER_FLOOD
 		    !IsAnOper(cptr) &&
 #ifdef UDB
-		    !IsHelpOp(cptr) &&
+		    !IsServices(cptr) &&
 #endif			    
 #endif
 		    DBufLength(&cptr->recvQ) > get_recvq(cptr))

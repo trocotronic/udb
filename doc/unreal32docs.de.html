@@ -1203,6 +1203,7 @@ bekannt als O:Line)</font><div class="desc">
 	};
 	swhois &lt;whois info&gt;;
 	snomask &lt;snomask&gt;;
+	modes &lt;modes&gt;;
 	maxlogins &lt;num&gt;;
 };</pre>
 <p>Mit dem Oper Block können für den Server IRC Operatoren festgelegt werden.&nbsp;<br>
@@ -1514,9 +1515,12 @@ Form (wie z.B.: &quot;services-admin&quot;) verwenden möchte, benutzt man die
 Information eines Opers gesetzt werden. <font color="#0000FF">[optional]</font></p>
 <p>Mit der <b> oper::snomask</b> Anweisung kann eine server notice Mask für einen Oper
 voreingestellt werden, so dass man beim oper Befehl bestimmte Flags automatisch
-voreingestellt bekommt. Siehe <a href="#feature_snomasks">Abschnitt 3.3</a>&nbsp;
+voreingestellt sind. Siehe <a href="#feature_snomasks">Abschnitt 3.3</a>&nbsp;
 für
 Infos über snomasks. <font color="#0000FF">[optional]</font>
+<p>Mit der <b> oper::modes</b> Anweisung können Modi für Opers voreingestellt
+werden, so dass man beim oper Befehl bestimmte Flags automatisch
+voreingestellt sind. <font color="#0000FF"> [optional]</font>
 <p>Mit der <b> oper::maxlogins</b> Anweisung kann man die
 die Anzahl gleichzeitiger Oper Logins einschränken. Wenn hier z.B. der Wert 1
 eingestellt wird, kann immer nur eine Person über diesen Oper Block eingeloggt
@@ -1792,7 +1796,7 @@ setzen, bislang ist hier aber nur&nbsp; tld::options::ssl möglich.</p>
 <p>TLD Einträge werden von unten nach oben abgearbeitet.</p>
 <p>Beispiel:
 <pre>tld {
-	mask *@*.fr;&lt;
+	mask *@*.fr;
 	motd &quot;ircd.motd.fr&quot;;
 	rules &quot;ircd.rules.fr&quot;;
 };</pre>
@@ -2180,9 +2184,6 @@ normale ('harte') dcc Banns.</p>
 <pre>allow dcc {
 	filename &quot;*.jpg&quot;; /* Bilder sind üblicherweise sicher */
 	soft yes;
-};</pre>
-<pre>allow channel {
-	channel &quot;#smart_*&quot;;
 };</pre>
 </div>
 
@@ -2784,18 +2785,22 @@ Legt die ersten Zeichen eines verdeckten Hosts (+x) fest. Üblicherweise nimmt
 man hier 3 oder 4 Buchstaben, die den Netzwerksnamen bezeichnen.</p>
 <p><font class="set">set::hosts::local &lt;locop-host-name&gt;;</font><br>
 Legt den Hostnamen fest, der lokalen Operatoren zugewiesen wird, wenn sie +x
-setzen.</p>
+setzen. Optional kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::global &lt;globop-host-name&gt;;</font><br>
 Legt den Hostnamen fest, der globalen Operatoren zugewiesen wird, wenn sie +x
-setzen.</p>
+setzen.Optional kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::coadmin &lt;coadmin-host-name&gt;;</font><br>
-Legt den Hostnamen fest, der co-admins zugewiesen wird, wenn sie +x setzen.</p>
+Legt den Hostnamen fest, der co-admins zugewiesen wird, wenn sie +x setzen.Optional
+kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::admin &lt;admin-host-name&gt;;</font><br>
-Legt den Hostnamen fest, der Admins zugewiesen wird, wenn sie +x setzen.</p>
+Legt den Hostnamen fest, der Admins zugewiesen wird, wenn sie +x setzen.Optional
+kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::servicesadmin &lt;servicesadmin-host-name&gt;;</font><br>
-Legt den Hostnamen fest, der Service-Admins zugewiesen wird, wenn sie +x setzen.</p>
+Legt den Hostnamen fest, der Service-Admins zugewiesen wird, wenn sie +x setzen.Optional
+kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::netadmin &lt;netadmin-host-name&gt;;</font><br>
-Legt den Hostnamen fest, der Netadmins zugewiesen wird, wenn sie +x setzen.</p>
+Legt den Hostnamen fest, der Netadmins zugewiesen wird, wenn sie +x setzen.Optional
+kann für diesen Wert ein username@host angegeben werden.</p>
 <p><font class="set">set::hosts::host-on-oper-up &lt;yes/no&gt;;</font><br>
 Falls auf 'yes' eingestellt, wird das H/get_host Flag akzeptiert und&nbsp; +x
 wird automatisch bei /oper gesetzt.. Falls 'no', muss sich der User manuell +x

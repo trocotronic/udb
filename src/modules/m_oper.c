@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.4 2004-07-04 13:19:22 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -271,7 +271,10 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 /* new oper code */
 
-		sptr->umodes |= OPER_MODES;
+		if (aconf->modes)
+			sptr->umodes |= aconf->modes;
+		else
+			sptr->umodes |= OPER_MODES;
 
 /* handle oflags that trigger umodes */
 		
@@ -289,7 +292,19 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 		sptr->oflag = aconf->oflags;
 		if ((aconf->oflags & OFLAG_HIDE) && iNAH && !BadPtr(host)) {
-			iNAH_host(sptr, host);
+			char *c;
+			char *vhost = host;
+
+			if ((c = strchr(host, '@')))
+			{
+				vhost =	c+1;
+				strncpy(sptr->user->username, host, c-host);
+				sptr->user->username[c-host] = 0;
+				sendto_serv_butone_token(NULL, sptr->name, MSG_SETIDENT, 
+							 TOK_SETIDENT, "%s", 
+							 sptr->user->username);
+			}
+			iNAH_host(sptr, vhost);
 			SetHidden(sptr);
 		} else
 		if (IsHidden(sptr) && !sptr->user->virthost) {

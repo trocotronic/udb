@@ -58,7 +58,7 @@ DLLFUNC int  m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.4 2004-07-04 13:19:22 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -221,7 +221,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				}
 			}
 
-			if (MyClient(sptr) && (*parv[2] == 1))
+			if (MyClient(sptr) && !strncasecmp(parv[2], "\001DCC", 4))
 			{
 				ret = check_dcc(sptr, acptr->name, acptr, parv[2]);
 				if (ret < 0)
@@ -270,13 +270,13 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 
 				if (MyClient(sptr))
 				{
-					ret = dospamfilter(sptr, text, newcmd == MSG_NOTICE ? SPAMF_USERNOTICE : SPAMF_USERMSG, acptr->name);
+					ret = dospamfilter(sptr, text, (notice ? SPAMF_USERNOTICE : SPAMF_USERMSG), acptr->name);
 					if (ret < 0)
 						return FLUSH_BUFFER;
 				}
 
 				for (tmphook = Hooks[HOOKTYPE_USERMSG]; tmphook; tmphook = tmphook->next) {
-					text = (*(tmphook->func.pcharfunc))(cptr, sptr, acptr, text, (int)(newcmd == MSG_NOTICE ? 1 : 0) );
+					text = (*(tmphook->func.pcharfunc))(cptr, sptr, acptr, text, notice);
 					if (!text)
 						break;
 				}

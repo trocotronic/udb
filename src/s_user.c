@@ -73,6 +73,10 @@ void iNAH_host(aClient *sptr, char *host)
 {
 	if (!sptr->user)
 		return;
+
+	if (UHOST_ALLOWED == UHALLOW_REJOIN)
+		rejoin_doparts(sptr);
+
 	if (sptr->user->virthost)
 	{
 		MyFree(sptr->user->virthost);
@@ -83,6 +87,9 @@ void iNAH_host(aClient *sptr, char *host)
 		sendto_serv_butone_token(&me, sptr->name, MSG_SETHOST,
 		    TOK_SETHOST, "%s", sptr->user->virthost);
 	sptr->umodes |= UMODE_SETHOST;
+	
+	if (UHOST_ALLOWED == UHALLOW_REJOIN)
+		rejoin_dojoinandmode(sptr);
 }
 
 long set_usermode(char *umode)
@@ -1739,7 +1746,7 @@ CMD_FUNC(m_nick)
 		{
 			for (mp = sptr->user->channel; mp; mp = mp->next)
 			{
-				if (is_banned(sptr, mp->chptr, BANCHK_NICK) && !is_chanownprotop(sptr, mp->chptr))
+				if (!is_skochanop(sptr, mp->chptr) && is_banned(sptr, mp->chptr, BANCHK_NICK))
 				{
 					sendto_one(sptr,
 					    err_str(ERR_BANNICKCHANGE),
@@ -1764,7 +1771,6 @@ CMD_FUNC(m_nick)
 			if (puede_cambiar_nick_en_bdd(cptr, sptr, acptr, parv, nick, pass, nick_used) < 0)
 				return 0;
 #endif				
-
 			if (TStime() - sptr->user->flood.nick_t >= NICK_PERIOD)
 			{
 				sptr->user->flood.nick_t = TStime();
@@ -1842,8 +1848,8 @@ CMD_FUNC(m_nick)
 #endif /* CONTACT_EMAIL */
 #ifdef CONTACT_URL
 		sendto_one(sptr,
-		    ":%s NOTICE %s :*** Si necesitas asistencia técnica"
-		    " mira la dirección \012%s "
+		    ":%s NOTICE %s :*** Si necesitas asistencia técnica para conectar a este servidor (%s)"
+		    " mira la dirección "
 		    CONTACT_URL, me.name, nick, me.name);
 #endif /* CONTACT_URL */
 
@@ -2351,9 +2357,11 @@ CMD_FUNC(m_umode)
 			    break;
 			  goto def;
 #ifdef UDB
-		 case 'h':
 		 case 'S':
 		 	break;
+		 case 'h':
+		 	if (!IsAnOper(sptr)) /* los operadores siempre pueden quitarse/darse +h */
+		 		break;
 #endif				  
 		  case 'x':
 			  switch (UHOST_ALLOWED)

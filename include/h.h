@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.6 2004-07-04 13:19:16 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.7 2004-08-14 13:12:55 Trocotronic Exp $
  */
 
 /*
@@ -710,3 +710,4 @@ extern int add_dccallow(aClient *sptr, aClient *optr);
 extern int del_dccallow(aClient *sptr, aClient *optr);
 extern void delete_linkblock(ConfigItem_link *link_ptr);
 extern void delete_classblock(ConfigItem_class *class_ptr);
+extern void del_async_connects(void);

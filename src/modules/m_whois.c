@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.5 2004-07-04 13:19:23 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.6 2004-08-14 13:12:57 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -259,12 +259,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					)
 						*(buf + len++) = '!';
 					access = get_access(acptr, chptr);
-#ifndef PREFIX_AQ
-					if (access & CHFL_CHANOWNER)
-						*(buf + len++) = '*';
-					else if (access & CHFL_CHANPROT)
-						*(buf + len++) = '^';
-#else
+#ifdef PREFIX_AQ
 					if (access & CHFL_CHANOWNER)
 #ifdef UDB
 						*(buf + len++) = '.';
@@ -272,9 +267,11 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 						*(buf + len++) = '~';
 #endif
 					else if (access & CHFL_CHANPROT)
+
 						*(buf + len++) = '&';
+					else
 #endif
-					else if (access & CHFL_CHANOP)
+					if (access & CHFL_CHANOP)
 						*(buf + len++) = '@';
 					else if (access & CHFL_HALFOP)
 						*(buf + len++) = '%';

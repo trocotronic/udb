@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.5 2004-08-14 13:12:56 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 
@@ -87,10 +87,13 @@ DLLFUNC int MOD_UNLOAD(m_sapart)(int module_unload)
 	parv[0] - sender
 	parv[1] - nick to make part
 	parv[2] - channel(s) to part
+	parv[3] - comment
 */
 DLLFUNC CMD_FUNC(m_sapart)
 {
 	aClient *acptr;
+	char *comment = (parc > 3 && parv[3] ? parv[3] : NULL);
+	char commentx[512];
 	if (!IsSAdmin(sptr) && !IsULine(sptr))
 	{
 		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
@@ -108,28 +111,51 @@ DLLFUNC CMD_FUNC(m_sapart)
 		sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
 		return 0;
 	}
-
-	sendto_realops("%s usa SAPART a %s en %s", sptr->name, parv[1],
-	    parv[2]);
-
- 
-	/* Logging function added by XeRXeS */
-	ircd_log(LOG_SACMDS,"SAPART: %s used SAPART to make %s part %s", 
-		sptr->name, parv[1], parv[2]);
+	
+	if (comment)
+	{
+		sendto_realops("%s ua SAPART a %s en %s (%s)", sptr->name, parv[1],
+		               parv[2], comment);
+		/* Logging function added by XeRXeS */
+		ircd_log(LOG_SACMDS,"SAPART: %s used SAPART to make %s part %s (%s)", 
+			 sptr->name, parv[1], parv[2], comment);
+		strcpy(commentx, "SAPart: ");
+		strlcat(commentx, comment, 512);
+	}
+	else
+	{
+		sendto_realops("%s usa SAPART a %s en %s", sptr->name, parv[1],
+			        parv[2]);
+		/* Logging function added by XeRXeS */
+		ircd_log(LOG_SACMDS,"SAPART: %s used SAPART to make %s part %s",
+			 sptr->name, parv[1], parv[2]);
+	}
 
 	if (MyClient(acptr))
 	{
 		parv[0] = parv[1];
 		parv[1] = parv[2];
-		parv[2] = NULL;
-		sendto_one(acptr,
-		    ":%s %s %s :*** Has sido forzado a salir de %s", me.name,
-		    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[1]);
-		(void)m_part(acptr, acptr, 2, parv);
+		parv[2] = comment ? commentx : NULL;
+		if (comment)
+			sendto_one(acptr,
+			    ":%s %s %s :*** Has sido forzado a salir de %s (%s)", me.name,
+			    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[1], 
+			    commentx);
+		else
+			sendto_one(acptr,
+			    ":%s %s %s :*** Has sido forzado a salir de %s", me.name,
+			    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[1]);
+		(void)m_part(acptr, acptr, comment ? 3 : 2, parv);
 	}
 	else
-		sendto_one(acptr, ":%s SAPART %s %s", parv[0],
-		    parv[1], parv[2]);
+	{
+		if (comment)
+			sendto_one(acptr, ":%s SAPART %s %s :%s", parv[0],
+			    parv[1], parv[2], comment);
+		else
+			sendto_one(acptr, ":%s SAPART %s %s", parv[0], parv[1],
+				   parv[2]);
+	}
 
 	return 0;
 }

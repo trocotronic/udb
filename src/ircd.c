@@ -1002,7 +1002,7 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef EXTCMODE
 	extcmode_init();
 #endif
-	extban_init();
+	extban_init();	
 	init_random(); /* needs to be done very early!! */
 	clear_scache_hash_table();
 #ifdef FORCE_CORE
@@ -1215,6 +1215,9 @@ int InitwIRCD(int argc, char *argv[])
 	initlists();
 	initwhowas();
 	initstats();
+#ifdef UDB	
+	bdd_init();
+#endif		
 	DeleteTempModules();
 	booted = FALSE;
 /* Hack to stop people from being able to read the config file */
@@ -1430,9 +1433,6 @@ int InitwIRCD(int argc, char *argv[])
 #ifndef NO_FDLIST
 	check_fdlists(TStime());
 #endif
-#ifdef UDB	
-	bdd_init();
-#endif	
 
 #ifdef _WIN32
 	return 1;

@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.5 2004-07-04 13:19:19 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.6 2004-08-14 13:12:55 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -1317,11 +1317,16 @@ static const char *module_error_str[] = {
 	"No error",
 	"Object already exists",
 	"No space available",
-	"Invalid parameter(s)"
+	"Invalid parameter(s)",
+	"Object was not found"
 };
 
 const char *ModuleGetErrorStr(Module *module)
 {
+	if (module->errorcode < 0 
+	    || module->errorcode >= sizeof(module_error_str)/sizeof(module_error_str[0]))
+		return NULL;
+
 	return module_error_str[module->errorcode];
 }
 

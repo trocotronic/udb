@@ -51,7 +51,7 @@
 #define ircstrdup(x,y) if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y)
 #define ircfree(x) if (x) MyFree(x); x = NULL
 #define atoul(x) strtoul(x, NULL, 10)
-static char    buf[512];
+static char buf[512];
 
 unsigned MODVAR long hashes[DB_SIZE];
 unsigned MODVAR long series[DB_SIZE];
@@ -421,13 +421,12 @@ int addreg_especial(char bdd, char *index, char *valor)
 				if (!loop.ircd_rehashing)
 					regenera_claves();
 			}
-			else if ((acptr = find_client(index, NULL)))
-				if (!loop.ircd_rehashing)
-					acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
+			else if (!loop.ircd_rehashing && (acptr = find_client(index, NULL)))
+				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
 		}
 		else if (bdd == BDD_OPERS)
 		{
-			if ((acptr = find_client(index, NULL)) && !IsAnOper(acptr))
+			if ((acptr = find_client(index, NULL)))
 				sube_oper(acptr);
 		}
 	}
@@ -573,18 +572,19 @@ unsigned long lee_hash(char bdd)
 }
 int actualiza_hash(char bdd)
 {
-	char hashf[128], c;
+	char hashf[128], c, lee[17];
 	FILE *fh;
 #ifdef _WIN32
 	ircsprintf(hashf, DB_DIR "\\hash");
 #else
 	ircsprintf(hashf, DB_DIR "/hash");
 #endif
-	if (!(fh = fopen(hashf, "w")))
+	if (!(fh = fopen(hashf, "r+")))
 		return 0;
-	hashes[bdd] = obtiene_hash(bdd);;
-	for (c = PRIMERA_LETRA; c <= ULTIMA_LETRA; c++)
-		fprintf(fh, "%016lu", hashes[c]);
+	hashes[bdd] = obtiene_hash(bdd);
+	fseek(fh, 16 * (bdd - PRIMERA_LETRA), SEEK_SET);
+	ircsprintf(lee, "%016lu", hashes[bdd]);
+	fwrite(lee, 1, 16, fh);
 	fclose(fh);
 	return 0;
 }
@@ -652,7 +652,6 @@ unsigned long savebdd(char bdd)
 		return 0;
 	for (db = primeradb[bdd]; db; db = db->next)
 	{
-		buf[0] = '\0';
 		ircsprintf(buf, "%09lu %s :%s\n", db->serie, db->index, db->value);
 		orig -= strlen(buf);
 		fputs(buf, fp);
@@ -665,7 +664,7 @@ int loadbdd(char bdd)
 {
 	int fp;
 	struct stat inode;
-	char *cont, *item, *no, *valor, *archivo = malloc(sizeof(char) * (strlen(DB_DIR) + 7));
+	char *cont, *item, *no, *valor, *f, *archivo = malloc(sizeof(char) * (strlen(DB_DIR) + 7));
 	udb *dbaux, *dbtmp;
 	if (comprueba_hash(bdd))
 		return 0;
@@ -697,7 +696,7 @@ int loadbdd(char bdd)
 		close(fp);
 		return 0;
 	}
-	cont = (char *)malloc(inode.st_size + 1);
+	f = cont = (char *)malloc(inode.st_size + 1);
 	cont[inode.st_size] = '\0';
 	if (read(fp, cont, inode.st_size) != inode.st_size)
 		return 0;
@@ -707,27 +706,22 @@ int loadbdd(char bdd)
 	{
 		char *pos;
 		pos = strchr(cont, ' ');
-		no = (char *)malloc(sizeof(char) * (pos - cont + 1));
-		bzero(no, pos - cont + 1);
-		strncpy(no, cont, pos - cont);
+		*pos = '\0';
+		no = cont;
 		cont = pos + 1;
 		pos = strchr(cont, ' ');
-		item = (char *)malloc(sizeof(char) * (pos - cont + 1));
-		bzero(item, pos - cont + 1);
-		strncpy(item, cont, pos - cont);
+		*pos = '\0';
+		item = cont;
 		cont = pos + 1;
 		if (!(pos = strchr(cont, '\r')))
 			pos = strchr(cont, '\n');
-		valor = (char *)malloc(sizeof(char) * (pos - cont + 1));
-		bzero(valor, pos - cont + 1);
-		strncpy(valor, cont, pos - cont);
+		*pos = '\0';
+		valor = cont;
 		cont = *(pos + 1) == '\n' ? pos + 2 : pos + 1;
 		addreg(bdd, atoul(no), item, BadPtr(valor) ? "" : valor + 1, 0);
-		MyFree(no);
-		MyFree(item);
-		MyFree(valor);
 	}
 	hashes[bdd] = lee_hash(bdd);
+	MyFree(f);
 	if (registros[bdd])
 		sendto_ops("Tabla '%c' R=%09lu", bdd, registros[bdd]);
 	return 0;
@@ -829,9 +823,8 @@ CMD_FUNC(m_db)
 						int le;
 						while (!feof(fp))
 						{
-							char *buf, *cur;
+							char *cur;
 							u_long serie;
-							buf = malloc(BUFSIZE);
 							bzero(buf, BUFSIZE);
 							if (!fgets(buf, BUFSIZE, fp))
 								break;
@@ -841,7 +834,6 @@ CMD_FUNC(m_db)
 							cur++;
 							if (serie > ultimo)
 								sendto_one(cptr,":%s DB %s %s I %09lu %c %s", me.name, parv[0], parv[2], serie, bdd, cur);
-							free(buf);
 						}
 						fclose(fp);
 					}
@@ -1187,7 +1179,6 @@ int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char
 				BadPtr(parv[0]) ? "*" : parv[0], nick);
 			return -1;
 	     	}
-		escape:
 		if (tipo == 2)
 			sendto_one(cptr, ":%s NOTICE %s :*** Contraseña aceptada. Bienvenid@ a casa ;)", botname, sptr->name);
 		else if (tipo == 1)
@@ -1300,7 +1291,7 @@ char *cifra_ip(char *ipreal)
 }	
 char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
 {
-	char *cifrada, buf[512], *sufix, *x;
+	char *cifrada, buf[HOSTLEN], *sufix, *x;
 	udb *vip, *vh;
 	if (!viejo)
 		return NULL;
@@ -1315,7 +1306,6 @@ char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
 				cifrada = vip->value;
 		else if ((vip = busca_registro(BDD_VHOSTS2, acptr->name))) 
 		{
-			buf[0] = '\0';
 			if (!(vh = busca_registro(BDD_VHOSTS2, ".")) || *(vh->value) == '0')
 				snprintf(buf, HOSTLEN, "%s.%s", vip->value, sufix);
 			else 
@@ -1324,14 +1314,12 @@ char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
 		}
 		else
 		{
-			buf[0] = '\0';
 			snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
 			cifrada = buf;
 		}
 	}
 	else
 	{
-		buf[0] = '\0';
 		snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
 		cifrada = buf;
 	}
@@ -1361,42 +1349,45 @@ void sube_oper(aClient *sptr)
 		sptr->umodes |= UMODE_HELPOP;
 	if (level & BDD_ADMIN)
 	{
-		sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
-#ifndef NO_FDLIST
-		addto_fdlist(sptr->slot, &oper_fdlist);
-#endif
-		RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
-		IRCstats.operators++;
-		if (MyClient(sptr) && IsRegisteredUser(sptr) && (aconf = Find_oper(sptr->name)))
+		sptr->umodes |= UMODE_NETADMIN;
+		if (!IsAnOper(sptr)) /* si ya es operador no vamos a subirlo otra vez */
 		{
-			if (sptr->class)
-				sptr->class->clients--;
-			sptr->class = aconf->class;
-			sptr->class->clients++;
-			sptr->oflag = 0;
-			if (aconf->swhois) {
-				if (sptr->user->swhois)
-					MyFree(sptr->user->swhois);
-				sptr->user->swhois = MyMalloc(strlen(aconf->swhois) +1);
-				strcpy(sptr->user->swhois, aconf->swhois);
-				sendto_serv_butone_token(sptr, me.name,
-					MSG_SWHOIS, TOK_SWHOIS, "%s :%s", sptr->name, aconf->swhois);
-			}
-			sptr->oflag = aconf->oflags;
-			if (aconf->snomask)
-				set_snomask(sptr, aconf->snomask);
-			else
-				set_snomask(sptr, OPER_SNOMASK);
-			if (sptr->user->snomask)
+			sptr->umodes |= UMODE_OPER;
+			IRCstats.operators++;
+			if (MyClient(sptr) && IsRegisteredUser(sptr) && (aconf = Find_oper(sptr->name)))
 			{
-				sptr->user->snomask |= SNO_SNOTICE; /* set +s if needed */
-				sptr->umodes |= UMODE_SERVNOTICE;
-			}
-			/* This is for users who have both 'admin' and 'coadmin' in their conf */
-			if (IsCoAdmin(sptr) && IsAdmin(sptr))
-			{
-				sptr->umodes &= ~UMODE_COADMIN;
-				sptr->oflag &= ~OFLAG_COADMIN;
+#ifndef NO_FDLIST
+				addto_fdlist(sptr->slot, &oper_fdlist);
+#endif
+				RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
+				if (sptr->class)
+					sptr->class->clients--;
+				sptr->class = aconf->class;
+				sptr->class->clients++;
+				sptr->oflag = 0;
+				if (aconf->swhois) {
+					if (sptr->user->swhois)
+						MyFree(sptr->user->swhois);
+					sptr->user->swhois = MyMalloc(strlen(aconf->swhois) +1);
+					strcpy(sptr->user->swhois, aconf->swhois);
+					sendto_serv_butone_token(sptr, me.name,
+						MSG_SWHOIS, TOK_SWHOIS, "%s :%s", sptr->name, aconf->swhois);
+				}
+				sptr->oflag = aconf->oflags;
+				if (aconf->snomask)
+					set_snomask(sptr, aconf->snomask);
+				else
+					set_snomask(sptr, OPER_SNOMASK);
+				if (sptr->user->snomask)
+				{
+					sptr->user->snomask |= SNO_SNOTICE;
+					sptr->umodes |= UMODE_SERVNOTICE;
+				}
+				if (IsCoAdmin(sptr) && IsAdmin(sptr))
+				{
+					sptr->umodes &= ~UMODE_COADMIN;
+					sptr->oflag &= ~OFLAG_COADMIN;
+				}
 			}
 		}
 	}

@@ -1535,6 +1535,7 @@ int	init_conf(char *rootconf, int rehash)
 		if (rehash)
 		{
 			Hook *h;
+			del_async_connects();
 			config_rehash();
 #ifndef STATIC_LINKING
 			Unload_all_loaded_modules();
@@ -2921,12 +2922,27 @@ int	_test_me(ConfigFile *conf, ConfigEntry *ce)
 
 		if (cep->ce_vardata)
 		{
+			int valid = 0;
+			char *p;
 			if (strlen(cep->ce_vardata) > (REALLEN-1))
 			{
 				config_error("%s:%i: muy largo::info, máximo. %i caracteres",
 					ce->ce_fileptr->cf_filename, ce->ce_varlinenum, REALLEN-1);
 				errors++;
 		
+			}
+			/* Valid me::info? Any data except spaces is ok */
+			for (p=cep->ce_vardata; *p; p++)
+				if (*p != ' ')
+				{
+					valid = 1;
+					break;
+				}
+			if (!valid)
+			{
+				config_error("%s:%i: me::info está vacío, debería contener la descripción del servidor.",
+					ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+				errors++;
 			}
 		}
 	}
@@ -3062,6 +3078,10 @@ int	_conf_oper(ConfigFile *conf, ConfigEntry *ce)
 	{
 		ircstrdup(oper->snomask, cep->ce_vardata);
 	}
+	if ((cep = config_find_entry(ce->ce_entries, "modes")))
+	{
+		oper->modes = set_usermode(cep->ce_vardata);
+	}
 	if ((cep = config_find_entry(ce->ce_entries, "maxlogins")))
 	{
 		oper->maxlogins = (int)config_checkval(cep->ce_vardata, CFG_TIME);
@@ -3124,6 +3144,8 @@ int	_test_oper(ConfigFile *conf, ConfigEntry *ce)
 			else if (!strcmp(cep->ce_varname, "swhois")) {
 			}
 			else if (!strcmp(cep->ce_varname, "snomask")) {
+			}
+			else if (!strcmp(cep->ce_varname, "modes")) {
 			}
 			else if (!strcmp(cep->ce_varname, "maxlogins"))
 			{
@@ -6530,6 +6552,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "hosts")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
+				char *c, *host;
 				if (!cepp->ce_vardata)
 				{
 					config_error("%s:%i: set::hosts item vacío",
@@ -6566,6 +6589,60 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					errors++;
 					continue;
 
+				}
+				if ((c = strchr(cepp->ce_vardata, '@')))
+				{
+					char *tmp;
+					if (!(*(c+1)) || (c-cepp->ce_vardata) > USERLEN ||
+					    c == cepp->ce_vardata)
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
+					for (tmp = cepp->ce_vardata; tmp != c; tmp++)
+					{
+						if (*tmp == '~' && tmp == cepp->ce_vardata)
+							continue;
+						if (!isallowed(*tmp))
+							break;
+					}
+					if (tmp != c)
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
+					host = c+1;
+				}
+				else
+					host = cepp->ce_vardata;
+				if (strlen(host) > HOSTLEN)
+				{
+					config_error("%s:%i: illegal value for set::hosts::%s",
+						     cepp->ce_fileptr->cf_filename,
+						     cepp->ce_varlinenum, 
+						     cepp->ce_varname);
+					errors++;
+					continue;
+				}
+				for (; *host; host++)
+				{
+					if (!isallowed(*host) && *host != ':')
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
 				}
 			}
 		}
@@ -6819,7 +6896,7 @@ int	_conf_loadmodule(ConfigFile *conf, ConfigEntry *ce)
 		*(cSlash+1)=0;
 	}
 	hFind = FindFirstFile(ce->ce_vardata, &FindData);
-	if (!FindData.cFileName) {
+	if (!FindData.cFileName || hFind == INVALID_HANDLE_VALUE) {
 		config_status("%s:%i: loadmodule %s: falla al cargar",
 			ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
 			ce->ce_vardata);
@@ -6834,7 +6911,7 @@ int	_conf_loadmodule(ConfigFile *conf, ConfigEntry *ce)
 		if ((ret = Module_Create(path))) {
 			config_status("%s:%i: loadmodule %s: no puede cargar: %s",
 				ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
-				FindData.cFileName, ret);
+				path, ret);
 			free(path);
 			return -1;
 		}
