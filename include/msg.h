@@ -18,7 +18,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: msg.h,v 1.1.1.4 2004-10-31 20:21:37 Trocotronic Exp $
+ *   $Id: msg.h,v 1.1.1.5 2005-03-21 10:36:19 Trocotronic Exp $
  */
 
 #ifndef	__msg_include__
@@ -308,23 +308,17 @@
 
 #define MAXPARA    	15
 
-extern int m_join(), m_part(), m_mode();
-extern int m_nick(), m_error();
+extern int m_error();
 extern int m_dns();
 extern int m_tkl();
-extern int m_motd(), m_user();
 extern int m_info(), m_summon();
 extern int m_users(), m_version();
 extern int m_names();
-extern int m_lusers(), m_umode();
-extern int m_motd();
-extern int m_service(), m_watch();
+extern int m_service();
 extern int m_dalinfo();
 extern int m_credits();
 extern int m_license();
-extern int m_botmotd();
-extern int m_opermotd();
-extern int m_module(), m_alias(), m_tkl(), m_opermotd();
+extern int m_module(), m_alias(), m_tkl();
 extern int m_rehash(), m_die(), m_restart();
 #ifdef UDB
 extern int m_db(), m_dbq(), m_ghost();

@@ -45,6 +45,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -54,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.3 2004-07-04 13:19:23 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.4 2005-03-21 10:37:06 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -93,6 +96,9 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
         aClient *acptr;
 #ifdef UDB
 	long old_umodes;
+	int val = 0;
+	Udb *reg;
+	char buf[BUFSIZE];
 #endif
 
         if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
@@ -110,11 +116,9 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
                                     "nickname change, your nick was overruled");
 #ifdef UDB                                
 			old_umodes = acptr->umodes;
-			acptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY;
-			if (!IsAnOper(acptr))
-				acptr->umodes &= ~UMODE_KIX;
+			acptr->umodes &= ~(UMODE_SUSPEND | UMODE_REGNICK | UMODE_HELPOP | UMODE_SHOWIP | UMODE_RGSTRONLY | UMODE_SERVICES);
 			if (MyClient(acptr) && IsPerson(acptr))
-				send_umode_out(acptr, acptr, old_umodes);
+				send_umode(acptr, acptr, old_umodes, SEND_UMODES, buf);
 #else
                         acptr->umodes &= ~UMODE_REGNICK;
 #endif
@@ -133,13 +137,31 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
                         }
                         if (MyClient(acptr))
                         {
+				sendto_snomask(SNO_NICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s", 
+					acptr->name, acptr->user->username, acptr->user->realhost, parv[2]);
+				
                                 RunHook2(HOOKTYPE_LOCAL_NICKCHANGE, acptr, parv[2]);
                         }
                         (void)strlcpy(acptr->name, parv[2], sizeof acptr->name);
                         (void)add_to_client_hash_table(parv[2], acptr);
                         if (IsPerson(acptr))
                                 hash_check_watch(acptr, RPL_LOGON);
-
+#ifdef UDB
+			if ((reg = busca_registro(BDD_NICKS, parv[2])))
+			{
+				if (!busca_bloque("suspendido", reg))
+					val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
+				else
+					val = 1;
+			}
+			old_umodes = acptr->umodes; /* antes de todo lo que tenga que dar */
+			if (strcasecmp(parv[1], parv[2]))
+				dale_cosas(val, acptr);
+			if (MyClient(acptr) && IsPerson(acptr))
+				send_umode(acptr, acptr, old_umodes, SEND_UMODES, buf);
+			if (IsHidden(acptr))
+				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
+#endif	
                 }
         }
         return 0;

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: setup.h,v 1.1.1.2 2004-07-04 13:19:18 Trocotronic Exp $
+ *   $Id: setup.h,v 1.1.1.3 2005-03-21 10:36:23 Trocotronic Exp $
  */
 
 #ifndef __setup_include__
@@ -42,10 +42,12 @@
 #undef  POSIX_SIGNALS
 #undef  TIMES_2
 #undef  GETRUSAGE_2
+#define HAVE_ALLOCA
 #define SPATH "."
 #define DPATH "."
 #define DOMAINNAME "irc.net"
 #define NO_U_TYPES
 #define NEED_U_INT32_T
 #define PREFIX_AQ
+#define LIST_SHOW_MODES
 #endif

@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.4 2004-10-31 20:21:36 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.5 2005-03-21 10:36:16 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -77,11 +77,6 @@
 #define SHOW_SECRET
 
 /*
- * This allows you to see modes in /list
-*/
-#define LIST_SHOW_MODES
-
-/*
  * Admin's chat...
  */
 #define ADMINCHAT 1
@@ -91,11 +86,6 @@
  *
 */
 #undef SECURECHANMSGSONLYGOTOSECURE
-
-/*
-  If you want SHUN_NOTICES, define this
-*/
-#define SHUN_NOTICES
 
 /*
    If you want to support chinese and/or japanese nicks
@@ -120,37 +110,10 @@
 #undef STRIPBADWORDS_CHAN_ALWAYS
 
 /*
- * NO_OPEROVERRIDE
- *   This will disable OperMode, OperTopic and Banwalks
-*/
-#undef NO_OPEROVERRIDE
-
-/*
- * OPEROVERRIDE_VERIFY
- *   This will prompt opers before permitting them to join +p/+s
- *   channels, decreasing the chances of someone "accidentally"
- *   entering a random channel.
- */
-#undef OPEROVERRIDE_VERIFY
-
-/*
  * THROTTLING
  *   This will only allow 1 connection per ip in set::throttle::period time
  */
 #define THROTTLING
-
-/*
- * NAZIISH_CHBAN_HANDLING (formerly ANNOYING_BAN_THING)
- *   Reject bans that are matched by existing bans, causes chanserv
- *   To flood-kick an akicked user if their akick is matched by another
- *   Ban, but if you don't mind, this can free up ban list space I guess
- */
-#undef NAZIISH_CHBAN_HANDLING
-
-/*
- * Disable /sethost, /setident, /chgname, /chghost, /chgident
-*/
-#undef DISABLE_USERMOD
 
 /*
  * No spoof code
@@ -163,20 +126,13 @@
 /*
  * Enables locops to override the RFC1459 flood control too
 */
-#define NO_FAKE_LAG_FOR_LOCOPS
+#undef NO_FAKE_LAG_FOR_LOCOPS
 
 /*
  * HOSTILENAME - Define this if you want the hostile username patch included,
  *		 it will strip characters that are not 0-9,a-z,A-Z,_,- or .
  */
 #define HOSTILENAME		/* [DO NOT CHANGE!] */
-
-/*
- * This makes topics include nick!user@host instead of nick in topic whoset, 
- * ALL servers must be Unreal3.2-beta12 or higher, and services may have some
- * problems with this
-*/
-#undef TOPIC_NICK_IS_NUHOST
 
 /*
  * Use JOIN instead of SJOIN on every remotely sent JOIN
@@ -468,8 +424,14 @@
 #define SIXBONE_HACK
 
 /*
+ * Forces Unreal to use compressed IPv6 addresses rather than expanding them
+ */
+#undef IPV6_COMPRESSED
+
+/*
  * Extended channel modes. This extends the channel modes with yet another
  * 32 possible modes which can also be used in modules.
+ * This is now pretty much required.
  */
 #define EXTCMODE
 
@@ -478,6 +440,13 @@
  * msgs, joins, ctcps, nickchanges and /knock.
  */
 #define NEWCHFLOODPROT
+
+/* JoinThrottle (chanmode +j): +j x:y throttles users to X joins per Y seconds (per-user).
+ * In peak situations (eg: just after a server restart with thousand clients joining
+ * hundreds of channels) it can use like ~200k, but in normal circumstances you should
+ * count on just ~10-50k.
+ */
+#define JOINTHROTTLE
 
 /* ------------------------- END CONFIGURATION SECTION -------------------- */
 #define MOTD MPATH

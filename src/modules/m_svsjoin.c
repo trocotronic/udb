@@ -52,7 +52,7 @@ DLLFUNC int m_svsjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsjoin)
   = {
 	"svsjoin",	/* Name of module */
-	"$Id: m_svsjoin.c,v 1.1.1.3 2004-10-31 20:21:53 Trocotronic Exp $", /* Version */
+	"$Id: m_svsjoin.c,v 1.1.1.4 2005-03-21 10:37:04 Trocotronic Exp $", /* Version */
 	"command /svsjoin", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -109,11 +109,11 @@ CMD_FUNC(m_svsjoin)
 		if (parc == 3)
 		{
 			parv[2] = NULL;
-			(void)m_join(acptr, acptr, 2, parv);
+			do_cmd(acptr, acptr, "JOIN", 2, parv);
 		} else {
 			parv[2] = parv[3];
 			parv[3] = NULL;
-			(void)m_join(acptr, acptr, 3, parv);
+			do_cmd(acptr, acptr, "JOIN", 3, parv);
 		}
 	}
 	else

@@ -52,7 +52,7 @@ DLLFUNC int m_svsfline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsfline)
   = {
 	"m_svsfline",
-	"$Id: m_svsfline.c,v 1.1.4.2 2004-07-04 13:19:23 Trocotronic Exp $",
+	"$Id: m_svsfline.c,v 1.1.4.3 2005-03-21 10:37:04 Trocotronic Exp $",
 	"command /svsfline", 
 	"3.2-b8-1",
 	NULL 

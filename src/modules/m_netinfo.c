@@ -50,7 +50,7 @@ DLLFUNC int m_netinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_netinfo)
   = {
 	"m_netinfo",
-	"$Id: m_netinfo.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_netinfo.c,v 1.1.4.4 2005-03-21 10:36:55 Trocotronic Exp $",
 	"command /netinfo", 
 	"3.2-b8-1",
 	NULL 

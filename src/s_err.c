@@ -35,7 +35,7 @@ static char *replies[] = {
 /* 003    RPL_CREATED */  ":%s 003 %s :Este servidor fue creado el %s",
 /* 004    RPL_MYINFO */   ":%s 004 %s %s %s %s %s",
 /* 005    RPL_ISUPPORT */ ":%s 005 %s %s :se soportan por este servidor",
-/* 006    RPL_MAP */      ":%s 006 %s :%s%-*s(%d)  %s",
+/* 006    RPL_MAP */      ":%s 006 %s :%s%-*s(%ld)  %s",
 /* 007    RPL_MAPEND */   ":%s 007 %s :End of /MAP",
 /* 008    RPL_SNOMASK */  ":%s 008 %s :Server notice mask (%s)",
 /* 009 */ NULL, /* ircu */
@@ -242,16 +242,16 @@ static char *replies[] = {
 /* 210    RPL_STATSHELP */       ":%s 210 %s :%s",
 /* 211 */ NULL, /* Used */
 #ifdef DEBUGMODE
-/* 212    RPL_STATSCOMMANDS */ ":%s 212 %s %s %u %u %u %u %u %u",
+/* 212    RPL_STATSCOMMANDS */ ":%s 212 %s %s %u %lu %lu %lu %lu %lu",
 #else
-/* 212    RPL_STATSCOMMANDS */ ":%s 212 %s %s %u %u",
+/* 212    RPL_STATSCOMMANDS */ ":%s 212 %s %s %u %lu",
 #endif
 /* 213    RPL_STATSCLINE */ ":%s 213 %s %c %s * %s %d %d %s",
 /* 214    RPL_STATSOLDNLINE */ ":%s 214 %s %c %s * %s %d %d %s",
 /* 215    RPL_STATSILINE */ ":%s 215 %s I %s * %s %d %s %s %d",
 /* 216    RPL_STATSKLINE */ ":%s 216 %s %s %s %s",
-/* 217    RPL_STATSQLINE */ ":%s 217 %s %c %s %d %d %s :%s",
-/* 218    RPL_STATSYLINE */ ":%s 218 %s Y %s %d %d %d %ld %ld",
+/* 217    RPL_STATSQLINE */ ":%s 217 %s %c %s %ld %ld %s :%s",
+/* 218    RPL_STATSYLINE */ ":%s 218 %s Y %s %d %d %d %d %d",
 /* 219    RPL_ENDOFSTATS */ ":%s 219 %s %c :Fin de /STATS",
 /* 220    RPL_STATSBLINE */ ":%s 220 %s %c %s %s %s %d %d",
 /* 221    RPL_UMODEIS */ ":%s 221 %s %s",
@@ -263,7 +263,7 @@ static char *replies[] = {
 /* 227    RPL_STATSVLINE */ ":%s 227 %s V %s %s %s",
 /* 228    RPL_STATSBANVER */ ":%s 228 %s %s %s",
 /* 229    RPL_STATSSPAMF */  ":%s 229 %s %c %s %s %li %li %li %s %s :%s",
-/* 230 */ NULL,
+/* 230    RPL_STATSEXCEPTTKL */ ":%s 230 %s %c %s",
 /* 231 */ NULL, /* rfc1459 */
 /* 232    RPL_RULES */ ":%s 232 %s :- %s",
 /* 233 */ NULL, /* rfc1459 */
@@ -275,7 +275,7 @@ static char *replies[] = {
 /* 239 */ NULL, /* ircnet */
 /* 240 */ NULL, /* rfc2812, austhex */
 /* 241    RPL_STATSLLINE */ ":%s 241 %s %c %s * %s %d %d",
-/* 242    RPL_STATSUPTIME */ ":%s 242 %s :Servidor online %d días, %d:%02d:%02d",
+/* 242    RPL_STATSUPTIME */ ":%s 242 %s :Servidor online %d días, %ld:%02ld:%02ld",
 /* 243    RPL_STATSOLINE */ ":%s 243 %s %c %s * %s %s %s",
 /* 244    RPL_STATSHLINE */ ":%s 244 %s %c %s * %s %d %d",
 /* 245    RPL_STATSSLINE */ ":%s 245 %s %c %s * %s %d %d",
@@ -329,9 +329,9 @@ static char *replies[] = {
 /* 293 */ NULL, /* aircd */
 /* 294    RPL_HELPFWD */ ":%s 294 %s :Tu solicitud ha sido enviada a los operadores de red",
 /* 295    RPL_HELPIGN */ ":%s 295 %s :Tu dirección ha sido ignorada",
-/* 296 */ NULL,
+/* 296 */ NULL, /* aircd */
 /* 297 */ NULL,
-/* 298 */ NULL,
+/* 298 */ NULL, /* Used */
 /* 299 */ NULL, /* aircd */
 /* 300 */ NULL, /* rfc1459 */
 /* 301    RPL_AWAY */ ":%s 301 %s %s :%s",
@@ -358,7 +358,7 @@ static char *replies[] = {
 /* 318    RPL_ENDOFWHOIS */ ":%s 318 %s %s :Fin de /WHOIS",
 /* 319    RPL_WHOISCHANNELS */ ":%s 319 %s %s :%s",
 /* 320    RPL_WHOISSPECIAL */ ":%s 320 %s %s :%s",
-/* 321    RPL_LISTSTART */ ":%s 321 %s Canal :Usuarios   Nombre",
+/* 321    RPL_LISTSTART */ ":%s 321 %s Canal :Usuarios  Nombre",
 #ifndef LIST_SHOW_MODES
 /* 322    RPL_LIST */ ":%s 322 %s %s %d :%s",
 #else
@@ -377,8 +377,8 @@ static char *replies[] = {
 /* 333    RPL_TOPICWHOTIME */ ":%s 333 %s %s %s %lu",
 /* 334    RPL_LISTSYNTAX */ ":%s 334 %s :%s",
 /* 335    RPL_WHOISBOT */ ":%s 335 %s %s :es un roBOT oficial de la Red %s",
-/* 336 */ NULL,
-/* 337 */ NULL,
+/* 336    RPL_INVITELIST */ ":%s 336 %s :%s",
+/* 337    RPL_ENDOFINVITELIST */ ":%s 337 %s :Fin de la lista /INVITE",
 /* 338 */ NULL, /* ircu, bahamut */
 /* 339 */ NULL, /* Used */
 /* 340    RPL_USERIP */ ":%s 340 %s :%s %s %s %s %s",
@@ -392,12 +392,12 @@ static char *replies[] = {
 #endif
 /* 344 */ NULL,
 /* 345 */ NULL, /* gamesurge */
-/* 346    RPL_INVITELIST */ ":%s 346 %s %s %s",
-/* 347    RPL_ENDOFINVITELIST */ ":%s 347 %s %s :Fin de la lista invite",
+/* 346    RPL_INVEXLIST */ ":%s 346 %s %s %s %s %lu",
+/* 347    RPL_ENDOFINVEXLIST */ ":%s 347 %s %s :Fin de la lista invite del canal",
 /* 348    RPL_EXLIST */ ":%s 348 %s %s %s %s %lu",
-/* 349    RPL_ENDOFEXLIST */ ":%s 349 %s %s :Fin de la lista except",
+/* 349    RPL_ENDOFEXLIST */ ":%s 349 %s %s :Fin de la lista except del canal",
 /* 350 */ NULL,
-/* 351    RPL_VERSION */ ":%s 351 %s %s.%s %s :%s%s%s [%s=%li]",
+/* 351    RPL_VERSION */ ":%s 351 %s %s.%s %s :%s%s%s [%s=%d]",
 /* 352    RPL_WHOREPLY */ ":%s 352 %s %s %s %s %s %s %s :%d %s",
 /* 353    RPL_NAMREPLY */ ":%s 353 %s %s",
 /* 354 */ NULL, /* ircu */
@@ -504,7 +504,7 @@ static char *replies[] = {
 /* 436    ERR_NICKCOLLISION */ ":%s 436 %s %s :Colisión de nick KILL",
 /* 437    ERR_BANNICKCHANGE */ ":%s 437 %s %s :No puedes cambiarte el nick mientras estés baneado en canales",
 /* 438    ERR_NCHANGETOOFAST */ ":%s 438 %s %s :Cambio de nick rápido. Espera %d segundos",
-/* 439    ERR_TARGETTOOFAST */ ":%s 439 %s %s :Cambio de mensaje rápido. Espera %d segundos",
+/* 439    ERR_TARGETTOOFAST */ ":%s 439 %s %s :Cambio de mensaje rápido. Espera %ld segundos",
 /* 440    ERR_SERVICESDOWN */  ":%s 440 %s %s :Servicios no disponibles. Inténtalo más tarde",
 /* 441    ERR_USERNOTINCHANNEL */ ":%s 441 %s %s %s :No está en el canal",
 /* 442    ERR_NOTONCHANNEL */ ":%s 442 %s %s :No estás en el canal",
@@ -561,7 +561,7 @@ static char *replies[] = {
 /* 486    ERR_NONONREG */ ":%s 486 %s :No puedes enviar texto a %s (+R)",
 /* 487    ERR_NOTFORUSERS */ ":%s 487 %s :%s comando para servidores",
 /* 488    ERR_HTMDISABLED */ ":%s 488 %s :%s desactivado.",
-/* 489    ERR_SECUREONLYCHAN */ ":%s 489 %s %s :No puedes entrar (+z)",
+/* 489    ERR_SECUREONLYCHAN */ ":%s 489 %s %s :No puedes entrar (+z, se requiere conexión SSL)",
 /* 490    ERR_NOSWEAR */ ":%s 490 %s :%s no acepta mensajes peyorativos",
 /* 491    ERR_NOOPERHOST */ ":%s 491 %s :Acceso denegado. No tienes O-line",
 /* 492    ERR_NOCTCP */ ":%s 492 %s :%s no acepta CTCPs",
@@ -572,7 +572,7 @@ static char *replies[] = {
 /* 497 */ NULL, /* ircu */
 /* 498 */ NULL, /* ircu */
 /* 499    ERR_CHANOWNPRIVNEEDED */ ":%s 499 %s %s :No eres fundador de canal",
-/* 500 */ NULL,
+/* 500    ERR_TOOMANYJOINS */ ":%s 500 %s %s :Demasiados joins. Espera un rato e inténtalo de nuevo.",
 /* 501    ERR_UMODEUNKNOWNFLAG */ ":%s 501 %s :Modo desconocido",
 /* 502    ERR_USERSDONTMATCH */ ":%s 502 %s :No puedes cambiar este modo a los demás usuarios",
 /* 503 */ NULL, /* austhex */
@@ -593,7 +593,7 @@ static char *replies[] = {
 /* 514    ERR_TOOMANYDCC */ ":%s 514 %s %s :Tu lista de DCC permitidos está llena. El máximo son %d entradas",
 /* 515 */ NULL, /* ircu */
 /* 516 */ NULL, /* ircu */
-/* 517 */ NULL, /* ircu */
+/* 517    ERR_DISABLED*/ ":%s 517 %s %s :%s", /* ircu */
 /* 518    518 */ ":%s 518 %s :No puedes invitar (+V) en %s",
 /* 519    519 */ ":%s 519 %s :No puedes entrar en %s (+A)",
 /* 520    520 */ ":%s 520 %s :No puedes entrar en %s (+O)",
@@ -680,8 +680,8 @@ static char *replies[] = {
 /* 601    RPL_LOGOFF */ ":%s 601 %s %s %s %s %d :logged offline",
 /* 602    RPL_WATCHOFF */ ":%s 602 %s %s %s %s %d :stopped watching",
 /* 603    RPL_WATCHSTAT */ ":%s 603 %s :You have %d and are on %d WATCH entries",
-/* 604    RPL_NOWON */ ":%s 604 %s %s %s %s %d :is online",
-/* 605    RPL_NOWOFF */ ":%s 605 %s %s %s %s %d :is offline",
+/* 604    RPL_NOWON */ ":%s 604 %s %s %s %s %ld :is online",
+/* 605    RPL_NOWOFF */ ":%s 605 %s %s %s %s %ld :is offline",
 /* 606    RPL_WATCHLIST */ ":%s 606 %s :%s",
 /* 607    RPL_ENDOFWATCHLIST */ ":%s 607 %s :End of WATCH %c",
 /* 608 */ NULL,
@@ -747,7 +747,7 @@ static char *replies[] = {
 /* 668 */ NULL,
 /* 669 */ NULL,
 /* 670 */ NULL, /* kineircd */
-/* 671 */ NULL, /* kineircd */
+/* 671 RPL_WHOISSECURE */ ":%s 671 %s %s :%s", /* our variation on the kineircd numeric */
 /* 672 */ NULL, /* ithildin */
 /* 673 */ NULL, /* ithildin */
 /* 674 */ NULL,

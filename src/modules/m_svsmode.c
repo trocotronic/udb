@@ -64,7 +64,7 @@ DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.4 2004-07-04 13:19:23 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.5 2005-03-21 10:37:05 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 
@@ -208,9 +208,11 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			}
 			break;
 			case 'b': {
+				Extban *extban;
 				Ban *ban, *bnext;
 				if (parc >= i) {
 					char uhost[NICKLEN+USERLEN+HOSTLEN+6], vhost[NICKLEN+USERLEN+HOSTLEN+6];
+					char ihost[NICKLEN+USERLEN+HOSTLEN+6];
 					if (!(acptr = find_person(parv[i-1], NULL))) {
 						i++;
 						break;
@@ -227,13 +229,27 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					strlcpy(vhost, make_nick_user_host(acptr->name,
 						acptr->user->username, GetHost(acptr)),
 						sizeof vhost);
+					strlcpy(ihost, make_nick_user_host(acptr->name,
+						acptr->user->username, GetIP(acptr)),
+						sizeof ihost);
 					ban = chptr->banlist;
 					while (ban) {
 						bnext = ban->next;
-						if (!match(ban->banstr, uhost) || !match(ban->banstr, vhost)) {
+						if (*ban->banstr == '~' && (extban = findmod_by_bantype(ban->banstr[1])))
+						{
+							if (extban->options & EXTBOPT_CHSVSMODE) 
+							{
+								if (extban->is_banned(acptr, chptr, ban->banstr, BANCHK_JOIN))
+								{
+									add_send_mode_param(chptr, acptr, '-', 'b', ban->banstr);
+									del_listmode(&chptr->banlist, chptr, ban->banstr);
+								}
+							}
+						}
+						else if (!match(ban->banstr, uhost) || !match(ban->banstr, vhost) || !match(ban->banstr, ihost)) {
 							add_send_mode_param(chptr, sptr, '-',  'b', 
 								ban->banstr);
-							del_banid(chptr, ban->banstr);
+							del_listmode(&chptr->banlist, chptr, ban->banstr);
 						}
 						ban = bnext;
 					}
@@ -242,17 +258,27 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					ban = chptr->banlist;
 					while (ban) {
 						bnext = ban->next;
+						if (*ban->banstr == '~' && (extban = findmod_by_bantype(ban->banstr[1])))
+						{
+							if (!(extban->options & EXTBOPT_CHSVSMODE))							
+							{
+								ban = bnext;
+								continue;
+							}
+						}
 						add_send_mode_param(chptr, sptr, '-',  'b', ban->banstr);
-						del_banid(chptr, ban->banstr);
+						del_listmode(&chptr->banlist, chptr, ban->banstr);
 						ban = bnext;
 					}
 				}
 			}
 			break;
 			case 'e': {
+				Extban *extban;
 				Ban *ban, *bnext;
 				if (parc >= i) {
 					char uhost[NICKLEN+USERLEN+HOSTLEN+6], vhost[NICKLEN+USERLEN+HOSTLEN+6];
+					char ihost[NICKLEN+USERLEN+HOSTLEN+6];
 					if (!(acptr = find_person(parv[i-1], NULL))) {
 						i++;
 						break;
@@ -269,13 +295,28 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					strlcpy(vhost, make_nick_user_host(acptr->name,
 						acptr->user->username, GetHost(acptr)),
 						sizeof vhost);
+					strlcpy(ihost, make_nick_user_host(acptr->name,
+						acptr->user->username, GetIP(acptr)),
+						sizeof ihost);
+
 					ban = chptr->exlist;
 					while (ban) {
 						bnext = ban->next;
-						if (!match(ban->banstr, uhost) || !match(ban->banstr, vhost)) {
+						if (*ban->banstr == '~' && (extban = findmod_by_bantype(ban->banstr[1])))
+						{
+							if (extban->options & EXTBOPT_CHSVSMODE) 
+							{
+								if (extban->is_banned(acptr, chptr, ban->banstr, BANCHK_JOIN))
+								{
+									add_send_mode_param(chptr, acptr, '-', 'b', ban->banstr);
+									del_listmode(&chptr->exlist, chptr, ban->banstr);
+								}
+							}
+						}
+						else if (!match(ban->banstr, uhost) || !match(ban->banstr, vhost) || !match(ban->banstr, ihost)) {
 							add_send_mode_param(chptr, sptr, '-',  'e', 
 								ban->banstr);
-							del_exbanid(chptr, ban->banstr);
+							del_listmode(&chptr->exlist, chptr, ban->banstr);
 						}
 						ban = bnext;
 					}
@@ -284,8 +325,63 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					ban = chptr->exlist;
 					while (ban) {
 						bnext = ban->next;
+						if (*ban->banstr == '~' && (extban = findmod_by_bantype(ban->banstr[1])))
+						{
+							if (!(extban->options & EXTBOPT_CHSVSMODE))							
+							{
+								ban = bnext;
+								continue;
+							}
+						}
 						add_send_mode_param(chptr, sptr, '-',  'e', ban->banstr);
-						del_exbanid(chptr, ban->banstr);
+						del_listmode(&chptr->exlist, chptr, ban->banstr);
+						ban = bnext;
+					}
+				}
+			}
+			break;
+			case 'I': {
+				Ban *ban, *bnext;
+				if (parc >= i) {
+					char uhost[NICKLEN+USERLEN+HOSTLEN+6], vhost[NICKLEN+USERLEN+HOSTLEN+6];
+					char ihost[NICKLEN+USERLEN+HOSTLEN+6];
+					if (!(acptr = find_person(parv[i-1], NULL))) {
+						i++;
+						break;
+					}
+					if (ts && ts != acptr->since) {
+						i++;
+						break;
+					}
+					i++;
+
+					strlcpy(uhost, make_nick_user_host(acptr->name, 
+						acptr->user->username, acptr->user->realhost),
+						sizeof uhost);
+					strlcpy(vhost, make_nick_user_host(acptr->name,
+						acptr->user->username, GetHost(acptr)),
+						sizeof vhost);
+					strlcpy(ihost, make_nick_user_host(acptr->name,
+						acptr->user->username, GetIP(acptr)),
+						sizeof ihost);
+
+					ban = chptr->invexlist;
+					while (ban) {
+						bnext = ban->next;
+						if (!match(ban->banstr, uhost) || !match(ban->banstr, vhost) || !match(ban->banstr, ihost)) {
+							add_send_mode_param(chptr, sptr, '-',  'I', 
+								ban->banstr);
+							del_listmode(&chptr->invexlist, chptr, ban->banstr);
+						}
+						ban = bnext;
+					}
+				}
+				else {
+					ban = chptr->invexlist;
+					while (ban) {
+						bnext = ban->next;
+						add_send_mode_param(chptr, sptr, '-',  'I', ban->banstr);
+						del_listmode(&chptr->invexlist, chptr, ban->banstr);
 						ban = bnext;
 					}
 				}
@@ -314,7 +410,7 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 int  do_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[], int show_change)
 {
 int i;
-char **p, *m;
+char *m;
 aClient *acptr;
 int  what, setflags;
 #ifdef UDB
@@ -338,7 +434,6 @@ char *xmsg, *xtok;
 char *xmsg = show_change ? MSG_SVS2MODE : MSG_SVSMODE;
 char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
 #endif
-
 	if (!IsULine(sptr))
 		return 0;
 
@@ -477,7 +572,12 @@ char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
 		char buf[BUFSIZE];
 		send_umode(NULL, acptr, setflags, ALL_UMODES, buf);
 		if (MyClient(acptr) && buf[0] && buf[1])
-			sendto_one(acptr, ":%s MODE %s :%s", show_change == 2 ? parv[1] : parv[0], parv[1], buf);
+#ifdef UDB
+			if (show_change == 2)
+				sendto_one(acptr, ":%s MODE %s :%s", parv[1], parv[1], buf);
+			else
+#endif
+			sendto_one(acptr, ":%s MODE %s :%s", parv[0], parv[1], buf);
 	}
 
 	VERIFY_OPERCOUNT(acptr, "svsmodeX");

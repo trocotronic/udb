@@ -51,7 +51,7 @@ DLLFUNC int m_dccallow(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_dccallow)
   = {
 	"m_dccallow",
-	"$Id: m_dccallow.c,v 1.2.2.2 2004-10-31 20:21:49 Trocotronic Exp $",
+	"$Id: m_dccallow.c,v 1.2.2.3 2005-03-21 10:36:46 Trocotronic Exp $",
 	"command /dccallow", 
 	"3.2-b8-1",
 	NULL 
@@ -82,7 +82,7 @@ DLLFUNC int m_dccallow(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 Link *lp;
 char *p, *s;
-aClient *acptr, *lastcptr = NULL;
+aClient *acptr;
 int didlist = 0, didhelp = 0, didanything = 0;
 char **ptr;
 static char *dcc_help[] =

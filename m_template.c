@@ -44,63 +44,15 @@
 #include "version.h"
 #endif
 
-DLLFUNC int m_%COMMAND%(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+DLLFUNC CMD_FUNC(m_%COMMAND%);
 
 #define MSG_%UCOMMAND% 	"%UCOMMAND%"	
 #define TOK_%UCOMMAND% 	"%TOKEN%"	
 
 ModuleHeader MOD_HEADER(m_%COMMAND%)
   = {
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-  	2,
-	"test",
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
-=======
-=======
->>>>>>> 1.1.1.1.2.4
-=======
->>>>>>> 1.1.1.1.2.5
-=======
->>>>>>> 1.1.1.1.2.5
-=======
->>>>>>> 1.1.1.1.2.5
-=======
->>>>>>> 1.1.1.1.2.5
-=======
->>>>>>> 1.1.1.1.2.5
 	"m_%COMMAND%",
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-<<<<<<< m_template.c
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.2
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.4
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.5
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.5
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.5
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.5
-=======
-	"$Id: m_template.c,v 1.1.1.8 2004-10-31 20:21:30 Trocotronic Exp $",
->>>>>>> 1.1.1.1.2.5
+	"$Id: m_template.c,v 1.1.1.9 2005-03-21 10:36:03 Trocotronic Exp $",
 	"command /%COMMAND%", 
 	"3.2-b8-1",
 	NULL 
@@ -120,11 +72,6 @@ DLLFUNC int MOD_LOAD(m_%COMMAND%)(int module_load)
 
 DLLFUNC int MOD_UNLOAD(m_%COMMAND%)(int module_unload)
 {
-	if (del_Command(MSG_%UCOMMAND%, TOK_%UCOMMAND%, m_%COMMAND%) < 0)
-	{
-		sendto_realops("Failed to delete commands when unloading %s",
-			MOD_HEADER(m_%COMMAND%).name);
-	}
 	return MOD_SUCCESS;
 }
 

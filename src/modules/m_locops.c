@@ -52,7 +52,7 @@ DLLFUNC int m_locops(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_locops)
   = {
 	"m_locops",
-	"$Id: m_locops.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_locops.c,v 1.1.4.2 2005-03-21 10:36:52 Trocotronic Exp $",
 	"command /locops", 
 	"3.2-b8-1",
 	NULL 

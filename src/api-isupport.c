@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: api-isupport.c,v 1.1.4.1 2004-10-31 20:21:40 Trocotronic Exp $
+ * $Id: api-isupport.c,v 1.1.4.2 2005-03-21 10:36:24 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -113,6 +113,7 @@ void make_isupportstrings(void)
 void isupport_init(void)
 {
 	char tmpbuf[512];
+	IsupportAdd(NULL, "INVEX", NULL);
 	IsupportAdd(NULL, "EXCEPTS", NULL);
 #ifdef PREFIX_AQ
 #ifdef UDB
@@ -143,7 +144,7 @@ void isupport_init(void)
 	IsupportAdd(NULL, "TOPICLEN", my_itoa(TOPICLEN));
 	IsupportAdd(NULL, "CHANNELLEN", my_itoa(CHANNELLEN));
 	IsupportAdd(NULL, "NICKLEN", my_itoa(NICKLEN));
-	ircsprintf(tmpbuf, "b:%d,e:%d", MAXBANS, MAXBANS);
+	ircsprintf(tmpbuf, "b:%d,e:%d,I:%d", MAXBANS, MAXBANS, MAXBANS);
 	IsupportAdd(NULL, "MAXLIST", tmpbuf);
 	ircsprintf(tmpbuf, "#:%d", MAXCHANNELSPERUSER);
 	IsupportAdd(NULL, "CHANLIMIT", tmpbuf);

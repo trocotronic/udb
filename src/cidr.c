@@ -15,14 +15,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- * $Id: cidr.c,v 1.1.1.2 2004-07-04 13:19:18 Trocotronic Exp $ 
+ * $Id: cidr.c,v 1.1.1.3 2005-03-21 10:36:26 Trocotronic Exp $ 
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include "struct.h"
+#include "common.h"
+#include "sys.h"
 #include "h.h"
-#include "inet.h"
+#include "msg.h"
+#include <stdarg.h>
+#include <stdio.h>
+#ifdef _WIN32
+#include <io.h>
+#endif
+#include <string.h>
+
 /* The following functions have been taken from Hybrid-7.0.1 simply because
  * I didn't feel like writing my own when they had ones that work just fine :)
  * However, several bugs were found and some stuff was moved around to work

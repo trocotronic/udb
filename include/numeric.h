@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.4 2004-10-31 20:21:38 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.5 2005-03-21 10:36:19 Trocotronic Exp $
  */
 
 /*
@@ -129,6 +129,7 @@
 
 #define ERR_CHANOWNPRIVNEEDED 499
 
+#define ERR_TOOMANYJOINS     500
 #define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502
 
@@ -141,6 +142,7 @@
 
 #define ERR_TOOMANYDCC       514
 
+#define ERR_DISABLED         517
 #define ERR_NOINVITE		 518
 #define ERR_ADMONLY			 519
 #define ERR_OPERONLY		 520
@@ -185,6 +187,9 @@
 #define RPL_TOPIC            332
 #define RPL_TOPICWHOTIME     333
 
+#define RPL_INVITELIST       336
+#define RPL_ENDOFINVITELIST  337
+
 #define RPL_LISTSYNTAX       334
 #define RPL_WHOISBOT	     335
 #define RPL_USERIP	     340
@@ -202,8 +207,8 @@
 #define RPL_ENDOFWHO         315
 #define RPL_NAMREPLY         353
 #define RPL_ENDOFNAMES       366
-#define RPL_INVITELIST	     346
-#define RPL_ENDOFINVITELIST  347
+#define RPL_INVEXLIST	     346
+#define RPL_ENDOFINVEXLIST   347
 
 #define RPL_EXLIST	     348
 #define RPL_ENDOFEXLIST      349
@@ -280,6 +285,7 @@
 #define RPL_STATSVLINE	     227
 #define RPL_STATSBANVER	     228
 #define RPL_STATSSPAMF       229
+#define RPL_STATSEXCEPTTKL   230
 #define RPL_SERVICEINFO      231
 #define RPL_RULES            232
 #define	RPL_SERVICE          233
@@ -321,6 +327,7 @@
 #define RPL_HELPFWD	     294
 #define RPL_HELPIGN	     295
 
+
 /*
  * New /MAP format.
  */
@@ -357,6 +364,8 @@
 #define RPL_DUMPING			 640
 #define RPL_DUMPRPL			 641
 #define RPL_EODUMP           642
+
+#define RPL_WHOISSECURE      671
 
 #define ERR_CANNOTDOCOMMAND 972
 #define ERR_CANNOTCHANGECHANMODE 974

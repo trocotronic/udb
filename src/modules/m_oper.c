@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.6 2004-10-31 20:21:51 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.7 2005-03-21 10:36:56 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -178,7 +178,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 	int i = 0, j = 0;
 	char* announce = 0;
 
-	if (IsServer(sptr))
+	if (!MyClient(sptr))
 		return 0;
 
 	if (parc < 3) {
@@ -325,16 +325,11 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 		}
 
 
-		if (announce != NULL) {
-			sendto_snomask(SNO_OPER, 
+		if (announce != NULL)
+			sendto_snomask_global(SNO_OPER,
 			    "%s (%s@%s) [%s] %s",
 			    parv[0], sptr->user->username, GetHost(sptr),
 			    parv[1], announce);
-			sendto_serv_butone_token(NULL, me.name, MSG_SENDSNO, TOK_SENDSNO, 
-			    "o :%s (%s@%s) [%s] %s",
-			    parv[0], sptr->user->username,
-			    GetHost(sptr), parv[1], announce);
-		} 
 		if (aconf->snomask)
 			set_snomask(sptr, aconf->snomask);
 		else
@@ -365,7 +360,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			IRCstats.operators++;
 
 		if (SHOWOPERMOTD == 1)
-			m_opermotd(cptr, sptr, parc, parv);
+			do_cmd(cptr, sptr, "OPERMOTD", parc, parv);
 		if (!BadPtr(OPER_AUTO_JOIN_CHANS)
 		    && strcmp(OPER_AUTO_JOIN_CHANS, "0"))
 		{
@@ -374,7 +369,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 				OPER_AUTO_JOIN_CHANS,
 				NULL
 			};
-			(void)m_join(cptr, sptr, 3, chans);
+			do_cmd(cptr, sptr, "JOIN", 3, chans);
 		}
 		ircd_log(LOG_OPER, "OPER (%s) by (%s!%s@%s)", name, parv[0], sptr->user->username,
 			sptr->sockhost);

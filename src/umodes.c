@@ -134,7 +134,7 @@ void	umode_init(void)
 	UmodeAdd(NULL, 'i', UMODE_GLOBAL, NULL, &UMODE_INVISIBLE);
 	UmodeAdd(NULL, 'o', UMODE_GLOBAL, umode_allow_opers, &UMODE_OPER);
 	UmodeAdd(NULL, 'w', UMODE_GLOBAL, NULL, &UMODE_WALLOP);
-	UmodeAdd(NULL, 'g', UMODE_GLOBAL, NULL, &UMODE_FAILOP);
+	UmodeAdd(NULL, 'g', UMODE_GLOBAL, umode_allow_opers, &UMODE_FAILOP);
 	UmodeAdd(NULL, 'h', UMODE_GLOBAL, NULL, &UMODE_HELPOP);
 	UmodeAdd(NULL, 'r', UMODE_GLOBAL, NULL, &UMODE_REGNICK);
 	UmodeAdd(NULL, 'a', UMODE_GLOBAL, umode_allow_opers, &UMODE_SADMIN);
@@ -145,9 +145,9 @@ void	umode_init(void)
 	UmodeAdd(NULL, 'T', UMODE_GLOBAL, NULL, &UMODE_NOCTCP);
 	UmodeAdd(NULL, 'V', UMODE_GLOBAL, NULL, &UMODE_WEBTV);
 #ifdef UDB
-	UmodeAdd(NULL, 'k', UMODE_GLOBAL, NULL, &UMODE_SERVICES);
+	UmodeAdd(NULL, 'k', UMODE_GLOBAL, umode_allow_opers, &UMODE_SERVICES);
 #else
-	UmodeAdd(NULL, 'S', UMODE_GLOBAL, NULL, &UMODE_SERVICES);
+	UmodeAdd(NULL, 'S', UMODE_GLOBAL, umode_allow_opers, &UMODE_SERVICES);
 #endif
 	UmodeAdd(NULL, 'x', UMODE_GLOBAL, NULL, &UMODE_HIDE);
 	UmodeAdd(NULL, 'N', UMODE_GLOBAL, umode_allow_opers, &UMODE_NETADMIN);

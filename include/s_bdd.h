@@ -26,6 +26,7 @@
 #else
 #define DB_DIR "database/"
 #endif
+#define DBMAX 128
 typedef struct _udb Udb;
 struct _udb
 {
@@ -33,7 +34,7 @@ struct _udb
 	int id; /* si queremos darle una id */
 	char *data_char; /* su valor char */
 	u_long data_long; /* su valor numérico */
-	struct _udb *prev, *sig, *hsig, *up, *mid, *down; /* punteros enlazados bla bla bla */
+	struct _udb *hsig, *up, *mid, *down; /* punteros enlazados bla bla bla */
 	/* 
 	   para los bloques root (nicks, canales, ips y set) los punteros apuntan:
 	   - prev al primer registro
@@ -48,16 +49,28 @@ struct _udb
 	   */
 };
 /* bloques actuales */
-#ifdef MODULE_COMPILE
-extern MODVAR Udb *nicks, *canales, *ips, *set;
+#ifndef MODULE_COMPILE
+DLLFUNC extern MODVAR Udb *nicks;
+DLLFUNC extern MODVAR Udb *canales;
+DLLFUNC extern MODVAR Udb *ips;
+DLLFUNC extern MODVAR Udb *set;
+DLLFUNC extern MODVAR Udb *ultimo;
+DLLFUNC extern MODVAR u_int BDD_NICKS;
+DLLFUNC extern MODVAR u_int BDD_CHANS;
+DLLFUNC extern MODVAR u_int BDD_IPS;
+DLLFUNC extern MODVAR u_int BDD_SET;
+DLLFUNC extern MODVAR time_t gmts[DBMAX];
 #else
-DLLFUNC extern MODVAR Udb *nicks, *canales, *ips, *set;
-#endif
-
-#ifdef MODULE_COMPILE
-extern MODVAR u_int BDD_NICKS, BDD_CHANS, BDD_IPS, BDD_SET;
-#else
-DLLFUNC extern MODVAR u_int BDD_NICKS, BDD_CHANS, BDD_IPS, BDD_SET;
+extern MODVAR Udb *nicks;
+extern MODVAR Udb *canales;
+extern MODVAR Udb *ips;
+extern MODVAR Udb *set;
+extern MODVAR Udb *ultimo;
+extern MODVAR u_int BDD_NICKS;
+extern MODVAR u_int BDD_CHANS;
+extern MODVAR u_int BDD_IPS;
+extern MODVAR u_int BDD_SET;
+extern MODVAR time_t gmts[DBMAX];
 #endif
 
 DLLFUNC extern char *make_virtualhost(aClient *, char *, char *, int);
@@ -66,6 +79,9 @@ DLLFUNC extern int level_oper_bdd(char *);
 DLLFUNC char *get_visiblehost(aClient *, aClient *);
 DLLFUNC extern char *chan_nick();
 DLLFUNC extern char *chan_mask();
+DLLFUNC extern void dale_cosas(int, aClient *);
+DLLFUNC extern int puede_cambiar_nick_en_bdd(aClient *, aClient *, aClient *, char *[], char *, char *, char);
+DLLFUNC extern int tipo_de_pass(char *, char *);
 #define BorraIpVirtual(x)							\
 	do									\
 	{									\

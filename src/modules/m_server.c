@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.4 2004-10-31 20:21:52 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.5 2005-03-21 10:37:00 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -153,8 +153,7 @@ DLLFUNC CMD_FUNC(m_server)
 			break;
 	if (*ch || !index(servername, '.'))
 	{
-		sendto_one(sptr, "ERROR :Servidor incorrecto (%s)",
-		    sptr->name, servername);
+		sendto_one(sptr, "ERROR :Servidor incorrecto (%s)", servername);
 		sendto_snomask
 		    (SNO_JUNK,
 		    "WARNING: Servidor incorrecto (%s) desde %s",
@@ -564,7 +563,7 @@ CMD_FUNC(m_server_remote)
 	/* Taken from bahamut makes it so all servers behind a U:lined
 	 * server are also U:lined, very helpful if HIDE_ULINES is on
 	 */
-	if (IsULine(cptr)
+	if (IsULine(sptr)
 	    || (Find_uline(acptr->name)))
 		acptr->flags |= FLAGS_ULINE;
 	add_server_to_table(acptr);
@@ -785,10 +784,9 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 #ifdef UDB
 	if (IsUDB(cptr))
 	{
-		sendto_one(cptr, ":%s DB %s INF N %s", me.name, cptr->name, nicks->data_char);
-		sendto_one(cptr, ":%s DB %s INF C %s", me.name, cptr->name, canales->data_char);
-		sendto_one(cptr, ":%s DB %s INF I %s", me.name, cptr->name, ips->data_char);
-		sendto_one(cptr, ":%s DB %s INF S %s", me.name, cptr->name, set->data_char);
+		Udb *aux;
+		for (aux = ultimo; aux; aux = aux->mid)
+			sendto_one(cptr, ":%s DB %s INF %c %s %lu", me.name, cptr->name, aux->id & 0xFF, aux->data_char, gmts[aux->id >> 8]);
 	}
 #endif		
 	/* Synching nick information */
@@ -941,13 +939,14 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	    ircnetwork);
 #ifndef UDB
 	/* primero tenemos que saber si hay que pasar bloques o no */
+
 	/* Send EOS (End Of Sync) to the just linked server... */
 	sendto_one(cptr, ":%s %s", me.name,
 		(IsToken(cptr) ? TOK_EOS : MSG_EOS));
-#endif
 #ifdef DEBUGMODE
 	ircd_log(LOG_ERROR, "[EOSDBG] m_server_synch: sending to justlinked '%s' with src ME...",
 			cptr->name);
+#endif
 #endif
 	return 0;
 

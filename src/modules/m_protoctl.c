@@ -52,7 +52,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.5 2004-10-31 20:21:51 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.6 2005-03-21 10:36:57 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -315,6 +315,18 @@ CMD_FUNC(m_protoctl)
 			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
 			cptr->proto |= PROTO_NICKIP;
 		}
+		else if (strncmp(s, "NICKCHARS=", 10) == 0)
+		{
+			/* Compare... */
+			if (strcmp(s+10, langsinuse))
+			{
+				sendto_one(cptr, "ERROR :My nick charset='%s', yours='%s'",
+					langsinuse, s+10);
+				sendto_realops("Link error %s: Nick charset no corresponde, el nuestro='%s', el vuestro='%s'",
+					get_client_name(cptr, FALSE), langsinuse, s+10);
+				return exit_client(cptr, cptr, &me, "Nick charset no corresponde");
+			}
+		}
 		/*
 		 * Add other protocol extensions here, with proto
 		 * containing the base option, and options containing
@@ -324,7 +336,7 @@ CMD_FUNC(m_protoctl)
 		 * support it.
 		 */
 #ifdef UDB
- 		else if (strcmp(s, "UDB3") == 0)
+ 		else if (strcmp(s, "UDB3.1") == 0)
 		{
 #ifndef PROTOCTL_MADNESS
 			if (remove)
@@ -337,7 +349,7 @@ CMD_FUNC(m_protoctl)
 			    proto, cptr->name));
 			cptr->proto |= PROTO_UDB;
 		}
-		else if (!strcmp(s, "UDB") || !strcmp(s, "UDB2"))
+		else if (!strcmp(s, "UDB") || !strcmp(s, "UDB2") || !strcmp(s, "UDB3"))
 		{
 			sendto_one(cptr, "ERROR: Versión UDB incorrecta");
 			return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta");

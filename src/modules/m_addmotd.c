@@ -52,7 +52,7 @@ DLLFUNC int m_addmotd(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_addmotd)
   = {
 	"m_addmotd",
-	"$Id: m_addmotd.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_addmotd.c,v 1.1.4.2 2005-03-21 10:36:41 Trocotronic Exp $",
 	"command /addmotd", 
 	NULL,
 	NULL 

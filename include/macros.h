@@ -16,8 +16,22 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: macros.h,v 1.1.4.1 2004-10-31 20:21:37 Trocotronic Exp $
+ *   $Id: macros.h,v 1.1.4.2 2005-03-21 10:36:18 Trocotronic Exp $
  */
+
+#include "setup.h"
 
 /* Calculate the size of an array */
 #define ARRAY_SIZEOF(x) (sizeof((x))/sizeof((x)[0]))
+
+/* Allocate a dynamic local variable */
+#if defined(HAVE_C99_VARLEN_ARRAY)
+#define DYN_LOCAL(type, name, size) type name[size]
+#define DYN_FREE(name)
+#elif defined(HAVE_ALLOCA)
+#define DYN_LOCAL(type, name, size) type *name = (size ? alloca(size) : NULL)
+#define DYN_FREE(name)
+#else
+#define DYN_LOCAL(type, name, size) type *name = (size ? malloc(size) : NULL)
+#define DYN_FREE(name) (name ? free(name) : 0)
+#endif

@@ -16,7 +16,7 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*   
-#*   $Id: Makefile,v 1.1.1.5 2004-10-31 20:21:40 Trocotronic Exp $
+#*   $Id: Makefile,v 1.1.1.6 2005-03-21 10:36:23 Trocotronic Exp $
 #*/
 
 CC = danger will robinson
@@ -27,7 +27,7 @@ OBJS=auth.o aln.o badwords.o channel.o cloak.o crule.o dbuf.o \
 	res_init.o res_comp.o res_mkquery.o res_skipname.o s_auth.o \
 	s_bsd.o s_conf.o s_debug.o s_err.o s_extra.o s_kline.o \
 	s_misc.o s_numeric.o s_serv.o s_svs.o $(STRTOUL) socket.o \
-	ssl.o s_user.o scache.o send.o support.o umodes.o \
+	ssl.o s_user.o charsys.o scache.o send.o support.o umodes.o \
 	version.o webtv.o whowas.o zip.o cidr.o random.o extcmodes.o \
 	tea.o s_bdd.o \
 	extbans.o md5.o api-isupport.o api-command.o $(URL)
@@ -211,6 +211,10 @@ ircsprintf.o: ircsprintf.c ../include/dbuf.h $(INCLUDES)
 s_user.o: s_user.c $(INCLUDES) \
 	  ../include/dbuf.h ../include/channel.h ../include/whowas.h
 	$(CC) $(CFLAGS) -c s_user.c
+
+charsys.o: charsys.c $(INCLUDES) \
+	  ../include/dbuf.h ../include/channel.h ../include/whowas.h
+	$(CC) $(CFLAGS) -c charsys.c
 
 s_extra.o: s_extra.c $(INCLUDES) \
 	  s_numeric.c ../include/dbuf.h ../include/channel.h ../include/whowas.h

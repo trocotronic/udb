@@ -52,7 +52,7 @@ DLLFUNC int m_wallops(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_wallops)
   = {
 	"m_wallops",
-	"$Id: m_wallops.c,v 1.1.4.1 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_wallops.c,v 1.1.4.2 2005-03-21 10:37:12 Trocotronic Exp $",
 	"command /wallops", 
 	"3.2-b8-1",
 	NULL 

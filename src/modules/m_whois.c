@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.7 2004-10-31 20:21:55 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.8 2005-03-21 10:37:13 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -254,7 +254,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 						*(buf + len++) = '?';
 					if (acptr->umodes & UMODE_HIDEWHOIS && !IsMember(sptr, chptr)
 #ifdef UDB
-					&& (IsAnOper(sptr) || IsHelpOp(sptr))
+					&& IsHOper(sptr)
 #else
 						&& IsAnOper(sptr)
 #endif
@@ -382,8 +382,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #endif
 
 			if (acptr->umodes & UMODE_SECURE)
-				sendto_one(sptr, ":%s %d %s %s :%s", me.name,
-				    RPL_WHOISSPECIAL, parv[0], name, "es una conexión segura");
+				sendto_one(sptr, rpl_str(RPL_WHOISSECURE), me.name, parv[0], name,
+					"usa una Conexión Segura");
 
 			if (!BadPtr(user->swhois) && !hideoper)
 					sendto_one(sptr, ":%s %d %s %s :%s",

@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ircsprintf.c,v 1.1.1.3 2004-10-31 20:21:42 Trocotronic Exp $
+ * $Id: ircsprintf.c,v 1.1.1.4 2005-03-21 10:36:29 Trocotronic Exp $
  */
 #include "ircsprintf.h"
 #include <stdio.h>

@@ -52,7 +52,7 @@ DLLFUNC int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_kick)
   = {
 	"m_kick",
-	"$Id: m_kick.c,v 1.1.4.4 2004-10-31 20:21:49 Trocotronic Exp $",
+	"$Id: m_kick.c,v 1.1.4.5 2005-03-21 10:36:50 Trocotronic Exp $",
 	"command /kick", 
 	"3.2-b8-1",
 	NULL 
@@ -302,13 +302,17 @@ CMD_FUNC(m_kick)
 					    !(lp->flags & (CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER)))
 					{
 						/* Send it only to chanops & victim */
-						sendto_chanops_butone(who, chptr, ":%s!%s@%s KICK %s %s :%s",
-							sptr->name, sptr->user->username, GetHost(sptr),
-							chptr->chname, who->name, comment);
-						if (MyClient(who))
-							sendto_one(who, ":%s!%s@%s KICK %s %s :%s",
+						if (IsPerson(sptr))
+							sendto_chanops_butone(who, chptr, ":%s!%s@%s KICK %s %s :%s",
 								sptr->name, sptr->user->username, GetHost(sptr),
 								chptr->chname, who->name, comment);
+						else
+							sendto_chanops_butone(who, chptr, ":%s KICK %s %s :%s",
+								sptr->name, chptr->chname, who->name, comment);
+						
+						if (MyClient(who))
+							sendto_prefix_one(who, sptr, ":%s KICK %s %s :%s",
+								sptr->name, chptr->chname, who->name, comment);
 					} else {
 						/* NORMAL */
 						sendto_channel_butserv(chptr,

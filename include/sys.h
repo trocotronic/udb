@@ -16,11 +16,30 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.3 2004-07-04 13:19:17 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.4 2005-03-21 10:36:21 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
 #define __sys_include__
+
+/* alloca stuff */
+#ifdef _WIN32
+# include <malloc.h>
+# define alloca _alloca
+#else /* _WIN32 */
+# ifdef HAVE_ALLOCA
+#  if defined(_AIX) && !defined(__GNUC__)
+    #pragma alloca
+#  endif /* _AIX */
+#  if defined(HAVE_ALLOCA_H)
+#   include <alloca.h>
+#  endif /* HAVE_ALLOCA_H */
+#  if defined(__GNUC__) && !defined(HAVE_ALLOCA_H) && !defined(alloca)
+#   define alloca __builtin_alloca
+#  endif /* __GNUC__ */
+# endif /* HAVE_ALLOCA */
+#endif /* !_WIN32 */
+
 #ifdef ISC202
 #include <net/errno.h>
 #else

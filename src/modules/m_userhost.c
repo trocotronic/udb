@@ -52,7 +52,7 @@ DLLFUNC int m_userhost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_userhost)
   = {
 	"m_userhost",
-	"$Id: m_userhost.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_userhost.c,v 1.1.4.3 2005-03-21 10:37:11 Trocotronic Exp $",
 	"command /userhost", 
 	"3.2-b8-1",
 	NULL 

@@ -2,7 +2,7 @@
 **
 ** version.h
 ** UnrealIRCd
-** $Id: version.h,v 1.1.1.9 2004-11-04 19:43:49 Trocotronic Exp $
+** $Id: version.h,v 1.1.1.10 2005-03-21 10:36:21 Trocotronic Exp $
 */
 #ifndef __versioninclude
 #define __versioninclude 1
@@ -26,13 +26,13 @@
 /*
  * Version Unreal3.2.2
  */
-#define UnrealProtocol 		2305
+#define UnrealProtocol 		2306
 #define PATCH1  		"3"
 #define PATCH2  		".2"
-#define PATCH3  		".2"
+#define PATCH3  		".3"
 #ifdef UDB
 #define PATCH4 			"+UDB"
-#define PATCH5 			"-3.0.1"
+#define PATCH5 			"-3.1"
 #define PATCH6			"es"
 #else
 #define PATCH4  		""

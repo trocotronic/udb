@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.2+UDB 3.0-es
+AppVerName=UnrealIRCd3.2.3+UDB 3.1-es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -33,9 +33,9 @@ OutputDir=../../
 Name: "desktopicon"; Description: "Crear un icono en el &escritorio"; GroupDescription: "Iconos adicionales:"
 Name: "quicklaunchicon"; Description: "Crear un icono en la barra de menú &rápido"; GroupDescription: "Iconos adicionales:"; Flags: unchecked
 Name: "installservice"; Description: "Instalarlo como &servicio (no principiantes)"; GroupDescription: "Soporte servicio:"; Flags: unchecked; MinVersion: 0,4.0
-Name: "installservice/startboot"; Description: "&Iniciar UnrealIRCd cuando Windows arranca"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive
-Name: "installservice/startdemand"; Description: "Iniciar UnrealIRCd por &petición"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive
-Name: "installservice/crashrestart"; Description: "Reiniciar UnrealIRCd si se cierra inesperadamente"; GroupDescription: "Soporte servicio:"; MinVersion: 0,5.0;
+Name: "installservice/startboot"; Description: "&Iniciar UnrealIRCd cuando Windows arranca"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive unchecked
+Name: "installservice/startdemand"; Description: "Iniciar UnrealIRCd por &petición"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive unchecked
+Name: "installservice/crashrestart"; Description: "Reiniciar UnrealIRCd si se cierra inesperadamente"; GroupDescription: "Soporte servicio:"; Flags: unchecked; MinVersion: 0,5.0;
 #ifdef USE_SSL
 Name: "makecert"; Description: "&Crear certificado"; GroupDescription: "Opciones SSL:";
 Name: "enccert"; Description: "&Encriptar certificado"; GroupDescription: "Opciones SSL:"; Flags: unchecked;
@@ -52,6 +52,7 @@ Source: "..\..\badwords.channel.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\badwords.message.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\badwords.quit.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\spamfilter.conf"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dccallow.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\Changes"; DestDir: "{app}"; DestName: "Changes.txt"; Flags: ignoreversion
 Source: "..\..\Changes.old"; DestDir: "{app}"; DestName: "Changes.old.txt"; Flags: ignoreversion
 Source: "..\..\Donation"; DestDir: "{app}"; DestName: "Donation.txt"; Flags: ignoreversion
@@ -59,6 +60,7 @@ Source: "..\..\help.conf"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 Source: "..\..\Unreal.nfo"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\doc\*.*"; DestDir: "{app}\doc"; Flags: ignoreversion
+Source: "..\..\doc\technical\*.*"; DestDir: "{app}\doc\technical"; Flags: ignoreversion
 Source: "..\..\aliases\*"; DestDir: "{app}\aliases"; Flags: ignoreversion
 Source: "..\..\networks\*"; DestDir: "{app}\networks"; Flags: ignoreversion
 Source: "..\..\unreal.exe"; DestDir: "{app}"; Flags: ignoreversion; MinVersion: 0,4.0
@@ -128,7 +130,7 @@ begin
         answer := MsgBox('Se requiere DbgHelp.dll versión 5.0 o mayor. ¿Quiere instalarla?', mbConfirmation, MB_YESNO);
         if answer = IDYES then begin
           tmp := ExpandConstant('{tmp}\dbghelp.dll');
-          isxdl_SetOption('title', 'Downloading DbgHelp.dll');
+          isxdl_SetOption('title', 'Descargando DbgHelp.dll');
           hWnd := StrToInt(ExpandConstant('{wizardhwnd}'));
           if isxdl_Download(hWnd, dbgurl, tmp) = 0 then begin
             MsgBox('La descarga e instalación de DbgHelp.Dll han fallado. El archivo tiene que instalarse manualmente. Puede descargarlo de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
@@ -142,11 +144,11 @@ begin
   Result := true;
 end;
 
-procedure CurStepChanged(CurStep: Integer);
+procedure CurStepChanged(CurStep: TSetupStep);
 var
 input,output: String;
 begin
-  if (CurStep = csCopy) then begin
+  if (CurStep = ssPostInstall) then begin
     if (didDbgDl) then begin
       input := ExpandConstant('{tmp}\dbghelp.dll');
       output := ExpandConstant('{app}\dbghelp.dll');
@@ -189,4 +191,4 @@ Filename: "{app}\encpem.bat"; WorkingDir: "{app}"; Tasks: enccert
 Filename: "{app}\unreal.exe"; Parameters: "uninstall"; Flags: runminimized; RunOnceID: "DelService"; Tasks: installservice
 
 [Languages]
-Name: "Castellano"; MessagesFile: "compiler:Languages\Spanish-5-4.1.4.isl"
+Name: "Castellano"; MessagesFile: "compiler:Languages\SpanishStd-2-5.1.0.isl"

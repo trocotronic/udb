@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.6 2004-10-31 20:21:51 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.7 2005-03-21 10:36:59 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 
@@ -60,7 +60,7 @@ ModuleHeader MOD_HEADER(m_sapart)
 
 DLLFUNC int MOD_INIT(m_sapart)(ModuleInfo *modinfo)
 {
-	add_Command(MSG_SAPART, TOK_SAPART, m_sapart, MAXPARA);
+	add_Command(MSG_SAPART, TOK_SAPART, m_sapart, 3);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -92,6 +92,8 @@ DLLFUNC int MOD_UNLOAD(m_sapart)(int module_unload)
 DLLFUNC CMD_FUNC(m_sapart)
 {
 	aClient *acptr;
+	aChannel *chptr;
+	Membership *lp;
 	char *comment = (parc > 3 && parv[3] ? parv[3] : NULL);
 	char commentx[512];
 #ifdef UDB
@@ -115,10 +117,22 @@ DLLFUNC CMD_FUNC(m_sapart)
 		sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name, parv[0], parv[1]);
 		return 0;
 	}
+	if (!(chptr = get_channel(acptr, parv[2], 0)))
+	{
+		sendto_one(sptr, err_str(ERR_NOSUCHCHANNEL), me.name, parv[0],
+			parv[2]);
+		return 0;
+	}
+	if (!(lp = find_membership_link(acptr->user->channel, chptr)))
+	{
+		sendto_one(sptr, err_str(ERR_USERNOTINCHANNEL), me.name, parv[0], 
+			   parv[1], parv[2]);
+		return 0;
+	}
 	
 	if (comment)
 	{
-		sendto_realops("%s ua SAPART a %s en %s (%s)", sptr->name, parv[1],
+		sendto_realops("%s usa SAPART a %s en %s (%s)", sptr->name, parv[1],
 		               parv[2], comment);
 		/* Logging function added by XeRXeS */
 		ircd_log(LOG_SACMDS,"SAPART: %s used SAPART to make %s part %s (%s)", 
@@ -149,7 +163,7 @@ DLLFUNC CMD_FUNC(m_sapart)
 			sendto_one(acptr,
 			    ":%s %s %s :*** Has sido forzado a salir de %s", me.name,
 			    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[1]);
-		(void)m_part(acptr, acptr, comment ? 3 : 2, parv);
+		do_cmd(acptr, acptr, "PART", comment ? 3 : 2, parv);
 	}
 	else
 	{

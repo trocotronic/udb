@@ -52,7 +52,7 @@ DLLFUNC int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_trace)
   = {
 	"m_trace",
-	"$Id: m_trace.c,v 1.1.4.1 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_trace.c,v 1.1.4.2 2005-03-21 10:37:09 Trocotronic Exp $",
 	"command /trace", 
 	"3.2-b8-1",
 	NULL 
@@ -271,8 +271,8 @@ DLLFUNC CMD_FUNC(m_trace)
 		 * trace
 		 */
 		sendto_one(sptr, rpl_str(RPL_TRACESERVER),
-		    me.name, parv[0], 0, link_s[me.slot],
-		    link_u[me.slot], me.name, "*", "*", me.name, 0);
+		    me.name, parv[0], "0", link_s[me.slot],
+		    link_u[me.slot], me.name, "*", "*", me.name, 0L);
 		return 0;
 	}
 	for (cltmp = conf_class; doall && cltmp; cltmp = (ConfigItem_class *) cltmp->next)

@@ -52,7 +52,7 @@ DLLFUNC int m_list(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_list)
   = {
 	"m_list",
-	"$Id: m_list.c,v 1.1.4.2 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_list.c,v 1.1.4.3 2005-03-21 10:36:52 Trocotronic Exp $",
 	"command /list", 
 	"3.2-b8-1",
 	NULL 
@@ -207,10 +207,7 @@ DLLFUNC CMD_FUNC(m_list)
 				    doall = 1;
 				    break;
 			    default:
-				    sendto_one(sptr,
-					err_str(ERR_LISTSYNTAX),
-					me.name, cptr->name,
-					"Sintaxis incorreta, usa /list ?");
+				    sendto_one(sptr, err_str(ERR_LISTSYNTAX), me.name, cptr->name);
 				    error = 1;
 			  }
 			  break;

@@ -58,7 +58,7 @@ DLLFUNC int  m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.6 2004-10-31 20:21:50 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.7 2005-03-21 10:36:53 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -205,7 +205,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				continue;
 			}
 			/* Umode +R (idea from Bahamut) */
-			if (IsRegNickMsg(acptr) && !IsRegNick(sptr) && !IsULine(sptr) && !IsOper(sptr)) {
+			if (IsRegNickMsg(acptr) && !IsRegNick(sptr) && !IsULine(sptr) && !IsOper(sptr) && !IsServer(sptr)) {
 				sendto_one(sptr, err_str(ERR_NONONREG), me.name, parv[0],
 					acptr->name);
 				return 0;
@@ -272,7 +272,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				{
 					ret = dospamfilter(sptr, text, (notice ? SPAMF_USERNOTICE : SPAMF_USERMSG), acptr->name);
 					if (ret < 0)
-						return FLUSH_BUFFER;
+						return ret;
 				}
 
 				for (tmphook = Hooks[HOOKTYPE_USERMSG]; tmphook; tmphook = tmphook->next) {
@@ -438,7 +438,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 						continue;
 					}
  #else
-					if (chptr->mode.mode & MODE_STRIPBADWORDS)
+					if (chptr->mode.extmode & EXTMODE_STRIPBADWORDS)
 					{
 						text = stripbadwords_channel(text, &blocked);
 						if (blocked)
@@ -565,7 +565,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					 */
 					if (!IsMe(acptr))
 					{
-						if (IsToken(acptr))
+						if (IsToken(acptr->from))
 							sendto_one(acptr,
 							    ":%s %s %s :%s", parv[0],
 							    notice ? TOK_NOTICE : TOK_PRIVATE,
@@ -757,6 +757,8 @@ int size_string, ret;
 	/* Most likely a DCC send .. */
 	if (!myncmp(ctcp, "DCC SEND ", 9))
 		ctcp = text + 10;
+	else if (!myncmp(ctcp, "DCC RESUME ", 11))
+		ctcp = text + 12;
 	else
 		return 1; /* something else, allow */
 
@@ -767,6 +769,8 @@ int size_string, ret;
 			me.name, sptr->name);
 		return 0;
 	}
+	for (; (*ctcp == ' '); ctcp++); /* skip leading spaces */
+
 	if (*ctcp == '"' && *(ctcp+1))
 		end = index(ctcp+1, '"');
 	else
@@ -832,7 +836,7 @@ static int check_dcc_soft(aClient *from, aClient *to, char *text)
 char *ctcp;
 ConfigItem_deny_dcc *fl;
 char *end, realfile[BUFSIZE];
-int size_string, ret;
+int size_string;
 
 	if ((*text != 1) || IsOper(from) || IsOper(to))
 		return 1;

@@ -51,7 +51,7 @@ DLLFUNC int m_userip(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_userip)
   = {
 	"m_userip",
-	"$Id: m_userip.c,v 1.1.4.1 2004-10-31 20:21:54 Trocotronic Exp $",
+	"$Id: m_userip.c,v 1.1.4.2 2005-03-21 10:37:11 Trocotronic Exp $",
 	"command /userip", 
 	"3.2-b8-1",
 	NULL 
@@ -94,7 +94,7 @@ DLLFUNC CMD_FUNC(m_userip)
 	if (parc < 2)
 	{
 		sendto_one(sptr, rpl_str(ERR_NEEDMOREPARAMS),
-		    me.name, parv[0], "USERHOST");
+		    me.name, parv[0], "USERIP");
 		return 0;
 	}
 
