@@ -990,6 +990,83 @@ CMD_FUNC(m_db)
 	}
 	return 0;
 }
+/* 2 ok
+ * 1 suspendido
+ * 0 no reg
+ * -1 forbid
+ * -2 incorrecto
+ * -3 no ha dado pass
+ */
+int tipo_de_pass(aClient *sptr, char *nick, char *pass)
+{
+	Udb *reg, *bloq, *cha;
+	anAuthStruct *as;
+	int tipo = AUTHTYPE_PLAINTEXT;
+	if (!(reg = busca_registro(BDD_NICKS, nick)))
+		return 0; /* no existe */
+	if (busca_bloque("forbid", reg))
+		return -1; /* tiene el nick en forbid, no importa la pass */
+	if (!(bloq = busca_bloque("pass", reg)))
+		return 0; /* no existe */
+	if (!pass)
+		return -3;
+	bzero(buf, sizeof(buf));
+	if ((cha = busca_bloque("desafio", reg)))
+	{
+		int len;
+		char *bpass, buf2[22];
+		if ((tipo = Auth_FindType(cha->data_char)) == -1)
+			return 0; /* si el desafio no es correcto, el nick no existe */
+		bpass = bloq->data_char;
+		bzero(buf2, sizeof(buf2));
+		switch(tipo)
+		{
+#ifdef AUTHENABLE_MD5
+			case AUTHTYPE_MD5:
+				len = 17;
+				break;
+#endif
+#ifdef AUTHENABLE_SHA1
+			case AUTHTYPE_SHA1:
+				len = 21;
+				break;
+#endif
+#ifdef AUTHENABLE_RIPEMD160
+			case AUTHTYPE_RIPEMD160:
+				len = 21;
+				break;
+#endif
+		}
+		if (len)
+		{
+			char tmp[3];
+			int i;
+			for (i = 0; i < len; i++)
+			{
+				ircsprintf(tmp, "%c%c", *bpass, *(bpass + 1));
+				buf2[i] = (char)strtol(tmp, NULL, 16);
+				bpass += 2;
+			}
+			b64_encode(buf2, len - 1, buf, sizeof(buf));
+		}
+		else
+			strcpy(buf, bpass);
+	}
+	else
+		strcpy(buf, pass);
+	as = (anAuthStruct *) MyMalloc(sizeof(anAuthStruct));
+	as->type = tipo;
+	as->data = strdup(buf);
+	if (Auth_Check(&me, as, pass) == 2) /* ok */
+	{
+		Auth_DeleteAuthStruct(as);
+		if (busca_bloque("suspendido", reg))
+			return 1;
+		return 2;
+	}
+	Auth_DeleteAuthStruct(as);
+	return -2;
+}
 CMD_FUNC(m_ghost)
 {
 	aClient *acptr;
@@ -1110,83 +1187,6 @@ CMD_FUNC(m_dbq)
 	MyFree(pos);
 	return 0;
 }
-/* 2 ok
- * 1 suspendido
- * 0 no reg
- * -1 forbid
- * -2 incorrecto
- * -3 no ha dado pass
- */
-int tipo_de_pass(aClient *sptr, char *nick, char *pass)
-{
-	Udb *reg, *bloq, *cha;
-	anAuthStruct *as;
-	int tipo = AUTHTYPE_PLAINTEXT;
-	if (!(reg = busca_registro(BDD_NICKS, nick)))
-		return 0; /* no existe */
-	if (busca_bloque("forbid", reg))
-		return -1; /* tiene el nick en forbid, no importa la pass */
-	if (!(bloq = busca_bloque("pass", reg)))
-		return 0; /* no existe */
-	if (!pass)
-		return -3;
-	bzero(buf, sizeof(buf));
-	if ((cha = busca_bloque("desafio", reg)))
-	{
-		int len;
-		char *bpass, buf2[22];
-		if ((tipo = Auth_FindType(cha->data_char)) == -1)
-			return 0; /* si el desafio no es correcto, el nick no existe */
-		bpass = bloq->data_char;
-		bzero(buf2, sizeof(buf2));
-		switch(tipo)
-		{
-#ifdef AUTHENABLE_MD5
-			case AUTHTYPE_MD5:
-				len = 17;
-				break;
-#endif
-#ifdef AUTHENABLE_SHA1
-			case AUTHTYPE_SHA1:
-				len = 21;
-				break;
-#endif
-#ifdef AUTHENABLE_RIPEMD160
-			case AUTHTYPE_RIPEMD160:
-				len = 21;
-				break;
-#endif
-		}
-		if (len)
-		{
-			char tmp[3];
-			int i;
-			for (i = 0; i < len; i++)
-			{
-				ircsprintf(tmp, "%c%c", *bpass, *(bpass + 1));
-				buf2[i] = (char)strtol(tmp, NULL, 16);
-				bpass += 2;
-			}
-			b64_encode(buf2, len - 1, buf, sizeof(buf));
-		}
-		else
-			strcpy(buf, bpass);
-	}
-	else
-		strcpy(buf, pass);
-	as = (anAuthStruct *) MyMalloc(sizeof(anAuthStruct));
-	as->type = tipo;
-	as->data = strdup(buf);
-	if (Auth_Check(&me, as, pass) == 2) /* ok */
-	{
-		Auth_DeleteAuthStruct(as);
-		if (busca_bloque("suspendido", reg))
-			return 1;
-		return 2;
-	}
-	Auth_DeleteAuthStruct(as);
-	return -2;
-}
 int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char *parv[], char *nick, char *pass, char nick_used)
 {
 	int tipo = 1;
@@ -1198,7 +1198,7 @@ int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char
 		char *botname;
 		if (sptr == acptr)
 			break;
-		if (!(tipo = tipo_de_pass(sptr, nick, pass)))
+		if (!(tipo = tipo_de_pass(nick, pass)))
 			break;
 		if (!(breg = busca_registro(BDD_SET, "NickServ")))
 			botname = me.name;
