@@ -288,11 +288,11 @@ int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
 							nums[k] = 0;
 							i--;
 							if (format->parameters[i+1] == '-') {
-								strrangetok(parv[1], current, ' ', atoi(nums),0);
+								strrangetok(parv[1], current, ' ', (short)atoi(nums),0);
 								i++;
 							}
 							else 
-								strrangetok(parv[1], current, ' ', atoi(nums), atoi(nums));
+								strrangetok(parv[1], current, ' ', (short)atoi(nums), (short)atoi(nums));
 							if (!current)
 								continue;
 							if (j + strlen(current)+1 >= 500)

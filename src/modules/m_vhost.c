@@ -52,7 +52,7 @@ DLLFUNC int m_vhost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_vhost)
   = {
 	"vhost",	/* Name of module */
-	"$Id: m_vhost.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_vhost.c,v 1.1.1.2 2004-05-17 15:46:31 Trocotronic Exp $", /* Version */
 	"command /vhost", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -188,7 +188,7 @@ int  m_vhost(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				MyFree(sptr->user->swhois);
 			sptr->user->swhois = MyMalloc(strlen(vhost->swhois) +1);
 			strcpy(sptr->user->swhois, vhost->swhois);
-			sendto_serv_butone_token(cptr, sptr->name,
+			sendto_serv_butone_token(cptr, me.name,
 				MSG_SWHOIS, TOK_SWHOIS, "%s :%s", sptr->name, vhost->swhois);
 		}
 		sendto_one(sptr,

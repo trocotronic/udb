@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.4 2004-05-17 15:46:28 Trocotronic Exp $
  */
 
 
@@ -52,8 +52,12 @@ enum UHAllowed { UHALLOW_ALWAYS, UHALLOW_NOCHANS, UHALLOW_REJOIN, UHALLOW_NEVER 
 
 struct ChMode {
         long mode;
+#ifdef EXTCMODE
+	long extmodes;
+	char *extparams[EXTCMODETABLESZ];
+#endif
 #ifdef NEWCHFLOODPROT
-		ChanFloodProt	floodprot;
+	ChanFloodProt	floodprot;
 #else
         unsigned short  msgs;
         unsigned short  per; 

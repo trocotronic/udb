@@ -181,14 +181,13 @@ int main(int argc, char *argv[]) {
 		else {
 			show_usage();
 			return -1;
-		}	
+		}
+		return 0;	
 	}
 	else {
 		show_usage();
 		return -1;
 	}
-
-		
-			
+	return 0;
 }
 

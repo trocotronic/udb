@@ -55,7 +55,7 @@
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)res_mkquery.c	8.1 (Berkeley) 6/4/93";
-static char rcsid[] = "$Id: res_mkquery.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $";
+static char rcsid[] = "$Id: res_mkquery.c,v 1.1.1.2 2004-05-17 15:46:29 Trocotronic Exp $";
 #endif /* LIBC_SCCS and not lint */
 
 #include "struct.h"
@@ -128,9 +128,9 @@ const u_char *newrr_in, u_char *buf, int buflen)
 			  return (-1);
 		  cp += n;
 		  buflen -= n;
-		  ircd__putshort(type, cp);
+		  ircd__putshort((u_int16_t)type, cp);
 		  cp += INT16SZ;
-		  ircd__putshort(class, cp);
+		  ircd__putshort((u_int16_t)class, cp);
 		  cp += INT16SZ;
 		  hp->qdcount = htons(1);
 		  if (op == QUERY || data == NULL)
@@ -146,7 +146,7 @@ const u_char *newrr_in, u_char *buf, int buflen)
 		  buflen -= n;
 		  ircd__putshort(T_NULL, cp);
 		  cp += INT16SZ;
-		  ircd__putshort(class, cp);
+		  ircd__putshort((u_int16_t)class, cp);
 		  cp += INT16SZ;
 		  ircd__putlong(0, cp);
 		  cp += INT32SZ;
@@ -162,13 +162,13 @@ const u_char *newrr_in, u_char *buf, int buflen)
 		  if (buflen < 1 + RRFIXEDSZ + datalen)
 			  return (-1);
 		  *cp++ = '\0';	/* no domain name */
-		  ircd__putshort(type, cp);
+		  ircd__putshort((u_int16_t)type, cp);
 		  cp += INT16SZ;
-		  ircd__putshort(class, cp);
+		  ircd__putshort((u_int16_t)class, cp);
 		  cp += INT16SZ;
 		  ircd__putlong(0, cp);
 		  cp += INT32SZ;
-		  ircd__putshort(datalen, cp);
+		  ircd__putshort((u_int16_t)datalen, cp);
 		  cp += INT16SZ;
 		  if (datalen)
 		  {

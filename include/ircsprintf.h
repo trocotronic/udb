@@ -1,7 +1,7 @@
 /*
  * sprintf_irc.h
  *
- * $Id: ircsprintf.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ * $Id: ircsprintf.h,v 1.1.1.2 2004-05-17 15:46:28 Trocotronic Exp $
  */
 
 #ifndef IRCSPRINTF_H
@@ -16,8 +16,13 @@
 
 /* You do want it to work in debug mode yes ? --DrBin */
 
+/* ugly hack GRR */
+#if !defined(__GNUC__) && !defined(__common_include__)
+#define __attribute__(x) /* nothing */
+#endif
+
 extern char *ircvsprintf(char *str, const char *format, va_list);
-extern char *ircsprintf(char *str, const char *format, ...);
+extern char *ircsprintf(char *str, const char *format, ...) __attribute__((format(printf,2,3)));
 
 extern const char atoi_tab[4000];
 

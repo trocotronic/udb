@@ -55,7 +55,7 @@
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)res_init.c	8.1 (Berkeley) 6/7/93";
-static char rcsid[] = "$Id: res_init.c,v 1.1.1.2 2004-02-18 18:24:12 Trocotronic Exp $";
+static char rcsid[] = "$Id: res_init.c,v 1.1.1.3 2004-05-17 15:46:29 Trocotronic Exp $";
 #endif /* LIBC_SCCS and not lint */
 
 #include "struct.h"
@@ -409,7 +409,7 @@ void get_res_from_reg_nt()
 		{
 			do {
 				n = 0;
-				while (*cp && *cp != ' ' && *cp != '\t')
+				while (*cp && *cp != ' ' && *cp != '\t' && *cp != ',')
 					++cp;
 				if (*cp)
 				{

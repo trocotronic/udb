@@ -68,7 +68,7 @@ char	*my_itoa(int i)
 **			of separators
 **			argv 9/90
 **
-**	$Id: support.c,v 1.1.1.3 2004-03-08 18:07:05 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $
 */
 
 char *strtoken(char **save, char *str, char *fs)
@@ -119,7 +119,7 @@ char *strtok2(char *str, char *fs)
 **	strerror - return an appropriate system error string to a given errno
 **
 **		   argv 11/90
-**	$Id: support.c,v 1.1.1.3 2004-03-08 18:07:05 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $
 */
 
 char *strerror(int err_no)
@@ -162,7 +162,7 @@ char *strerror(int err_no)
 **			internet number (some ULTRIX don't have this)
 **			argv 11/90).
 **	inet_ntoa --	its broken on some Ultrix/Dynix too. -avalon
-**	$Id: support.c,v 1.1.1.3 2004-03-08 18:07:05 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $
 */
 
 char *inetntoa(char *in)
@@ -184,7 +184,7 @@ char *inetntoa(char *in)
 /*
 **	inet_netof --	return the net portion of an internet number
 **			argv 11/90
-**	$Id: support.c,v 1.1.1.3 2004-03-08 18:07:05 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $
 **
 */
 
@@ -733,7 +733,7 @@ static void dopr (char *buffer, size_t maxlen, const char *format, va_list args)
 	  fvalue = va_arg (args, double);
 	break;
       case 'c':
-	dopr_outch (buffer, &currlen, maxlen, va_arg (args, int));
+	dopr_outch (buffer, &currlen, maxlen, (char)va_arg (args, int));
 	break;
       case 's':
 	strvalue = va_arg (args, char *);
@@ -900,7 +900,7 @@ static void fmtint (char *buffer, size_t *currlen, size_t maxlen,
 
   /* Sign */
   if (signvalue) 
-    dopr_outch (buffer, currlen, maxlen, signvalue);
+    dopr_outch (buffer, currlen, maxlen, (char)signvalue);
 
   /* Zeros */
   if (zpadlen > 0) 
@@ -1047,7 +1047,7 @@ static void fmtfp (char *buffer, size_t *currlen, size_t maxlen,
   {
     if (signvalue) 
     {
-      dopr_outch (buffer, currlen, maxlen, signvalue);
+      dopr_outch (buffer, currlen, maxlen, (char)signvalue);
       --padlen;
       signvalue = 0;
     }
@@ -1063,7 +1063,7 @@ static void fmtfp (char *buffer, size_t *currlen, size_t maxlen,
     --padlen;
   }
   if (signvalue) 
-    dopr_outch (buffer, currlen, maxlen, signvalue);
+    dopr_outch (buffer, currlen, maxlen, (char)signvalue);
 
   while (iplace > 0) 
     dopr_outch (buffer, currlen, maxlen, iconvert[--iplace]);

@@ -636,9 +636,8 @@ vFP Module_SymEx(
 	irc_dlsym(mod, name, fp);
 	if (fp)
 		return (fp);
-	return NULL;
 #endif
-	
+	return NULL;
 }
 
 vFP Module_Sym(char *name)
@@ -659,8 +658,8 @@ vFP Module_Sym(char *name)
 		if (fp)
 			return (fp);
 	}
-	return NULL;
 #endif
+	return NULL;
 }
 
 vFP Module_SymX(char *name, Module **mptr)
@@ -685,8 +684,8 @@ vFP Module_SymX(char *name, Module **mptr)
 		}
 	}
 	*mptr = NULL;
-	return NULL;
 #endif
+	return NULL;
 }
 
 
@@ -786,7 +785,6 @@ int	Module_Depend_Resolve(Module *p)
 			Module_AddAsChild(parental, p);
 		d++;	
 	}
-	return 0;
 #else
 	while (d->pointer)
 	{
@@ -794,6 +792,7 @@ int	Module_Depend_Resolve(Module *p)
 		d++;
 	}
 #endif
+	return 0;
 }
 
 /* m_module.

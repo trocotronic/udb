@@ -200,7 +200,7 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e) {
 		getpid());
 	fclose(fd);
 	if (!IsService)
-		MessageBox(NULL, text, "Fatal Error", MB_OK);
+		MessageBox(NULL, text, "Error fatal", MB_OK);
 	else {
 		FILE *fd = fopen("service.log", "a");
 		fprintf(fd, "UnrealIRCd ha encontrado un error. La información ha sido escrita en"

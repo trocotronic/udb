@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.4 2004-03-08 18:07:04 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.5 2004-05-17 15:46:28 Trocotronic Exp $
  */
 
 /*
@@ -272,7 +272,7 @@ extern void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr);
 extern void sendto_locfailops(char *pattern, ...) __attribute__((format(printf,1,2)));
 extern void sendto_connectnotice(char *nick, anUser *user, aClient *sptr, int disconnect, char *comment);
 extern void sendto_serv_butone_nickcmd(aClient *one, aClient *sptr, char *nick, int hopcount,
-int lastnick, char *username, char *realhost, char *server, long servicestamp, char *info, char *umodes,
+long lastnick, char *username, char *realhost, char *server, long servicestamp, char *info, char *umodes,
 char *virthost);
 extern void    sendto_message_one(aClient *to, aClient *from, char *sender,
     char *cmd, char *nick, char *msg);
@@ -691,3 +691,4 @@ extern fdlist default_fdlist, busycli_fdlist, serv_fdlist, oper_fdlist;
 extern void DCCdeny_add(char *filename, char *reason, int type);
 extern void DCCdeny_del(ConfigItem_deny_dcc *deny);
 extern void dcc_wipe_services(void);
+extern void reread_motdsandrules();

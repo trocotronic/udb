@@ -46,7 +46,6 @@ static char sccsid[] =
 #ifdef USE_LIBCURL
 #include <curl/curl.h>
 #endif
-
 extern VOIDSIG s_die();
 
 static char buf[BUFSIZE];
@@ -226,11 +225,11 @@ void m_info_send(aClient *sptr)
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Luke         <luke@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * McSkaf       <mcskaf@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Contributors:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * McSkaf       <mcskaf@unrealircd.com>",
+	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Zogg         <zogg@unrealircd.org>",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * NiQuiL       <niquil@unrealircd.org>",
@@ -282,7 +281,7 @@ void m_info_send(aClient *sptr)
 	sendto_one(sptr,
 	    ":%s %d %s :| Soporte de infrastructura y testeado por:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
-	    ":%s %d %s :|          * MaD (irc.chaosnorder.com)", me.name, RPL_INFO, sptr->name);
+	    ":%s %d %s :|          * MaD (mad@madito.net)", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.rallados.net", me.name, RPL_INFO, sptr->name, 31);
 #endif
 	sendto_one(sptr,
@@ -830,7 +829,7 @@ ConfigItem_tld *tlds;
 	}
 }
 
-static void reread_motdsandrules()
+void reread_motdsandrules()
 {
 	motd = (aMotd *) read_file_ex(MPATH, &motd, &motd_tm);
 	rules = (aMotd *) read_file(RPATH, &rules);

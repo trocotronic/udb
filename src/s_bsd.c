@@ -410,7 +410,7 @@ int  inetport(aClient *cptr, char *name, int port)
 #else
 		inet_pton(AFINET, ipname, server.SIN_ADDR.S_ADDR);
 #endif
-		server.SIN_PORT = htons(port);
+		server.SIN_PORT = htons((u_int16_t)port);
 		/*
 		 * Try 10 times to bind the socket with an interval of 20
 		 * seconds. Do this so we dont have to keepp trying manually
@@ -2548,7 +2548,7 @@ static struct SOCKADDR *connect_inet(ConfigItem_link *aconf, aClient *cptr, int 
 	}
 	bcopy((char *)&aconf->ipnum, (char *)&server.SIN_ADDR, sizeof(struct IN_ADDR));
 	bcopy((char *)&aconf->ipnum, (char *)&cptr->ip, sizeof(struct IN_ADDR));
-	server.SIN_PORT = htons(((aconf->port > 0) ? aconf->port : portnum));
+	server.SIN_PORT = htons((u_int16_t)((aconf->port > 0) ? aconf->port : portnum));
 	*lenp = sizeof(server);
 	return (struct SOCKADDR *)&server;
 }

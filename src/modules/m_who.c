@@ -23,7 +23,7 @@
 /* rewritten 06/02 by larne, the old one was unreadable. */
 /* changed indentation + some parts rewritten by Syzop. */
 
-/* $Id: m_who.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $ */
+/* $Id: m_who.c,v 1.1.1.3 2004-05-17 15:46:31 Trocotronic Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +48,7 @@ DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_who)
   = {
 	"who",	/* Name of module */
-	"$Id: m_who.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $", /* Version */
+	"$Id: m_who.c,v 1.1.1.3 2004-05-17 15:46:31 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -439,13 +439,13 @@ char has_common_chan = 0;
 		/* if they only want people with a certain umode */
 		if (wfl.umodes_want)
 		{
-			if (!(acptr->umodes & wfl.umodes_want) || (acptr->umodes & UMODE_HIDEOPER))
+			if (!(acptr->umodes & wfl.umodes_want) || (!IsAnOper(sptr) && (acptr->umodes & UMODE_HIDEOPER)))
 				return WHO_CANTSEE;
 		}
 
 		if (wfl.umodes_dontwant)
 		{
-			if ((acptr->umodes & wfl.umodes_dontwant) && !(acptr->umodes & UMODE_HIDEOPER))
+			if ((acptr->umodes & wfl.umodes_dontwant) && (!(acptr->umodes & UMODE_HIDEOPER) || IsAnOper(sptr)))
 				return WHO_CANTSEE;
 		}
 

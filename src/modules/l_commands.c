@@ -61,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.3 2004-03-08 18:07:06 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -116,7 +116,7 @@ extern int m_connect_Init(ModuleInfo *modinfo);
 extern int m_guest_Init(ModuleInfo *modinfo);
 #endif
 #ifdef UDB
-extern int m_getinfo_Init(ModuleInfo *modinfo), m_privdeaf_Init(ModuleInfo *modinfo);
+extern int m_getinfo_Init(ModuleInfo *modinfo), m_privdeaf_Init(ModuleInfo *modinfo), m_ircops(ModuleInfo *modinfo);
 #endif
 
 extern int m_sethost_Load(int module_load), m_setname_Load(int module_load), m_chghost_Load(int module_load);
@@ -161,7 +161,7 @@ extern int m_connect_Load(int module_load);
 extern int m_guest_Load(int module_load);
 #endif
 #ifdef UDB
-extern int m_getinfo_Load(int module_load), m_privdeaf_Load(int module_load);
+extern int m_getinfo_Load(int module_load), m_privdeaf_Load(int module_load), m_ircops_Load(int module_load);
 #endif
 
 extern int m_sethost_Unload(), m_setname_Unload(), m_chghost_Unload(), m_chgident_Unload();
@@ -195,7 +195,7 @@ extern int m_whowas_Unload(), m_connect_Unload();
 extern int m_guest_Unload();
 #endif
 #ifdef UDB
-extern int m_getinfo_Unload(), m_privdeaf_Unload();
+extern int m_getinfo_Unload(), m_privdeaf_Unload(), m_ircops_Unload();
 #endif
 
 #ifdef DYNAMIC_LINKING
@@ -320,6 +320,7 @@ int    l_commands_Init(ModuleInfo *modinfo)
 #ifdef UDB
 	m_getinfo_Init(ModCmdsInfo);
 	m_privdeaf_Init(ModCmdsInfo);
+	m_ircops_Init(ModCmdsInfo);
 #endif
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
@@ -423,6 +424,7 @@ int    l_commands_Load(int module_load)
 #ifdef UDB
 	m_getinfo_Load(module_load);
 	m_privdeaf_Load(module_load);
+	m_ircops_Load(module_load);
 #endif
 	return MOD_SUCCESS;
 }
@@ -526,6 +528,7 @@ int	l_commands_Unload(int module_unload)
 #ifdef UDB
 	m_getinfo_Unload();
 	m_privdeaf_Unload();
+	m_ircops_Unload();
 #endif
 	return MOD_SUCCESS;
 }

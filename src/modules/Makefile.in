@@ -16,7 +16,7 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*   
-#*   $Id: Makefile.in,v 1.1.1.3 2004-03-08 18:07:05 Trocotronic Exp $
+#*   $Id: Makefile.in,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $
 #*/
 
 INCLUDES = ../include/struct.h ../include/config.h \
@@ -42,7 +42,7 @@ R_MODULES=m_sethost.so m_chghost.so m_chgident.so m_setname.so \
 	 m_trace.so m_netinfo.so m_links.so m_help.so m_rules.so \
 	 m_close.so m_map.so m_eos.so m_server.so m_stats.so \
 	 m_svsfline.so m_dccdeny.so m_undccdeny.so m_whowas.so \
-	 m_privdeaf.so m_getinfo.so \
+	 m_privdeaf.so m_getinfo.so m_ircops.so \
 	 m_connect.so
 
 COMMANDS=m_sethost.c m_chghost.c m_chgident.c m_setname.c m_setident.c \
@@ -62,7 +62,7 @@ COMMANDS=m_sethost.c m_chghost.c m_chgident.c m_setname.c m_setident.c \
 	 m_trace.c m_netinfo.c m_links.c m_help.c m_rules.c \
 	 m_close.c m_map.c m_eos.c m_server.c m_stats.c \
 	 m_svsfline.c m_dccdeny.c m_undccdeny.c m_whowas.c \
-	 m_privdeaf.c m_getinfo.c \
+	 m_privdeaf.c m_getinfo.c m_ircops.c \
 	 m_connect.c
 
 
@@ -441,6 +441,10 @@ m_privdeaf.so: m_privdeaf.c $(INCLUDES)
 m_getinfo.so: m_getinfo.c $(INCLUDES)
 	$(CC) $(CFLAGS) $(MODULEFLAGS) -DDYNAMIC_LINKING \
 		-o m_getinfo.so m_getinfo.c
+
+m_ircops.so: m_ircops.c $(INCLUDES)
+	$(CC) $(CFLAGS) $(MODULEFLAGS) -DDYNAMIC_LINKING \
+		-o m_ircops.so m_ircops.c
 
 clean:
 	$(RM) -f *.o *.so *~ core
