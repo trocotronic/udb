@@ -58,37 +58,76 @@ typedef struct oper_oflag_ {
 	char* announce;
 } oper_oflag_t;
 
-static oper_oflag_t oper_oflags[] = {
-	{ OFLAG_NETADMIN,	&UMODE_NETADMIN,	&netadmin_host,
-		"es un Administrador de Red (N)" },
-	{ OFLAG_SADMIN,		&UMODE_SADMIN,		&sadmin_host,
-		"es un administrador de servicios (a)" },
-	{ OFLAG_ADMIN,		&UMODE_ADMIN,		&admin_host,
-		"es un administrador de servidor (A)" },
-	{ OFLAG_COADMIN,	&UMODE_COADMIN,		&coadmin_host,
-		"es un co administrador (C)" },
-	{ OFLAG_ISGLOBAL,	&UMODE_OPER,		&oper_host,
-		"es un operador de red (O)" },
-	{ OFLAG_HELPOP,		&UMODE_HELPOP,		0 ,
-		0 },
-	{ OFLAG_GLOBOP,		&UMODE_FAILOP,		0 ,
-		0 },
-	{ OFLAG_WALLOP,		&UMODE_WALLOP,	0 ,
-		0 },
-	{ OFLAG_WHOIS,		&UMODE_WHOIS,	0 , 		
-		0 },
 #ifdef UDB
-	{ OFLAG_NETADMIN,	&UMODE_SHOWIP,		0 , 0 } ,
-	{ OFLAG_NETADMIN,	&UMODE_SERVICES,	0 , 0 } ,
-#endif 
-	{ 0,			0,	0 ,
-		0 },
-};
+static oper_oflag_t oper_oflags[12]; 
+#else
+static oper_oflag_t oper_oflags[10]; 
+#endif
+
+static void init_operflags()
+{
+	oper_oflags[0].oflag = OFLAG_NETADMIN;
+	oper_oflags[0].umode = &UMODE_NETADMIN;
+	oper_oflags[0].host = &netadmin_host;
+	oper_oflags[0].announce = "es un Administrador de Red (N)";
+	oper_oflags[1].oflag = OFLAG_SADMIN;
+	oper_oflags[1].umode = &UMODE_SADMIN;
+	oper_oflags[1].host = &sadmin_host;
+	oper_oflags[1].announce = "es un Administrador de Servicios (a)";
+	oper_oflags[2].oflag = OFLAG_ADMIN;
+	oper_oflags[2].umode = &UMODE_ADMIN;
+	oper_oflags[2].host = &admin_host;
+	oper_oflags[2].announce = "es un Administrador de Servidor (A)";
+	oper_oflags[3].oflag = OFLAG_COADMIN;
+	oper_oflags[3].umode = &UMODE_COADMIN;
+	oper_oflags[3].host = &coadmin_host;
+	oper_oflags[3].announce = "es un Co Administrador (C)";
+	oper_oflags[4].oflag = OFLAG_ISGLOBAL;
+	oper_oflags[4].umode = &UMODE_OPER;
+	oper_oflags[4].host = &oper_host;
+	oper_oflags[4].announce = "es un Operador de Red (O)";
+	oper_oflags[5].oflag = OFLAG_HELPOP;
+	oper_oflags[5].umode = &UMODE_HELPOP;
+	oper_oflags[5].host = NULL;
+	oper_oflags[5].announce = NULL;
+	oper_oflags[6].oflag= OFLAG_GLOBOP;
+	oper_oflags[6].umode = &UMODE_FAILOP;
+	oper_oflags[6].host = NULL;
+	oper_oflags[6].announce = NULL;
+	oper_oflags[7].oflag = OFLAG_WALLOP;
+	oper_oflags[7].umode = &UMODE_WALLOP;
+	oper_oflags[7].host = NULL;
+	oper_oflags[7].announce = NULL;
+	oper_oflags[8].oflag = OFLAG_WHOIS;
+	oper_oflags[8].umode = &UMODE_WHOIS;
+	oper_oflags[8].host = NULL;
+	oper_oflags[8].announce = NULL;
+#ifdef UDB
+	oper_oflags[9].oflag = OFLAG_NETADMIN;
+	oper_oflags[9].umode = &UMODE_SHOWIP;
+	oper_oflags[9].host = NULL;
+	oper_oflags[9].announce = NULL;
+	oper_oflags[10].oflag = OFLAG_NETADMIN;
+	oper_oflags[10].umode = &UMODE_SERVICES;
+	oper_oflags[10].host = NULL;
+	oper_oflags[10].announce = NULL;
+	oper_oflags[11].oflag = 0;
+	oper_oflags[11].umode = NULL;
+	oper_oflags[11].host = NULL;
+	oper_oflags[11].announce = NULL;
+#else
+	oper_oflags[9].oflag = 0;
+	oper_oflags[9].umode = NULL;
+	oper_oflags[9].host = NULL;
+	oper_oflags[9].announce = NULL;
+#endif
+}
+	
 
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.4 2004-07-04 13:19:22 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -108,6 +147,7 @@ DLLFUNC int MOD_INIT(m_oper)(ModuleInfo *modinfo)
 /* Is first run when server is 100% ready */
 DLLFUNC int MOD_LOAD(m_oper)(int module_load)
 {
+	init_operflags();
 	return MOD_SUCCESS;
 }
 
@@ -129,8 +169,6 @@ DLLFUNC int MOD_UNLOAD(m_oper)(int module_unload)
 **	parv[1] = oper name
 **	parv[2] = oper password
 */
-
-extern int  SVSNOOP;
 
 DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 	ConfigItem_oper *aconf;
@@ -162,14 +200,16 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 		return 0;
 	}
 
-	name = parc > 1 ? parv[1] : NULL;
-	password = parc > 2 ? parv[2] : NULL;
+	name = parv[1];
+	password = parv[2];
 
 	if (!(aconf = Find_oper(name))) {
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
 		sendto_realops
 		    ("Intento de OPER por %s (%s@%s) [oper desconocido]",
 		    parv[0], sptr->user->username, sptr->sockhost);
+		ircd_log(LOG_OPER, "OPER UNKNOWNOPER (%s) by (%s!%s@%s)", name, parv[0],
+			sptr->user->username, sptr->sockhost);
 		sptr->since += 7;
 		return 0;
 	}

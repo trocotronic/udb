@@ -59,7 +59,7 @@ DLLFUNC int m_chgident(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgident)
   = {
 	"chgident",	/* Name of module */
-	"$Id: m_chgident.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $", /* Version */
+	"$Id: m_chgident.c,v 1.1.1.3 2004-07-04 13:19:21 Trocotronic Exp $", /* Version */
 	"/chgident", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -201,13 +201,13 @@ int m_chgident(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    "%s changed the virtual ident of %s (%s@%s) to be %s",
 			    sptr->name, acptr->name, acptr->user->username,
 			    GetHost(acptr), parv[2]);
+			/* Logging ability added by XeRXeS */
+			ircd_log(LOG_CHGCMDS,
+				"CHGIDENT: %s changed the virtual ident of %s (%s@%s) to be %s",
+				sptr->name, acptr->name, acptr->user->username,    
+				GetHost(acptr), parv[2]);
 		}
 
-		/* Logging ability added by XeRXeS */
-		ircd_log(LOG_CHGCMDS,
-		"CHGIDENT: %s changed the virtual ident of %s (%s@%s) to be %s",
-		sptr->name, acptr->name, acptr->user->username,    
-		GetHost(acptr), parv[2]);
 
 
 		sendto_serv_butone_token(cptr, sptr->name,

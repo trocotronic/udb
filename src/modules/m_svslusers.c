@@ -45,7 +45,6 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
-extern ircstats IRCstats;
 DLLFUNC int m_svslusers(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
 #define MSG_SVSLUSERS 	"SVSLUSERS"	
@@ -54,7 +53,7 @@ DLLFUNC int m_svslusers(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svslusers)
   = {
 	"m_svslusers",
-	"$Id: m_svslusers.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_svslusers.c,v 1.1.1.2 2004-07-04 13:19:23 Trocotronic Exp $",
 	"command /svslusers", 
 	"3.2-b8-1",
 	NULL 

@@ -50,6 +50,9 @@ fi
 if [ "$PREFIXAQ" = "1" ]; then
 ARG="$ARG--enable-prefixaq "
 fi
+if [ "$UDB" = "1" ]; then
+ARG="$ARG--enable-udb "
+fi
 ARG="$ARG--with-listen=$LISTEN_SIZE "
 ARG="$ARG--with-dpath=$DPATH "
 ARG="$ARG--with-spath=$SPATH "
@@ -97,6 +100,7 @@ INET6=""
 REMOTEINC=""
 CURLDIR=""
 PREFIXAQ=""
+UDB=""
 EXTRAPARA=""
 if [ "`eval echo -n 'a'`" = "-n a" ] ; then
         c="\c"
@@ -473,6 +477,36 @@ while [ -z "$TEST" ] ; do
     esac
 done
 
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$UDB" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Quieres dar soporte a UDB?"
+    echo "Con soporte UDB podrás mantener todo el sistema de Unreal DataBase."
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    UDB="1"
+	    ;;
+	[Nn]*)
+	    UDB=""
+	    ;;
+	*)
+	    echo ""
+	    echo "Tienes que escoger Yes o No"
+	    TEST=""
+	    ;;
+    esac
+done
+
 
 TEST=""
 while [ -z "$TEST" ] ; do
@@ -607,6 +641,7 @@ DPATH="$DPATH"
 SPATH="$SPATH"
 INET6="$INET6"
 PREFIXAQ="$PREFIXAQ"
+UDB="$UDB"
 LISTEN_SIZE="$LISTEN_SIZE"
 MAXSENDQLENGTH="$MAXSENDQLENGTH"
 BUFFERPOOL="$BUFFERPOOL"

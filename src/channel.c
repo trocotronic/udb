@@ -62,12 +62,13 @@ struct CHLink {
 
 static int bouncedtimes = 0;
 
-struct CHLink chlbounce[MAXBOUNCE];
-int  chbounce = 0;
+struct MODVAR CHLink chlbounce[MAXBOUNCE];
+int  MODVAR chbounce = 0;
 long opermode = 0;
 aChannel *channel = NullChn;
 extern char backupbuf[];
 extern ircstats IRCstats;
+extern int spamf_ugly_vchanoverride;
 
 #ifndef NO_FDLIST
 extern int lifesux;
@@ -76,7 +77,7 @@ extern int lifesux;
 /* Some forward declarations */
 CMD_FUNC(do_join);
 void add_invite(aClient *, aChannel *);
-char *clean_ban_mask(char *, int);
+char *clean_ban_mask(char *, int, aClient *);
 int add_banid(aClient *, aChannel *, char *);
 int can_join(aClient *, aClient *, aChannel *, char *, char *,
     char **);
@@ -588,7 +589,7 @@ Ban *is_banned(aClient *sptr, aChannel *chptr, int type)
 
 	if (MyConnect(sptr)) {
 		mine = 1;
-		s = make_nick_user_host(sptr->name, sptr->user->username, Inet_ia2p(&sptr->ip));
+		s = make_nick_user_host(sptr->name, sptr->user->username, sptr->sockhost);
 		strlcpy(nuip, s, sizeof nuip);
 		ban_ip = nuip;
 	}
@@ -1585,7 +1586,8 @@ void do_mode(aChannel *chptr, aClient *cptr, aClient *sptr, int parc, char *parv
 					sendto_snomask(SNO_EYES, "*** TS fix for %s - %lu(ours) %lu(theirs)",
 					chptr->chname, chptr->creationtime, sendts);			
 					*/
-				chptr->creationtime = sendts;
+				chptr->
+creationtime = sendts;
 #if 0
 				if (sendts < 750000)
 					sendto_realops(
@@ -1651,7 +1653,7 @@ void do_mode(aChannel *chptr, aClient *cptr, aClient *sptr, int parc, char *parv
 		    TOK_GLOBOPS, ":%s usa SAMODE %s (%s %s)", sptr->name,
 		    chptr->chname, modebuf, parabuf);
 		sendto_failops_whoare_opers
-		    ("from %s: %s usa SAMODE %s (%s %s)", me.name, sptr->name,
+		    ("desde %s: %s usa SAMODE %s (%s %s)", me.name, sptr->name,
 		    chptr->chname, modebuf, parabuf);
 		sptr = &me;
 		sendts = 0;
@@ -1885,7 +1887,6 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	char tc = ' ';		/* */
 	int  chasing, x;
 	int xxi, xyi, xzi, hascolon;
-	char *xxx;
 	char *xp;
 	int  notsecure;
 	chasing = 0;
@@ -1924,10 +1925,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 #endif			  
 		  )
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** El modo auditorio (+u) sólo puede ponerlo el founder.",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_CHANOWNPRIVNEEDED), me.name, cptr->name,
+				   chptr->chname);
+			break;
 		  }
 
 		auditorium_ok:
@@ -1936,10 +1936,8 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  if (!IsAnOper(cptr) && !IsServer(cptr)
 		      && !IsULine(cptr))
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** El modo sólo operadores (+O) sólo puede ponerse por operadores.",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_NOPRIVILEGES), me.name, cptr->name);
+			break;
 		  }
 		  goto setthephuckingmode;
 	  case MODE_ADMONLY:
@@ -1949,10 +1947,8 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 #endif			  
 		      && !IsULine(cptr))
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** El modo sólo admins (+A) sólo puede ponerse por administradores de red.",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_NOPRIVILEGES), me.name, cptr->name);
+			break;
 		  }
 		  goto setthephuckingmode;
 	  case MODE_RGSTR:
@@ -1962,10 +1958,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 #endif			  
 		  )
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** El modo registrado (+r) sólo puede ponerse por servicios.",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_ONLYSERVERSCANCHANGE), me.name, cptr->name,
+				   chptr->chname);
+			break;
 		  }
 		  goto setthephuckingmode;
 	  case MODE_SECRET:
@@ -1979,6 +1974,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	  case MODE_NOKICKS:
 	  case MODE_STRIP:
 	  	goto setthephuckingmode;
+
 	  case MODE_INVITEONLY:
 		if (what == MODE_DEL && modetype == MODE_INVITEONLY && (chptr->mode.mode & MODE_NOKNOCK))
 			chptr->mode.mode &= ~MODE_NOKNOCK;
@@ -1986,9 +1982,8 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	  case MODE_NOKNOCK:
 		if (what == MODE_ADD && modetype == MODE_NOKNOCK && !(chptr->mode.mode & MODE_INVITEONLY))
 		{
-			sendto_one(cptr,
-			    ":%s %s %s :*** El modo no knocks (+K) sólo puede ponerse si el canal está sólo para invitados (+i).",
-			    me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
+			sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+				me.name, cptr->name, 'K', "+i must be set");
 			break;
 		}
 		goto setthephuckingmode;
@@ -2004,11 +1999,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  {
 		    if (!IsSecureConnect(member->cptr) && !IsULine(member->cptr))
 		    {
-		      sendto_one(cptr,
-			":%s %s %s :*** El modo seguro (+z) sólo puede ponerse cuando todos los miembros del canal están conectados vía SSL.",
-			me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-		      notsecure = 1;
-		      break;
+			sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+				   me.name, cptr->name, 'z', 
+				   "all members must be connected via SSL");
+			notsecure = 1;
+			break;
 		    }
 		  }
 		  member = NULL;
@@ -2099,7 +2094,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  }
 			  else if (MyClient(cptr))
 			  {
-				  sendto_one(cptr, err_str(ERR_ONLYSERVERSCANCHANGE),
+				  sendto_one(cptr, err_str(ERR_CHANOWNPRIVNEEDED),
 				      me.name, cptr->name, chptr->chname);
 				  break;
 			  }
@@ -2115,10 +2110,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  }
 			  else if (MyClient(cptr))
 			  {
-				  sendto_one(cptr,
-				      ":%s %s %s :*** El modo admin de canal (+a) sólo puede darlo el founder.",
-				      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-				  break;
+				sendto_one(cptr, err_str(ERR_CHANOWNPRIVNEEDED), me.name, cptr->name,
+					   chptr->chname);
+				break;
 			  }
 		  }
 		 
@@ -2126,26 +2120,6 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	  case MODE_HALFOP:
 	  case MODE_CHANOP:
 	  case MODE_VOICE:
-		  switch (modetype)
-		  {
-		    case MODE_CHANOWNER:
-			    xxx = "dechannelown";
-			    break;
-		    case MODE_CHANPROT:
-			    xxx = "deadmin";
-			    break;
-		    case MODE_HALFOP:
-			    xxx = "dehalfop";
-			    break;
-		    case MODE_CHANOP:
-			    xxx = "deop";
-			    break;
-		    case MODE_VOICE:
-			    xxx = "devoice";
-			    break;
-		    default:
-			    xxx = "whatthefuckisthatmode?";
-		  }
 		  if (!param || *pcount >= MAXMODEPARAMS)
 		  {
 			  retval = 0;
@@ -2178,10 +2152,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  /* Services are special! */
 		  if (IsServices(member->cptr) && MyClient(cptr) && !IsNetAdmin(cptr) && (what == MODE_DEL))
 		  {
-			sendto_one(cptr,
-				":%s %s %s :*** No puedes hacer %s a %s en %s, es un servicio de red",
-				me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE",
-				cptr->name, xxx, member->cptr->name, chptr->chname);
+			char errbuf[NICKLEN+50];
+			ircsprintf(errbuf, "%s es un servicio de red", member->cptr->name);
+			sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
+				   modechar, errbuf);
 			break;
 		  }
 
@@ -2192,11 +2166,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  {
 			  if (MyClient(cptr))
 			  {
-				  sendto_one(cptr,
-				      ":%s %s %s :*** No puedes %s a %s en %s, es founder del canal (+q).",
-				      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name, xxx,
-				      member->cptr->name, chptr->chname);
-				  break;
+				char errbuf[NICKLEN+30];
+				ircsprintf(errbuf, "%s es un fundador de canal", member->cptr->name);
+				sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
+				   modechar, errbuf);
+				break;
 			  } else
 			  if (IsOper(cptr))
 			      opermode = 1;
@@ -2208,11 +2182,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  {
 			  if (MyClient(cptr))
 			  {
-				  sendto_one(cptr,
-				      ":%s %s %s :*** No puedes %s a %s en %s, es un administrador de canal (+a).",
-				      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name, xxx,
-				      member->cptr->name, chptr->chname);
-				  break;
+				char errbuf[NICKLEN+30];
+				ircsprintf(errbuf, "%s es un admin de canal", member->cptr->name);
+				sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
+				   modechar, errbuf);
+				break;
 			  } else
 			  if (IsOper(cptr))
 			      opermode = 1;
@@ -2335,7 +2309,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  break;
 		  }
 		  retval = 1;
-		  tmpstr = clean_ban_mask(param, what);
+		  tmpstr = clean_ban_mask(param, what, cptr);
 		  if (BadPtr(tmpstr))
 		      break; /* ignore ban, but eat param */
 		  if ((tmpstr[0] == '~') && MyClient(cptr) && !bounce)
@@ -2376,7 +2350,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  break;
 		  }
 		  retval = 1;
-		  tmpstr = clean_ban_mask(param, what);
+		  tmpstr = clean_ban_mask(param, what, cptr);
 		  if (BadPtr(tmpstr))
 		     break; /* ignore except, but eat param */
 		  if ((tmpstr[0] == '~') && MyClient(cptr) && !bounce)
@@ -2418,18 +2392,16 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 
 		  if (!IsNetAdmin(cptr) && !is_chanowner(cptr, chptr))
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** El modo link (+L) sólo puede ponerlo el founder.",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_CHANOWNPRIVNEEDED), me.name, cptr->name,
+				   chptr->chname);
+			break;
 		  }
 
 		  if (!chptr->mode.limit && what == MODE_ADD)
 		  {
-			  sendto_one(cptr,
-			      ":%s %s %s :*** Se necesita el modo límite (+l <max>) para ponerse el modo link (+L).",
-			      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
-			  break;
+			sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+				   me.name, cptr->name, 'L', "tiene queh aber +l");
+			break;
 		  }
 		linkok:
 		  retval = 1;
@@ -2453,13 +2425,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				  break;
 			  }
 			  if (strchr(param, ','))
-			  {
-				  if (MyClient(cptr))
-					  sendto_one(cptr,
-					      ":%s %s %s :*** Sólo puedes especificar un canal para linkar.",
-					      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name);
 				  break;
-			  }
 			  if (!IsChannelName(param))
 			  {
 				  if (MyClient(cptr))
@@ -2482,12 +2448,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				break;
 			  if (!stricmp(tmpbuf, chptr->chname))
 			  {
-				  if (MyClient(cptr))
-					  sendto_one(cptr,
-					      ":%s %s %s :*** %s No puedes linkarlo al mismo.",
-					      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name,
-					      chptr->chname);
-				  break;
+				if (MyClient(cptr))
+					sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+						   me.name, cptr->name, 'L', 
+					    	   "no se puede linkar asimismo");
+				break;
 			  }
 			  if (!bounce)	/* don't do the mode at all. */
 			  {
@@ -2704,18 +2669,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 					strlcpy(xbuf, param, sizeof(xbuf));
 					p2 = strchr(xbuf+1, ']');
 					if (!p2)
-					{
-						if (MyClient(cptr))
-							sendto_one(cptr, ":%s NOTICE %s :sintaxis incorrecta para el modo +f", me.name, cptr->name);
 						break;
-					}
 					*p2 = '\0';
 					if (*(p2+1) != ':')
-					{
-						if (MyClient(cptr))
-							sendto_one(cptr, ":%s NOTICE %s :sintaxis incorrecta para el modo +f", me.name, cptr->name);
 						break;
-					}
 					breakit = 0;
 					for (x = strtok(xbuf+1, ","); x; x = strtok(NULL, ","))
 					{
@@ -2738,8 +2695,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 						{
 							if (MyClient(cptr))
 							{
-								sendto_one(cptr, ":%s NOTICE %s :modo +f: tipo flood '%c', el valor tiene que estar entre 1-999",
-									me.name, cptr->name, c);
+								sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE),
+									   me.name, cptr->name, 
+									   'f', "el valor debe estar entre 1-999");
 								breakit = 1;
 								break;
 							} else
@@ -2827,24 +2785,17 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 					/* parse 'per' */
 					p2++;
 					if (*p2 != ':')
-					{
-						if (MyClient(cptr))
-							sendto_one(cptr, ":%s NOTICE %s :sintaxis incorrecta para el modo +f", me.name, cptr->name);
 						break;
-					}
 					p2++;
 					if (!*p2)
-					{
-						if (MyClient(cptr))
-							sendto_one(cptr, ":%s NOTICE %s :sintaxis incorrecta para el modo +f", me.name, cptr->name);
 						break;
-					}
 					v = atoi(p2);
 					if ((v < 1) || (v > 999)) /* 'per' out of range */
 					{
 						if (MyClient(cptr))
-							sendto_one(cptr, ":%s NOTICE %s :error: modo +f: el tiempo debe estar entre 1-999",
-								me.name, cptr->name);
+							sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+								   me.name, cptr->name, 'f', 
+								   "el tiempo debe estar entre 1-999");
 						break;
 					}
 					newf.per = v;
@@ -2858,6 +2809,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 						break;
 					
 				} /* if param[0] == '[' */ 
+
 				if (chptr->mode.floodprot &&
 				    !memcmp(chptr->mode.floodprot, &newf, sizeof(ChanFloodProt)))
 					break; /* They are identical */
@@ -3270,7 +3222,7 @@ char *trim_str(char *str, int len)
  *   on next clean_ban_mask or make_nick_user_host call.
  * - mask is fragged in some cases, this could be bad.
  */
-char *clean_ban_mask(char *mask, int what)
+char *clean_ban_mask(char *mask, int what, aClient *cptr)
 {
 	char *cp;
 	char *user;
@@ -3289,9 +3241,34 @@ char *clean_ban_mask(char *mask, int what)
 	/* Extended ban? */
 	if ((*mask == '~') && mask[1] && (mask[2] == ':'))
 	{
+		if (RESTRICT_EXTENDEDBANS && MyClient(cptr) && !IsAnOper(cptr))
+		{
+			if (!strcmp(RESTRICT_EXTENDEDBANS, "*"))
+			{
+				sendnotice(cptr, "Setting/removing of extended bans has been disabled");
+				return NULL;
+			}
+			if (strchr(RESTRICT_EXTENDEDBANS, mask[1]))
+			{
+				sendnotice(cptr, "Setting/removing of extended bantypes '%s' has been disabled",
+					RESTRICT_EXTENDEDBANS);
+				return NULL;
+			}
+		}
 		p = findmod_by_bantype(mask[1]);
 		if (!p)
-			return NULL; /* extended bantype not supported */
+		{
+			/* extended bantype not supported, what to do?
+			 * Here are the rules:
+			 * - if from a remote client/server: allow it (easy upgrading,
+			 *   no desynch)
+			 * - if from a local client trying to REMOVE the extban,
+			 *   allow it too (so you don't get "unremovable" extbans).
+			 */
+			if (!MyClient(cptr) || (what == MODE_DEL))
+				return mask; /* allow it */
+			return NULL; /* reject */
+		}
 		if (p->conv_param)
 			return p->conv_param(mask);
 		/* else, do some basic sanity checks and cut it off at 80 bytes */
@@ -3348,7 +3325,7 @@ Link *lp;
 		if (key && !strcasecmp(key, "override"))
 		{
 			sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
-				":%s NOTICE " CHANOPPFX "%s :setting channel -%c due to OperOverride request from %s",
+				":%s NOTICE @%s :setting channel -%c due to OperOverride request from %s",
 				me.name, chptr->chname, mchar, sptr->name);
 			sendto_serv_butone(&me, ":%s MODE %s -%c 0", me.name, chptr->chname, mchar);
 			sendto_channel_butserv(chptr, &me, ":%s MODE %s -%c", me.name, chptr->chname, mchar);
@@ -3368,38 +3345,37 @@ Link *lp;
 
 int can_join(aClient *cptr, aClient *sptr, aChannel *chptr, char *key, char *link, char *parv[])
 {
-        Link *lp;
-	Ban *banned;
+Link *lp;
+Ban *banned;
 
-		if ((chptr->mode.mode & MODE_ONLYSECURE) && !(sptr->umodes & UMODE_SECURE))
-		{
-			if (!extended_operoverride(sptr, chptr, key, MODE_ONLYSECURE, 'z'))
-				return (ERR_SECUREONLYCHAN);
-			else
-				return 0;
-		}
+	if ((chptr->mode.mode & MODE_ONLYSECURE) && !(sptr->umodes & UMODE_SECURE))
+	{
+		if (!extended_operoverride(sptr, chptr, key, MODE_ONLYSECURE, 'z'))
+			return (ERR_SECUREONLYCHAN);
+		else
+			return 0;
+	}
 
-        if ((chptr->mode.mode & MODE_OPERONLY) && !IsOper(sptr))
-                return (ERR_OPERONLY);
+	if ((chptr->mode.mode & MODE_OPERONLY) && !IsAnOper(sptr))
+		return (ERR_OPERONLY);
 
-        if ((chptr->mode.mode & MODE_ADMONLY) && !IsSkoAdmin(sptr))
-                return (ERR_ADMONLY);
+	if ((chptr->mode.mode & MODE_ADMONLY) && !IsSkoAdmin(sptr))
+		return (ERR_ADMONLY);
 
 	/* Admin, Coadmin, Netadmin, and SAdmin can still walk +b in +O */
 	banned = is_banned(sptr, chptr, BANCHK_JOIN);
-        if (IsOper(sptr) && !IsAdmin(sptr) && !IsCoAdmin(sptr) && !IsNetAdmin(sptr)
-	    && !IsSAdmin(sptr) && banned
-            && (chptr->mode.mode & MODE_OPERONLY))
-                return (ERR_BANNEDFROMCHAN);
+	if (banned && (chptr->mode.mode & MODE_OPERONLY) &&
+	    IsAnOper(sptr) && !IsSkoAdmin(sptr) && !IsCoAdmin(sptr))
+		return (ERR_BANNEDFROMCHAN);
 
 	/* Only NetAdmin/SAdmin can walk +b in +A */
-	if (IsOper(sptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr)
-	    && banned && (chptr->mode.mode & MODE_ADMONLY))
-	    	return (ERR_BANNEDFROMCHAN);
+	if (banned && (chptr->mode.mode & MODE_ADMONLY) &&
+	    IsAnOper(sptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
+		return (ERR_BANNEDFROMCHAN);
 
-        for (lp = sptr->user->invited; lp; lp = lp->next)
-                if (lp->value.chptr == chptr)
-                        return 0;
+	for (lp = sptr->user->invited; lp; lp = lp->next)
+		if (lp->value.chptr == chptr)
+			return 0;
 
         if ((chptr->mode.limit && chptr->users >= chptr->mode.limit))
         {
@@ -3443,7 +3419,6 @@ int can_join(aClient *cptr, aClient *sptr, aChannel *chptr, char *key, char *lin
                 return (ERR_OPERSPVERIFY);
 #endif
 #endif
-
 
         return 0;
 }
@@ -3904,7 +3879,7 @@ void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags)
 		parv[1] = chptr->chname;
 		(void)m_names(cptr, sptr, 2, parv);
 		RunHook4(HOOKTYPE_LOCAL_JOIN, cptr, sptr,chptr,parv);
-	}			
+	}
 
 #ifdef NEWCHFLOODPROT
 	/* I'll explain this only once:
@@ -4090,6 +4065,28 @@ CMD_FUNC(do_join)
 						}
 						continue;
 					}
+				}
+			}
+			/* ugly set::spamfilter::virus-help-channel-deny hack.. */
+			if (SPAMFILTER_VIRUSCHANDENY && SPAMFILTER_VIRUSCHAN &&
+			    !strcasecmp(name, SPAMFILTER_VIRUSCHAN) &&
+			    !IsAnOper(sptr) && !spamf_ugly_vchanoverride)
+			{
+				int invited = 0;
+				Link *lp;
+				aChannel *chptr = find_channel(name, NULL);
+				
+				if (chptr)
+				{
+					for (lp = sptr->user->invited; lp; lp = lp->next)
+						if (lp->value.chptr == chptr)
+							invited = 1;
+				}
+				if (!invited)
+				{
+					sendnotice(sptr, "*** Cannot join '%s' because it's the virus-help-channel which is "
+					                 "reserved for infected users only", name);
+					continue;
 				}
 			}
 		}
@@ -4373,38 +4370,36 @@ void send_list(aClient *cptr, int numsend)
 				    && !IsAnOper(cptr))
 					continue;
 
-				if ((!lopt->showall)
-				    && ((chptr->users < lopt->usermin)
-				    || ((lopt->usermax >= 0)
-				    && (chptr->users > lopt->usermax))
-#ifdef LIST_USE_T
-				    || ( (chptr->creationtime) <=
-				    lopt->chantimemin)
-				     || (chptr->topic_time <
-				       lopt->topictimemin)
-				       || (chptr->creationtime >=
-				       lopt->chantimemax)
-				       || (chptr->topic_time >
-				       lopt->topictimemax)))
-#else
-					))
-#endif
-					continue;
+				/* Much more readable like this -- codemastr */
+				if ((!lopt->showall))
+				{
+					/* User count must be in range */
+					if ((chptr->users < lopt->usermin) || 
+					    ((lopt->usermax >= 0) && (chptr->users > 
+					    lopt->usermax)))
+						continue;
 
-				if (lopt->nolist &&
-				    (find_str_match_link(lopt->nolist,
-				    chptr->chname)
-				    || (chptr->topic ?
-				    find_str_match_link(lopt->nolist,
-				    chptr->topic) : 0)))
-					continue;
-				if (lopt->yeslist &&
-				    (!find_str_match_link(
-				    lopt->yeslist, chptr->chname)
-				    &&
-				    !find_str_match_link(
-				    lopt->yeslist, chptr->topic)))
-					continue;
+					/* Creation time must be in range */
+					if ((chptr->creationtime && (chptr->creationtime <
+					    lopt->chantimemin)) || (chptr->creationtime >
+					    lopt->chantimemax))
+						continue;
+
+					/* Topic time must be in range */
+					if ((chptr->topic_time < lopt->topictimemin) ||
+					    (chptr->topic_time > lopt->topictimemax))
+						continue;
+
+					/* Must not be on nolist (if it exists) */
+					if (lopt->nolist && find_str_match_link(lopt->nolist,
+					    chptr->chname))
+						continue;
+
+					/* Must be on yeslist (if it exists) */
+					if (lopt->yeslist && !find_str_match_link(lopt->yeslist,
+					    chptr->chname))
+						continue;
+				}
 #ifdef LIST_SHOW_MODES
 				modebuf[0] = '[';
 				channel_modes(cptr, &modebuf[1], parabuf, chptr);
@@ -4645,6 +4640,7 @@ CMD_FUNC(m_names)
 		if (cm->flags & CHFL_VOICE)
 			buf[idx++] = '+';
 #else
+
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
 			buf[idx++] = '~';
@@ -4836,6 +4832,7 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 #ifdef UDB
 	n = 1;
 #endif
+
 	if (*chptr->chname != '#')
 		return;
 
@@ -4943,7 +4940,7 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 	char *bufptr;
 	short nomode, nopara;
 	char bbuf[1024];
-	int  n = 1;
+	int  n = 0;
 
 	if (*chptr->chname != '#')
 		return;
@@ -5213,7 +5210,7 @@ char flagbuf[8]; /* For holding "qohva" and "*~@%+" */
 }
 
 #ifdef NEWCHFLOODPROT
-RemoveFld *removefld_list = NULL;
+MODVAR RemoveFld *removefld_list = NULL;
 
 RemoveFld *chanfloodtimer_find(aChannel *chptr, char mflag)
 {
@@ -5408,7 +5405,7 @@ char m;
 		char comment[1024], target[CHANNELLEN + 8];
 		ircsprintf(comment, "*** Channel %sflood(límite %d líneas cada %d segundos), se pone el modo +%c",
 			text, chptr->mode.floodprot->l[what], chptr->mode.floodprot->per, m);
-		ircsprintf(target, CHANOPPFX "%%%s", chptr->chname);
+		ircsprintf(target, "@%%%s", chptr->chname);
 		sendto_channelprefix_butone_tok(NULL, &me, chptr,
 			PREFIX_HALFOP|PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
 			MSG_NOTICE, TOK_NOTICE, target, comment, 0);

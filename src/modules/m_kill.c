@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.4 2004-07-04 13:19:22 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -299,8 +299,8 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		   ** anyway (as this user don't exist there any more either)
 		 */
 		if (MyConnect(acptr))
-			sendto_prefix_one(acptr, sptr, ":%s KILL %s :%s",
-			    parv[0], acptr->name, path);
+			sendto_prefix_one(acptr, sptr, ":%s KILL %s :%s!%s",
+			    parv[0], acptr->name, inpath, path);
 		/*
 		   ** Set FLAGS_KILLED. This prevents exit_one_client from sending
 		   ** the unnecessary QUIT for this. (This flag should never be
@@ -326,6 +326,8 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			(void)ircsprintf(buf2, "Killed (%s)", killer);
 		}
 
+		if (MyClient(sptr))
+			RunHook3(HOOKTYPE_LOCAL_KILL, sptr, acptr, parv[2]);
 		if (exit_client(cptr, acptr, sptr, buf2) == FLUSH_BUFFER)
 			return FLUSH_BUFFER;
 	}

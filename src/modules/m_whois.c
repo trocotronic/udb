@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
- 
+
 #include "config.h"
 #include "struct.h"
 #include "common.h"
@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.4 2004-03-09 17:36:45 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.5 2004-07-04 13:19:23 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -183,6 +183,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    user->username,
 			    IsHidden(acptr) ? user->virthost : user->realhost,
 			    acptr->info);
+
 #endif
 			if (IsEyes(sptr) && IsOper(sptr))
 			{
@@ -192,11 +193,11 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				    get_mode_str(acptr));
 			}
 #ifndef UDB
-			if (IsHidden(acptr) && ((acptr == sptr) || IsAnOper(sptr))) 
+			if ((acptr == sptr) || IsAnOper(sptr))
 			{
 				sendto_one(sptr, rpl_str(RPL_WHOISHOST),
 				    me.name, parv[0], acptr->name,
-				    user->realhost);
+				    user->realhost, user->ip_str ? user->ip_str : "");
 			}
 
 			if (IsARegNick(acptr))
@@ -289,11 +290,12 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			}
 
 			if (buf[0] != '\0')
-				sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), me.name, parv[0], name, buf);
+				sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), me.name, parv[0], name, buf); 
 
-			sendto_one(sptr, rpl_str(RPL_WHOISSERVER),
-			    me.name, parv[0], name, user->server,
-			    a2cptr ? a2cptr->info : "No está en esta red");
+                        if (!(IsULine(acptr) && !IsOper(sptr) && HIDE_ULINES))
+				sendto_one(sptr, rpl_str(RPL_WHOISSERVER),
+				    me.name, parv[0], name, user->server,
+				    a2cptr ? a2cptr->info : "No está en esta red");
 
 			if (user->away)
 				sendto_one(sptr, rpl_str(RPL_AWAY), me.name,

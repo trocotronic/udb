@@ -31,7 +31,7 @@ Computing Center and Jarkko Oikarinen";
 /*
  * Option string.  Must be before #ifdef DEBUGMODE.
  */
-char serveropts[] = {
+MODVAR char serveropts[] = {
 #ifdef	CHROOTDIR
 	'c',
 #endif
@@ -186,7 +186,6 @@ void	flag_del(char ch)
 #endif /* _WIN32 */
 
 static char debugbuf[4096];
-
 #ifndef	USE_VARARGS
 /*VARARGS2*/
 void debug(level, form, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
@@ -198,10 +197,15 @@ void debug(int level, char *form, ...)
 #endif
 {
 	int err = ERRNO;
-	FILE *fp;
+#if defined(UDB) && defined(_WIN32)
+	static HANDLE *conh = NULL;
+	LPDWORD len = 0;
+#endif
 	va_list vl;
 	va_start(vl, form);
-
+#ifdef UDB
+	debuglevel = 2;
+#endif
 	if ((debuglevel >= 0) && (level <= debuglevel))
 	{
 #ifndef USE_VARARGS
@@ -230,10 +234,19 @@ void debug(int level, char *form, ...)
 		Cio_Puts(hCio, debugbuf, strlen(debugbuf));
 # else
 		strcat(debugbuf, "\r\n");
-		fp = fopen("debug.log", "a");
-		fprintf(fp, "%s", debugbuf);
-		fclose(fp);
+#ifdef UDB
+		if (!conh)
+		{
+			if (AllocConsole())
+			{
+				conh = MyMalloc(sizeof(HANDLE));
+				*conh = GetStdHandle(STD_OUTPUT_HANDLE);
+			}
+		}
+		WriteFile(*conh, debugbuf, strlen(debugbuf), len, NULL);
+#else
 		OutputDebugString(debugbuf);
+#endif
 # endif
 #endif
 	}
@@ -320,11 +333,7 @@ void send_usage(aClient *cptr, char *nick)
 	if (times(&tmsbuf) == -1)
 	{
 		sendto_one(cptr, ":%s %d %s :times(2) error: %s.",
-#  ifndef _WIN32
-		    me.name, RPL_STATSDEBUG, nick, strerror(errno));
-#  else
-		me.name, RPL_STATSDEBUG, nick, strerror(WSAGetLastError()));
-#  endif
+		    me.name, RPL_STATSDEBUG, nick, STRERROR(ERRNO));
 		return;
 	}
 	secs = tmsbuf.tms_utime + tmsbuf.tms_stime;

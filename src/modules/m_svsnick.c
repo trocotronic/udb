@@ -54,7 +54,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.3 2004-07-04 13:19:23 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -100,14 +100,14 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
         if (!hunt_server_token(cptr, sptr, MSG_SVSNICK, TOK_SVSNICK, "%s %s :%s", 1, parc,
 		parv) != HUNTED_ISME)
         {
+		if (do_nick_name(parv[2]) == 0)
+			return 0;
                 if ((acptr = find_person(parv[1], NULL)))
                 {
                         if (find_client(parv[2], NULL)) /* Collision */
                                 return exit_client(cptr, acptr, sptr,
                                     "Nickname collision due to Services enforced "
                                     "nickname change, your nick was overruled");
-                        if (do_nick_name(parv[2]) == 0)
-                                return 0;
 #ifdef UDB                                
 			old_umodes = acptr->umodes;
 			acptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY;

@@ -85,12 +85,10 @@ static int oper_access[] = {
         0, 0
 };
 
-extern ircstats IRCstats;
-
 ModuleHeader MOD_HEADER(m_svso)
   = {
 	"m_svso",
-	"$Id: m_svso.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $",
+	"$Id: m_svso.c,v 1.1.1.3 2004-07-04 13:19:23 Trocotronic Exp $",
 	"command /svso", 
 	"3.2-b8-1",
 	NULL 

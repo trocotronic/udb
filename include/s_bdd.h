@@ -85,11 +85,11 @@ struct _bdd
 };
 
 extern udb *primeradb[DB_SIZE], *ultimadb[DB_SIZE];
-extern unsigned long hashes[DB_SIZE];
-extern unsigned long series[DB_SIZE];
-extern unsigned int registros[DB_SIZE];
-extern unsigned char corruptas[DB_SIZE];
-extern unsigned char residentes[DB_SIZE];
+extern unsigned MODVAR long hashes[DB_SIZE];
+extern unsigned MODVAR long series[DB_SIZE];
+extern unsigned MODVAR int registros[DB_SIZE];
+extern unsigned MODVAR char corruptas[DB_SIZE];
+extern unsigned MODVAR char residentes[DB_SIZE];
 extern unsigned int lens[DB_SIZE];
 extern aChannel *get_channel(aClient *, char *, int);
 extern void set_topic(aClient *, aClient *, aChannel *, char *, int);
@@ -98,7 +98,7 @@ extern void set_topic(aClient *, aClient *, aChannel *, char *, int);
 	{									\
 		if ((x)->user->virthost)					\
 			MyFree((x)->user->virthost);				\
-		(x)->user->virthost = cifra_ip((x)->user->realhost);		\
+		(x)->user->virthost = NULL;					\
 	}while(0)
 
 #define dblen(x) (lens[x] ? lens[x] : 256)

@@ -52,7 +52,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -310,6 +310,11 @@ CMD_FUNC(m_protoctl)
 			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
 			SetTKLEXT(cptr);
 		}
+		else if (strcmp(s, "NICKIP") == 0)
+		{
+			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
+			cptr->proto |= PROTO_NICKIP;
+		}
 		/*
 		 * Add other protocol extensions here, with proto
 		 * containing the base option, and options containing
@@ -324,13 +329,13 @@ CMD_FUNC(m_protoctl)
 #ifndef PROTOCTL_MADNESS
 			if (remove)
 			{
-				ClearUDB(cptr);
+				cptr->proto &= ~PROTO_UDB;
 				continue;
 			}
 #endif
 			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
 			    proto, cptr->name));
-			SetUDB(cptr);
+			cptr->proto |= PROTO_UDB;
 		}
 		else if (strcmp(s, "UDB") == 0)
 		{

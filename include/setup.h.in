@@ -198,6 +198,9 @@
 /* Define if you want +a/+q prefixes */
 #undef PREFIX_AQ
 
+/* Define si quieres dar soporte UDB */
+#undef UDB
+
 /* Define if you want to compile as a hub */
 #undef HUB
 
@@ -254,3 +257,9 @@
 
 /* Define if you have strlncat */
 #undef HAVE_STRLNCAT
+
+/* Define if you have inet_pton */
+#undef HAVE_INET_PTON
+
+/* Define if you have inet_ntop */
+#undef HAVE_INET_NTOP

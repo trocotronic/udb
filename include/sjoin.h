@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: sjoin.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ *   $Id: sjoin.h,v 1.1.1.2 2004-07-04 13:19:17 Trocotronic Exp $
  */
 
 
@@ -30,7 +30,7 @@ struct SynchList {
 	aSynchList *next, *prev;
 };
 
-aSynchList *SJSynchList = NULL;
+MODVAR aSynchList *SJSynchList = NULL;
 
 aSynchList *make_synchlist()
 {

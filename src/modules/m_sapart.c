@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 
@@ -109,7 +109,7 @@ DLLFUNC CMD_FUNC(m_sapart)
 		return 0;
 	}
 
-	sendto_realops("%s used SAPART to make %s part %s", sptr->name, parv[1],
+	sendto_realops("%s usa SAPART a %s en %s", sptr->name, parv[1],
 	    parv[2]);
 
  
@@ -123,7 +123,7 @@ DLLFUNC CMD_FUNC(m_sapart)
 		parv[1] = parv[2];
 		parv[2] = NULL;
 		sendto_one(acptr,
-		    ":%s %s %s :*** You were forced to part %s", me.name,
+		    ":%s %s %s :*** Has sido forzado a salir de %s", me.name,
 		    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[1]);
 		(void)m_part(acptr, acptr, 2, parv);
 	}

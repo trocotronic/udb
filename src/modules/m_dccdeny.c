@@ -52,7 +52,7 @@ DLLFUNC int m_dccdeny(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_dccdeny)
   = {
 	"m_dccdeny",
-	"$Id: m_dccdeny.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_dccdeny.c,v 1.1.4.2 2004-07-04 13:19:21 Trocotronic Exp $",
 	"command /dccdeny", 
 	"3.2-b8-1",
 	NULL 
@@ -114,7 +114,7 @@ DLLFUNC CMD_FUNC(m_dccdeny)
 	{
 		sendto_ops("%s added a temp dccdeny for %s (%s)", parv[0],
 		    parv[1], parv[2]);
-		DCCdeny_add(parv[1], parv[2], CONF_BAN_TYPE_TEMPORARY);		
+		DCCdeny_add(parv[1], parv[2], DCCDENY_HARD, CONF_BAN_TYPE_TEMPORARY);
 		return 0;
 	}
 	else

@@ -52,7 +52,7 @@ DLLFUNC int m_addline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_addline)
   = {
 	"m_addline",
-	"$Id: m_addline.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_addline.c,v 1.1.4.2 2004-07-04 13:19:21 Trocotronic Exp $",
 	"command /addline", 
 	"3.2-b8-1",
 	NULL 
@@ -91,7 +91,7 @@ DLLFUNC CMD_FUNC(m_addline)
 	char *text;
 	text = parc > 1 ? parv[1] : NULL;
 
-	if (!(IsAdmin(sptr) || IsCoAdmin(sptr)))
+	if (!MyClient(sptr) || !IsAnOper(sptr) || !OPCanAddline(sptr))
 	{
 		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
 		return 0;

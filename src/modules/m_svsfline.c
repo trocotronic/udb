@@ -52,7 +52,7 @@ DLLFUNC int m_svsfline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsfline)
   = {
 	"m_svsfline",
-	"$Id: m_svsfline.c,v 1.1.4.1 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_svsfline.c,v 1.1.4.2 2004-07-04 13:19:23 Trocotronic Exp $",
 	"command /svsfline", 
 	"3.2-b8-1",
 	NULL 
@@ -97,7 +97,7 @@ DLLFUNC CMD_FUNC(m_svsfline)
 		  if (parc < 4)
 			  return 0;
 		  if (!Find_deny_dcc(parv[2]))
-			  DCCdeny_add(parv[2], parv[3], CONF_BAN_TYPE_AKILL);
+			  DCCdeny_add(parv[2], parv[3], DCCDENY_HARD, CONF_BAN_TYPE_AKILL);
 		  if (IsULine(sptr))
 			  sendto_serv_butone_token(cptr,
 			      sptr->name,

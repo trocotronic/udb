@@ -53,7 +53,7 @@ DLLFUNC int m_whowas(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whowas)
   = {
 	"m_whowas",
-	"$Id: m_whowas.c,v 1.1.4.1 2004-03-08 18:07:08 Trocotronic Exp $",
+	"$Id: m_whowas.c,v 1.1.4.2 2004-07-04 13:19:23 Trocotronic Exp $",
 	"command /whowas", 
 	"3.2-b8-1",
 	NULL 
@@ -83,8 +83,8 @@ DLLFUNC int MOD_UNLOAD(m_whowas)(int module_unload)
 
 /* externally defined functions */
 extern unsigned int hash_whowas_name(char *);
-extern aWhowas WHOWAS[NICKNAMEHISTORYLENGTH];
-extern aWhowas *WHOWASHASH[WW_MAX];
+extern MODVAR aWhowas WHOWAS[NICKNAMEHISTORYLENGTH];
+extern MODVAR aWhowas *WHOWASHASH[WW_MAX];
 
 /*
 ** m_whowas

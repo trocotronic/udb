@@ -52,7 +52,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -166,7 +166,7 @@ else {\
 	sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", sptr->name, chptr->chname,\
 		modebuf, parabuf);\
 	strcpy(parabuf,param);\
-	modebuf[0] = '+';\
+	/* modebuf[0] should stay what it was ('+' or '-') */ \
 	modebuf[1] = mode;\
 	modebuf[2] = '\0';\
 	b = 2;\
@@ -204,7 +204,6 @@ CMD_FUNC(m_sjoin)
 	 char *s0 = NULL;
 	long modeflags;
 	Ban *ban=NULL;
-
 	if (IsClient(sptr) || parc < 3 || !IsServer(sptr))
 		return 0;
 

@@ -47,16 +47,18 @@
 #endif
 #ifdef UDB
 #include "s_bdd.h"
+
 #define ircstrdup(x,y) if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y)
 #define ircfree(x) if (x) MyFree(x); x = NULL
 #define atoul(x) strtoul(x, NULL, 10)
+static char    buf[512];
 
-unsigned long hashes[DB_SIZE];
-unsigned long series[DB_SIZE];
-unsigned int registros[DB_SIZE];
-unsigned char corruptas[DB_SIZE];
-unsigned char residentes[DB_SIZE];
-unsigned int lens[DB_SIZE];
+unsigned MODVAR long hashes[DB_SIZE];
+unsigned MODVAR long series[DB_SIZE];
+unsigned MODVAR int registros[DB_SIZE];
+unsigned MODVAR char corruptas[DB_SIZE];
+unsigned MODVAR char residentes[DB_SIZE];
+unsigned MODVAR int lens[DB_SIZE];
 
 char *clave_cifrado = NULL;
 udb *primeradb[DB_SIZE], *ultimadb[DB_SIZE];
@@ -384,9 +386,7 @@ int delbdd(char bdd, unsigned long serie)
 void regenera_claves()
 {
 	aClient *acptr;
-	for (acptr = client; 
-	acptr; 
-	acptr = acptr->next)
+	for (acptr = client; acptr; acptr = acptr->next)
 	{
 		if (IsClient(acptr))
 		{
@@ -418,7 +418,8 @@ int addreg_especial(char bdd, char *index, char *valor)
 				if (clave_cifrado)
 					MyFree(clave_cifrado);
 				clave_cifrado = strdup(valor);
-				regenera_claves();
+				if (!loop.ircd_rehashing)
+					regenera_claves();
 			}
 			else if ((acptr = find_client(index, NULL)))
 				if (!loop.ircd_rehashing)
@@ -426,7 +427,7 @@ int addreg_especial(char bdd, char *index, char *valor)
 		}
 		else if (bdd == BDD_OPERS)
 		{
-			if ((acptr = find_client(index, NULL)))
+			if ((acptr = find_client(index, NULL)) && !IsAnOper(acptr))
 				sube_oper(acptr);
 		}
 	}
@@ -983,7 +984,7 @@ CMD_FUNC(m_ghost)
 {
 	aClient *acptr;
 	udb *reg, *breg;
-	char *botname, who[NICKLEN + 2], nick[NICKLEN + 2], quitbuf[TOPICLEN + 1], *cifrado;
+	char *botname, who[NICKLEN + 2], nick[NICKLEN + 2], quitbuf[TOPICLEN + 1];
    	if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
 		botname = me.name;
 	else
@@ -994,10 +995,6 @@ CMD_FUNC(m_ghost)
 		return 0;
 	}
 	strncpyzt(nick, parv[1], NICKLEN + 1);
-	if (parc > 2) 
-		cifrado = cifranick(nick, parv[2]);
-	else
-		cifrado = NULL;
 	acptr = find_client(nick, NULL);
 	reg = busca_registro(BDD_NICKS, nick);
 	if (!IsRegistered(sptr))
@@ -1019,7 +1016,7 @@ CMD_FUNC(m_ghost)
 		sendto_one(cptr, ":%s NOTICE %s :*** No puedes hacer ghost a ti mismo.", botname, sptr->name);
 		return 0;
 	}
-	if (!IsAnOper(sptr) && !IsHelpOp(sptr) && (!cifrado || strcmp(reg->value, cifrado))) 
+	if (!IsAnOper(sptr) && !IsHelpOp(sptr) && (tipo_de_pass(nick, parv[2]) != 2))
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** Contraseña incorrecta.", botname, sptr->name);
 		return 0;
@@ -1101,31 +1098,45 @@ CMD_FUNC(m_dbq)
  * -1 forbid
  * -2 incorrecto
  * -3 no ha dado pass
+ * -4 hay un problema
  */
 int tipo_de_pass(char *nick, char *pass)
 {
 	udb *reg;
-	static char realpass[BUFSIZE];
+	static char realpass[BUFSIZE], *k;
 	int sus = 0;
 	if (!(reg = busca_registro(BDD_NICKS, nick)))
 		return 0; /* no existe */
-	if (reg->value[strlen(reg->value)-1] == '*')
+	if (strchr(reg->value, '*'))
 		return -1; /* tiene el nick en forbid, no importa la pass */
 	if (!pass)
 		return -3;
 	bzero(realpass, BUFSIZE);
-	if (reg->value[strlen(reg->value)-1] == '+') 
+	strcpy(realpass, reg->value);
+	if ((k = strchr(realpass, '+')))
 	{
 		sus = 1;
-		strncpy(realpass, reg->value, strlen(reg->value)-1);
+		*k = '\0';
+	}
+	if (*realpass == '.')
+	{
+		if (atoul(realpass + 1) == our_crc32(pass, strlen(pass)))
+		{
+			if (sus)
+				return 1;  /* suspendido */
+			return 2; /* todo ok */
+		}
+		else
+			return -2; /* pass incorrecto */
 	}
 	else
-		strcpy(realpass, reg->value);
-	if (!strcmp(cifranick(nick, pass), realpass))
 	{
-		if (sus)
-			return 1;  /* suspendido */
-		return 2; /* todo ok */
+		if (!strcmp(cifranick(nick, pass), realpass))
+		{
+			if (sus)
+				return 1;  /* suspendido */
+			return 2; /* todo ok */
+		}
 	}
 	return -2; /* pass incorrecto */
 }
@@ -1336,7 +1347,7 @@ char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
 		else
 			botname = reg->value;
 		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
-			botname, acptr->name, cifrada);
+			botname, acptr->name, x);
 	}
 	return x;
 }
@@ -1348,24 +1359,44 @@ void sube_oper(aClient *sptr)
 		return;
 	if (level & BDD_OPER)
 		sptr->umodes |= UMODE_HELPOP;
-	if (level & BDD_ADMIN || level & BDD_ROOT)
-		sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
-	if (MyClient(sptr) && IsRegisteredUser(sptr))
+	if (level & BDD_ADMIN)
 	{
-		for (aconf = conf_oper; aconf; aconf = (ConfigItem_oper *) aconf->next)
+		sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
+#ifndef NO_FDLIST
+		addto_fdlist(sptr->slot, &oper_fdlist);
+#endif
+		RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
+		IRCstats.operators++;
+		if (MyClient(sptr) && IsRegisteredUser(sptr) && (aconf = Find_oper(sptr->name)))
 		{
-			if (!strcasecmp(sptr->name, aconf->name))
+			if (sptr->class)
+				sptr->class->clients--;
+			sptr->class = aconf->class;
+			sptr->class->clients++;
+			sptr->oflag = 0;
+			if (aconf->swhois) {
+				if (sptr->user->swhois)
+					MyFree(sptr->user->swhois);
+				sptr->user->swhois = MyMalloc(strlen(aconf->swhois) +1);
+				strcpy(sptr->user->swhois, aconf->swhois);
+				sendto_serv_butone_token(sptr, me.name,
+					MSG_SWHOIS, TOK_SWHOIS, "%s :%s", sptr->name, aconf->swhois);
+			}
+			sptr->oflag = aconf->oflags;
+			if (aconf->snomask)
+				set_snomask(sptr, aconf->snomask);
+			else
+				set_snomask(sptr, OPER_SNOMASK);
+			if (sptr->user->snomask)
 			{
-				sptr->oflag |= aconf->oflags;
-				if (aconf->snomask)
-					set_snomask(sptr, aconf->snomask);
-				else
-					set_snomask(sptr, OPER_SNOMASK);
-				if (sptr->user->snomask)
-				{
-					sptr->user->snomask |= SNO_SNOTICE; /* set +s if needed */
-					sptr->umodes |= UMODE_SERVNOTICE;
-				}
+				sptr->user->snomask |= SNO_SNOTICE; /* set +s if needed */
+				sptr->umodes |= UMODE_SERVNOTICE;
+			}
+			/* This is for users who have both 'admin' and 'coadmin' in their conf */
+			if (IsCoAdmin(sptr) && IsAdmin(sptr))
+			{
+				sptr->umodes &= ~UMODE_COADMIN;
+				sptr->oflag &= ~OFLAG_COADMIN;
 			}
 		}
 	}

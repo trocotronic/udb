@@ -52,7 +52,7 @@ DLLFUNC int m_sajoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sajoin)
   = {
 	"m_sajoin",
-	"$Id: m_sajoin.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_sajoin.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /sajoin", 
 	"3.2-b8-1",
 	NULL 
@@ -134,7 +134,7 @@ DLLFUNC CMD_FUNC(m_sajoin)
 			return 0;
 		}
 		sendto_one(acptr,
-		    ":%s %s %s :*** You were forced to join %s", me.name,
+		    ":%s %s %s :*** Has sido forzado a entrar en %s", me.name,
 		    IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, parv[2]);
 		join_channel(chptr, acptr, acptr, flags);
 	}
@@ -142,7 +142,7 @@ DLLFUNC CMD_FUNC(m_sajoin)
 		sendto_one(acptr, ":%s SAJOIN %s %s", parv[0],
 		    parv[1], parv[2]);
 
-	sendto_realops("%s used SAJOIN to make %s join %s", sptr->name, parv[1],
+	sendto_realops("%s usa SAJOIN a %s en %s", sptr->name, parv[1],
 	    parv[2]);
 
 	/* Logging function added by XeRXeS */

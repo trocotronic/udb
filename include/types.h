@@ -24,4 +24,20 @@ typedef void                    (*vFP)();       /* Void function pointer */
 typedef int                     (*iFP)();       /* Integer function pointer */
 typedef char                    (*cFP)();       /* char * function pointer */
 
+#ifndef MODVAR
+ #if defined(MODULE_COMPILE) && defined(_WIN32)
+  #define MODVAR __declspec(dllimport)
+ #else
+  #define MODVAR
+ #endif
+#endif
+
+#ifndef MODFUNC
+ #ifdef _WIN32
+  #define MODFUNC __declspec(dllexport)
+ #else
+  #define MODFUNC
+ #endif
+#endif
+
 #endif

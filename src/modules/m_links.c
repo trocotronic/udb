@@ -52,7 +52,7 @@ DLLFUNC int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_links)
   = {
 	"m_links",
-	"$Id: m_links.c,v 1.1.4.2 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_links.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /links", 
 	"3.2-b8-1",
 	NULL 
@@ -92,6 +92,7 @@ DLLFUNC CMD_FUNC(m_links)
 {
 	Link *lp;
 	aClient *acptr;
+	int flat = (FLAT_MAP && !IsAnOper(sptr)) ? 1 : 0;
 
 	for (lp = Servers; lp; lp = lp->next)
 	{
@@ -100,14 +101,22 @@ DLLFUNC CMD_FUNC(m_links)
 		/* Some checks */
 		if (HIDE_ULINES && IsULine(acptr) && !IsAnOper(sptr))
 			continue;
-		sendto_one(sptr, rpl_str(RPL_LINKS),
-		    me.name, parv[0], acptr->name, acptr->serv->up,
-		    acptr->hopcount, 
+		if (flat)
+			sendto_one(sptr, rpl_str(RPL_LINKS),
+			    me.name, parv[0], acptr->name, me.name,
+			    (acptr != &me) ? 1 : 1, 
 #ifdef UDB
 		    (IsUDB(acptr) || IsMe(acptr)) ? "-UDB2- " : "",
-#endif			    
-		    (acptr->info[0] ? acptr->info :
-		    "(Localización desconocida)"));
+#endif	
+(acptr->info[0] ? acptr->info : "(Localización desconocida)"));
+		else
+			sendto_one(sptr, rpl_str(RPL_LINKS),
+			    me.name, parv[0], acptr->name, acptr->serv->up,
+			    acptr->hopcount, 
+#ifdef UDB
+		    (IsUDB(acptr) || IsMe(acptr)) ? "-UDB2- " : "",
+#endif	
+(acptr->info[0] ? acptr->info : "(Localicación desconocida)"));
 	}
 
 	sendto_one(sptr, rpl_str(RPL_ENDOFLINKS), me.name, parv[0], "*");

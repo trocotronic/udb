@@ -43,8 +43,6 @@
 #include "version.h"
 #endif
 
-int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost);
-
 DLLFUNC int m_ping(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC int m_pong(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC int m_nospoof(aClient *cptr, aClient *sptr, int parc, char *parv[]);
@@ -59,12 +57,11 @@ DLLFUNC int m_nospoof(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_pingpong)
   = {
 	"pingpong",	/* Name of module */
-	"$Id: m_pingpong.c,v 1.1.1.2 2004-03-08 18:07:06 Trocotronic Exp $", /* Version */
+	"$Id: m_pingpong.c,v 1.1.1.3 2004-07-04 13:19:22 Trocotronic Exp $", /* Version */
 	"ping, pong and nospoof", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
     };
-
 /* This is called on module init, before Server Ready */
 DLLFUNC int MOD_INIT(m_pingpong)(ModuleInfo *modinfo)
 {
@@ -72,7 +69,6 @@ DLLFUNC int MOD_INIT(m_pingpong)(ModuleInfo *modinfo)
 	 * We call our add_Command crap here
 	*/
 	Debug((DEBUG_NOTICE, "INIT"));
-
 	add_Command(MSG_PING, TOK_PING, m_ping, MAXPARA);
 	add_CommandX(MSG_PONG, TOK_PONG, m_pong, MAXPARA, M_UNREGISTERED|M_USER|M_SERVER|M_SHUN|M_VIRUS);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
@@ -189,7 +185,7 @@ Debug((DEBUG_NOTICE, "NOSPOOF"));
 
 	if (sptr->user && sptr->name[0])
 		return register_user(cptr, sptr, sptr->name,
-		    sptr->user->username, NULL, NULL);
+		    sptr->user->username, NULL, NULL, NULL);
 	return 0;
       temp:
 	/* Homer compatibility */
@@ -209,7 +205,6 @@ DLLFUNC int m_pong(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 	aClient *acptr;
 	char *origin, *destination;
-
 
 #ifdef NOSPOOF
 	if (!IsRegistered(cptr))

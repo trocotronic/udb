@@ -50,7 +50,7 @@ DLLFUNC int m_netinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_netinfo)
   = {
 	"m_netinfo",
-	"$Id: m_netinfo.c,v 1.1.4.2 2004-03-09 17:36:45 Trocotronic Exp $",
+	"$Id: m_netinfo.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /netinfo", 
 	"3.2-b8-1",
 	NULL 
@@ -138,12 +138,17 @@ DLLFUNC CMD_FUNC(m_netinfo)
 	xx = TStime();
 	if ((xx - endsync) < 0)
 	{
+		char *emsg = "";
+		if (xx - endsync < -10)
+		{
+			emsg = " [\002Sincronizad vuestros relojes!\002]";
+		}
 		sendto_realops
-		    ("Posible TS negativo por split en %s (%li - %li = %li)",
-		    cptr->name, (xx), (endsync), (xx - endsync));
+		    ("Posible TS negativo por split en %s (%li - %li = %li)%s",
+		    cptr->name, (xx), (endsync), (xx - endsync), emsg);
 		sendto_serv_butone(&me,
-		    ":%s SMO o :\2(sync)\2 Posible TS negativo por split en %s (%li - %li = %li)",
-		    me.name, cptr->name, (xx), (endsync), (xx - endsync));
+		    ":%s SMO o :\2(sync)\2 Posible TS negativo por split en %s (%li - %li = %li)%s",
+		    me.name, cptr->name, (xx), (endsync), (xx - endsync), emsg);
 	}
 	sendto_realops
 	    ("Link %s -> %s sincronizado [segs: %li recibido: %ld.%hu enviado: %ld.%hu]",
@@ -185,15 +190,13 @@ DLLFUNC CMD_FUNC(m_netinfo)
 		    me.name, cptr->name, protocol, me.name, UnrealProtocol);
 
 	}
-	ircsprintf(buf, "%lX", CLOAK_KEYCRC);
-#ifndef UDB /* con el UDB las cloak poca importancia tienen */
+	strlcpy(buf, CLOAK_KEYCRC, sizeof(buf));
 	if (*parv[4] != '*' && strcmp(buf, parv[4]))
 	{
 		sendto_realops
-			("Link %s is having a DIFFERENT CLOAK KEY - %s != %s. \002YOU SHOULD CORRECT THIS ASAP\002.",
+			("Link %s tiene diferentes CLOAK KEY - %s != %s. \002Corríjanlo\002.",
 				cptr->name, parv[4], buf);
 	}
-#endif
 	SetNetInfo(cptr);
 	return 0;
 }

@@ -27,6 +27,10 @@
 #include <sys/types.h>
 #endif /* HAVE_SYS_TYPES_H */
 
+#ifdef HAVE_LIBUTF8_H
+#include <libutf8.h>
+#endif /* HAVE_LIBUTF8_H */
+
 #ifdef TRE_USE_SYSTEM_REGEX_H
 /* Include the system regex.h to make TRE ABI compatible with the
    system regex. */
@@ -182,6 +186,19 @@ int regawnexec(const regex_t *preg, const wchar_t *string, size_t len,
 /* Sets the parameters to default values. */
 void regaparams_default(regaparams_t *params);
 #endif /* TRE_APPROX */
+
+/* Returns the version string.  The returned string is static. */
+char *tre_version(void);
+
+int tre_config(int query, void *result);
+
+enum {
+  TRE_CONFIG_APPROX,
+  TRE_CONFIG_WCHAR,
+  TRE_CONFIG_MULTIBYTE,
+  TRE_CONFIG_SYSTEM_ABI,
+  TRE_CONFIG_VERSION
+};
 
 #ifdef __cplusplus
 }

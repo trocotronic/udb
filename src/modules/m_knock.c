@@ -52,7 +52,7 @@ DLLFUNC int m_knock(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_knock)
   = {
 	"m_knock",
-	"$Id: m_knock.c,v 1.1.4.2 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_knock.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /knock", 
 	"3.2-b8-1",
 	NULL 
@@ -169,7 +169,7 @@ CMD_FUNC(m_knock)
 		return 0;
 	}
 
-	ircsprintf(chbuf, "%s%s", CHANOPPFX, chptr->chname);
+	ircsprintf(chbuf, "@%s", chptr->chname);
 	ircsprintf(buf, "[Knock] by %s!%s@%s (%s)",
 		sptr->name, sptr->user->username, GetHost(sptr),
 		parv[2] ? parv[2] : "no reason specified");

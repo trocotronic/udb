@@ -47,7 +47,11 @@
 
 /* l_commands.c/commands.so is a special case so we have to do this manually :p */
 #ifdef DYNAMIC_LINKING
-char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9;
+#if defined(USE_SSL) && !defined(_WIN32)
+DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9 "/SSL";
+#else
+DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9;
+#endif
 #endif
 
 extern ModuleHeader m_svsnoop_Header;
@@ -61,7 +65,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.5 2004-07-04 13:19:21 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -111,12 +115,9 @@ extern int m_map_Init(ModuleInfo *modinfo), m_eos_Init(ModuleInfo *modinfo);
 extern int m_server_Init(ModuleInfo *modinfo), m_stats_Init(ModuleInfo *modinfo);
 extern int m_svsfline_Init(ModuleInfo *modinfo), m_undccdeny_Init(ModuleInfo *modinfo);
 extern int m_dccdeny_Init(ModuleInfo *modinfo), m_whowas_Init(ModuleInfo *modinfo);
-extern int m_connect_Init(ModuleInfo *modinfo);
+extern int m_connect_Init(ModuleInfo *modinfo), m_dccallow_Init(ModuleInfo *modinfo);
 #ifdef GUEST
 extern int m_guest_Init(ModuleInfo *modinfo);
-#endif
-#ifdef UDB
-extern int m_getinfo_Init(ModuleInfo *modinfo), m_privdeaf_Init(ModuleInfo *modinfo), m_ircops(ModuleInfo *modinfo);
 #endif
 
 extern int m_sethost_Load(int module_load), m_setname_Load(int module_load), m_chghost_Load(int module_load);
@@ -156,12 +157,9 @@ extern int m_map_Load(int module_load), m_eos_Load(int module_load);
 extern int m_server_Load(int module_load), m_stats_Load(int module_load);
 extern int m_svsfline_Load(int module_load), m_undccdeny_Load(int module_load);
 extern int m_dccdeny_Load(int module_load), m_whowas_Load(int module_load);
-extern int m_connect_Load(int module_load);
+extern int m_connect_Load(int module_load), m_dccallow_Load(int module_load);
 #ifdef GUEST
 extern int m_guest_Load(int module_load);
-#endif
-#ifdef UDB
-extern int m_getinfo_Load(int module_load), m_privdeaf_Load(int module_load), m_ircops_Load(int module_load);
 #endif
 
 extern int m_sethost_Unload(), m_setname_Unload(), m_chghost_Unload(), m_chgident_Unload();
@@ -190,12 +188,9 @@ extern int m_netinfo_Unload(), m_links_Unload(), m_help_Unload();
 extern int m_rules_Unload(), m_close_Unload(), m_map_Unload();
 extern int m_eos_Unload(), m_server_Unload(), m_stats_Unload();
 extern int m_svsfline_Unload(), m_dccdeny_Unload(), m_undccdeny_Unload();
-extern int m_whowas_Unload(), m_connect_Unload();
+extern int m_whowas_Unload(), m_connect_Unload(), m_dccallow_Unload();
 #ifdef GUEST
 extern int m_guest_Unload();
-#endif
-#ifdef UDB
-extern int m_getinfo_Unload(), m_privdeaf_Unload(), m_ircops_Unload();
 #endif
 
 #ifdef DYNAMIC_LINKING
@@ -314,13 +309,9 @@ int    l_commands_Init(ModuleInfo *modinfo)
 	m_undccdeny_Init(ModCmdsInfo);
 	m_whowas_Init(ModCmdsInfo);
 	m_connect_Init(ModCmdsInfo);
+	m_dccallow_Init(ModCmdsInfo);
 #ifdef GUEST
 	m_guest_Init(ModCmdsInfo);
-#endif
-#ifdef UDB
-	m_getinfo_Init(ModCmdsInfo);
-	m_privdeaf_Init(ModCmdsInfo);
-	m_ircops_Init(ModCmdsInfo);
 #endif
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
@@ -418,13 +409,9 @@ int    l_commands_Load(int module_load)
 	m_undccdeny_Load(module_load);
 	m_whowas_Load(module_load);
 	m_connect_Load(module_load);
+	m_dccallow_Load(module_load);
 #ifdef GUEST
 	m_guest_Load(module_load);
-#endif
-#ifdef UDB
-	m_getinfo_Load(module_load);
-	m_privdeaf_Load(module_load);
-	m_ircops_Load(module_load);
 #endif
 	return MOD_SUCCESS;
 }
@@ -522,13 +509,9 @@ int	l_commands_Unload(int module_unload)
 	m_undccdeny_Unload();
 	m_whowas_Unload();
 	m_connect_Unload();
+	m_dccallow_Unload();
 #ifdef GUEST
 	m_guest_Unload();
-#endif
-#ifdef UDB
-	m_getinfo_Unload();
-	m_privdeaf_Unload();
-	m_ircops_Unload();
 #endif
 	return MOD_SUCCESS;
 }

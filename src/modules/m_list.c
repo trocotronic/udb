@@ -52,9 +52,9 @@ DLLFUNC int m_list(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_list)
   = {
 	"m_list",
-	"$Id: m_list.c,v 1.1.4.1 2004-02-18 18:24:15 Trocotronic Exp $",
+	"$Id: m_list.c,v 1.1.4.2 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /list", 
-	NULL,
+	"3.2-b8-1",
 	NULL 
     };
 
@@ -193,7 +193,6 @@ DLLFUNC CMD_FUNC(m_list)
 			  usermin = atoi(name + 1) + 1;
 			  doall = 1;
 			  break;
-#ifdef LIST_USE_T
 		  case 'C':
 		  case 'c':	/* Channel TS time -- creation time? */
 			  ++name;
@@ -215,6 +214,7 @@ DLLFUNC CMD_FUNC(m_list)
 				    error = 1;
 			  }
 			  break;
+#ifdef LIST_USE_T
 		  case 'T':
 		  case 't':
 			  ++name;

@@ -36,14 +36,14 @@ static char *replies[] = {
 /* 004    RPL_MYINFO */   ":%s 004 %s %s %s %s %s",
 /* 005    RPL_PROTOCTL */ ":%s 005 %s",
 /* 006    RPL_MAP */      ":%s 006 %s :%s%-*s(%d)  %s",
-/* 007    RPL_MAPEND */   ":%s 007 %s :Fin de /MAP",
-/* 008    RPL_SNOMASK */  ":%s 008 %s :Máscara noticias servidor (%s)",
-/* 009 */ NULL,
-/* 010    RPL_REDIR */	  ":%s 010 %s %s %d :Por favor usa este Servidor/Puerto",
+/* 007    RPL_MAPEND */   ":%s 007 %s :End of /MAP",
+/* 008    RPL_SNOMASK */  ":%s 008 %s :Server notice mask (%s)",
+/* 009 */ NULL, /* ircu */
+/* 010    RPL_REDIR */	  ":%s 010 %s %s %d :Please use this Server/Port instead",
 /* 011 */ NULL,
 /* 012 */ NULL,
 /* 013 */ NULL,
-/* 014 */ NULL,
+/* 014 */ NULL, /* hybrid */
 /* 015 */ NULL,
 /* 016 */ NULL,
 /* 017 */ NULL,
@@ -71,16 +71,16 @@ static char *replies[] = {
 /* 039 */ NULL,
 /* 040 */ NULL,
 /* 041 */ NULL,
-/* 042 */ NULL,
-/* 043 */ NULL,
+/* 042 */ NULL, /* ircnet */
+/* 043 */ NULL, /* ircnet */
 /* 044 */ NULL,
 /* 045 */ NULL,
 /* 046 */ NULL,
 /* 047 */ NULL,
 /* 048 */ NULL,
 /* 049 */ NULL,
-/* 050 */ NULL,
-/* 051 */ NULL,
+/* 050 */ NULL, /* aircd */
+/* 051 */ NULL, /* aircd */
 /* 052 */ NULL,
 /* 053 */ NULL,
 /* 054 */ NULL,
@@ -264,25 +264,25 @@ static char *replies[] = {
 /* 228    RPL_STATSBANVER */ ":%s 228 %s %s %s",
 /* 229    RPL_STATSSPAMF */  ":%s 229 %s %c %s %s %li %li %li %s %s :%s",
 /* 230 */ NULL,
-/* 231 */ NULL,
+/* 231 */ NULL, /* rfc1459 */
 /* 232    RPL_RULES */ ":%s 232 %s :- %s",
-/* 233 */ NULL, /* Used */
-/* 234 */ NULL, /* Used */
-/* 235 */ NULL, /* Used */
-/* 236 */ NULL,
-/* 237 */ NULL,
-/* 238 */ NULL,
-/* 239 */ NULL,
-/* 240 */ NULL,
+/* 233 */ NULL, /* rfc1459 */
+/* 234 */ NULL, /* rfc2812 */
+/* 235 */ NULL, /* rfc2812 */
+/* 236 */ NULL, /* ircu */
+/* 237 */ NULL, /* ircu */
+/* 238 */ NULL, /* ircu, ircnet */
+/* 239 */ NULL, /* ircnet */
+/* 240 */ NULL, /* rfc2812, austhex */
 /* 241    RPL_STATSLLINE */ ":%s 241 %s %c %s * %s %d %d",
 /* 242    RPL_STATSUPTIME */ ":%s 242 %s :Servidor online %d días, %d:%02d:%02d",
 /* 243    RPL_STATSOLINE */ ":%s 243 %s %c %s * %s %s %s",
 /* 244    RPL_STATSHLINE */ ":%s 244 %s %c %s * %s %d %d",
 /* 245    RPL_STATSSLINE */ ":%s 245 %s %c %s * %s %d %d",
-/* 246 */ NULL,
+/* 246 */ NULL, /* rfc2812 */
 /* 247    RPL_STATSXLINE */ ":%s 247 %s X %s %d",
 /* 248    RPL_STATSULINE */ ":%s 248 %s U %s",
-/* 249 */ NULL,
+/* 249 */ NULL, /* hybrid */
 /* 250    RPL_STATSCONN */ ":%s 250 %s :Máximo de conexiones: %d (%d clientes)",
 /* 251    RPL_LUSERCLIENT */ ":%s 251 %s :Actualmente hay %d usuarios y %d invisibles en %d servidores",
 /* 252    RPL_LUSEROP */   ":%s 252 %s %d :operadores(s) online",
@@ -295,49 +295,49 @@ static char *replies[] = {
 /* 259    RPL_ADMINEMAIL */ ":%s 259 %s :%s",
 /* 260 */  NULL,
 /* 261    RPL_TRACELOG */   ":%s 261 %s Archivo %s %d",
-/* 262 */ NULL,
-/* 263 */ NULL,
+/* 262 */ NULL, /* rfc2812 */
+/* 263 */ NULL, /* rfc2812 */
 /* 264 */ NULL,
 /* 265    RPL_LOCALUSERS */ ":%s 265 %s :Usuarios locales actual: %d  Max: %d",
 /* 266    RPL_GLOBALUSERS */ ":%s 266 %s :Usuarios globales actual: %d  Max: %d",
-/* 267 */ NULL,
-/* 268 */ NULL,
-/* 269 */ NULL,
-/* 270 */ NULL,
+/* 267 */ NULL, /* aircd */
+/* 268 */ NULL, /* aircd */
+/* 269 */ NULL, /* aircd */
+/* 270 */ NULL, /* ircu */
 /* 271    RPL_SILELIST */ ":%s 271 %s %s %s",
 /* 272    RPL_ENDOFSILELIST */ ":%s 272 %s :Fin de la lista silence",
-/* 273 */ NULL,
-/* 274 */ NULL,
+/* 273 */ NULL, /* aircd */
+/* 274 */ NULL, /* ircnet */
 /* 275    RPL_STATSDLINE */ ":%s 275 %s %c %s %s",
-/* 276 */ NULL,
-/* 277 */ NULL,
-/* 278 */ NULL,
+/* 276 */ NULL, /* hybrid */
+/* 277 */ NULL, /* hybrid */
+/* 278 */ NULL, /* hybrid */
 /* 279 */ NULL,
-/* 280 */ NULL,
-/* 281 */ NULL,
-/* 282 */ NULL,
-/* 283 */ NULL,
-/* 284 */ NULL,
-/* 285 */ NULL,
-/* 286 */ NULL,
-/* 287 */ NULL,
-/* 288 */ NULL,
-/* 289 */ NULL,
-/* 290 */ NULL,
-/* 291 */ NULL,
-/* 292 */ NULL,
-/* 293 */ NULL,
+/* 280 */ NULL, /* ircu */
+/* 281 */ NULL, /* ircu, hybrid */
+/* 282 */ NULL, /* ircu, hybrid */
+/* 283 */ NULL, /* ircu, hybrid */
+/* 284 */ NULL, /* hybrid, quakenet */
+/* 285 */ NULL, /* ircu, aircd, quakenet */
+/* 286 */ NULL, /* aircd, quakenet */
+/* 287 */ NULL, /* aircd, quakenet */
+/* 288 */ NULL, /* aircd, quakenet */
+/* 289 */ NULL, /* aircd, quakenet */
+/* 290 */ NULL, /* aircd, quakenet */
+/* 291 */ NULL, /* aircd, quakenet */
+/* 292 */ NULL, /* aircd */
+/* 293 */ NULL, /* aircd */
 /* 294    RPL_HELPFWD */ ":%s 294 %s :Tu solicitud ha sido enviada a los operadores de red",
 /* 295    RPL_HELPIGN */ ":%s 295 %s :Tu dirección ha sido ignorada",
 /* 296 */ NULL,
 /* 297 */ NULL,
 /* 298 */ NULL,
-/* 299 */ NULL,
-/* 300 */ NULL, /* Used */
+/* 299 */ NULL, /* aircd */
+/* 300 */ NULL, /* rfc1459 */
 /* 301    RPL_AWAY */ ":%s 301 %s %s :%s",
 /* 302    RPL_USERHOST */ ":%s 302 %s :%s %s %s %s %s",
 /* 303    RPL_ISON */ ":%s 303 %s :",
-/* 304 */ NULL, /* Used */
+/* 304 */ NULL, /* RPL_TEXT */
 /* 305    RPL_UNAWAY */ ":%s 305 %s :Dejas de estar away",
 /* 306    RPL_NOWAWAY */ ":%s 306 %s :Estás away",
 /* 307    RPL_WHOISREGNICK */ ":%s 307 %s %s :Tiene el nick Registrado y Protegido",
@@ -353,7 +353,7 @@ static char *replies[] = {
 /* 313    RPL_WHOISOPERATOR */ ":%s 313 %s %s :es %s",
 /* 314    RPL_WHOWASUSER */ ":%s 314 %s %s %s %s * :%s",
 /* 315    RPL_ENDOFWHO */ ":%s 315 %s %s :Fin de /WHO",
-/* 316 */ NULL, /* Used */
+/* 316 */ NULL, /* rfc1459 */
 /* 317    RPL_WHOISIDLE */ ":%s 317 %s %s %ld %ld :segundos idle, conectado en",
 /* 318    RPL_ENDOFWHOIS */ ":%s 318 %s %s :Fin de /WHOIS",
 /* 319    RPL_WHOISCHANNELS */ ":%s 319 %s %s :%s",
@@ -366,12 +366,12 @@ static char *replies[] = {
 #endif
 /* 323    RPL_LISTEND */ ":%s 323 %s :Fin de /LIST",
 /* 324    RPL_CHANNELMODEIS */ ":%s 324 %s %s %s %s",
-/* 325 */ NULL,
-/* 326 */ NULL,
-/* 327 */ NULL,
-/* 328 */ NULL,
+/* 325 */ NULL, /* rfc2812 */
+/* 326 */ NULL, /* Used */
+/* 327 */ NULL, /* Used */
+/* 328 */ NULL, /* bahamut, austhex */
 /* 329    RPL_CREATIONTIME */ ":%s 329 %s %s %lu",
-/* 330 */ NULL, 
+/* 330 */ NULL, /* Used */
 /* 331    RPL_NOTOPIC */ ":%s 331 %s %s :Sin topic",
 /* 332    RPL_TOPIC */ ":%s 332 %s %s :%s",
 /* 333    RPL_TOPICWHOTIME */ ":%s 333 %s %s %s %lu",
@@ -379,9 +379,9 @@ static char *replies[] = {
 /* 335    RPL_WHOISBOT */ ":%s 335 %s %s :es un roBOT oficial de la Red %s",
 /* 336 */ NULL,
 /* 337 */ NULL,
-/* 338 */ NULL,
-/* 339 */ NULL,
-/* 340 */ NULL,
+/* 338 */ NULL, /* ircu, bahamut */
+/* 339 */ NULL, /* Used */
+/* 340 */ NULL, /* ircu */
 /* 341    RPL_INVITING */ ":%s 341 %s %s %s",
 #ifdef UDB
 /* 342    RPL_MSGONLYREG */ ":%s 342 %s %s :Sólo admite privados de usuarios registrados",
@@ -391,7 +391,7 @@ static char *replies[] = {
 /* 343 */ NULL,
 #endif
 /* 344 */ NULL,
-/* 345 */ NULL,
+/* 345 */ NULL, /* gamesurge */
 /* 346    RPL_INVITELIST */ ":%s 346 %s %s %s",
 /* 347    RPL_ENDOFINVITELIST */ ":%s 347 %s %s :Fin de la lista invite",
 /* 348    RPL_EXLIST */ ":%s 348 %s %s %s %s %lu",
@@ -400,14 +400,14 @@ static char *replies[] = {
 /* 351    RPL_VERSION */ ":%s 351 %s %s.%s %s :%s%s%s [%s=%li]",
 /* 352    RPL_WHOREPLY */ ":%s 352 %s %s %s %s %s %s %s :%d %s",
 /* 353    RPL_NAMREPLY */ ":%s 353 %s %s",
-/* 354 */ NULL, /* Reserved for Undernet */
-/* 355 */ NULL,
+/* 354 */ NULL, /* ircu */
+/* 355 */ NULL, /* quakenet */
 /* 356 */ NULL,
-/* 357 */ NULL,
-/* 358 */ NULL,
-/* 359 */ NULL,
+/* 357 */ NULL, /* austhex */
+/* 358 */ NULL, /* austhex */
+/* 359 */ NULL, /* austhex */
 /* 360 */ NULL,
-/* 361 */ NULL,
+/* 361 */ NULL, /* rfc1459 */
 /* 362    RPL_CLOSING */ ":%s 362 %s %s :Cerrado. Status = %d",
 /* 363    RPL_CLOSEEND */ ":%s 363 %s %d: Conexiones cerradas",
 #ifdef UDB
@@ -457,11 +457,11 @@ static char *replies[] = {
 /* 394 */ NULL,
 /* 395 */ NULL, 
 #endif
-/* 396 */ NULL,
+/* 396 */ NULL, /* ircu */
 /* 397 */ NULL,
 /* 398 */ NULL,
 /* 399 */ NULL,
-/* 400 */ NULL,
+/* 400 */ NULL, /* Used */
 /* 401    ERR_NOSUCHNICK */ ":%s 401 %s %s :Falta nick/canal",
 /* 402    ERR_NOSUCHSERVER */ ":%s 402 %s %s :Falta servidor",
 /* 403    ERR_NOSUCHCHANNEL */ ":%s 403 %s %s :Falta canal",
@@ -469,18 +469,18 @@ static char *replies[] = {
 /* 405    ERR_TOOMANYCHANNELS */ ":%s 405 %s %s :Estás en demasiados canales",
 /* 406    ERR_WASNOSUCHNICK */ ":%s 406 %s %s :No se encontró nick",
 /* 407    ERR_TOOMANYTARGETS */ ":%s 407 %s %s :Mensajes duplicados",
-/* 408 */ NULL, /* Used */
+/* 408 */ NULL, /* rfc2812, bahamut */
 /* 409    ERR_NOORIGIN */ ":%s 409 %s :Sin origen",
 /* 410 */ NULL, 
 /* 411    ERR_NORECIPIENT */ ":%s 411 %s :Sin destino (%s)",
 /* 412    ERR_NOTEXTTOSEND */ ":%s 412 %s :Sin texto",
 /* 413    ERR_NOTOPLEVEL */ ":%s 413 %s %s :Sin nivel superior",
 /* 414    ERR_WILDTOPLEVEL */ ":%s 414 %s %s :Comodín en el nivel superior",
-/* 415 */ NULL,
-/* 416 */ NULL,
+/* 415 */ NULL, /* rfc2812 */
+/* 416 */ NULL, /* ircnet, ircu */
 /* 417 */ NULL,
 /* 418 */ NULL,
-/* 419 */ NULL,
+/* 419 */ NULL, /* aircd */
 /* 420 */ NULL,
 /* 421    ERR_UNKNOWNCOMMAND */ ":%s 421 %s %s :Comando desconocido",
 /* 422    ERR_NOMOTD */ ":%s 422 %s :Falta archivo MOTD",
@@ -495,12 +495,12 @@ static char *replies[] = {
 #else
 /* 429 */ NULL,
 #endif
-/* 430 */ NULL,
+/* 430 */ NULL, /* austhex */
 /* 431    ERR_NONICKNAMEGIVEN */ ":%s 431 %s :Falta nick",
 /* 432    ERR_ERRONEUSNICKNAME */ ":%s 432 %s %s :Nick erróneo: %s",
 /* 433    ERR_NICKNAMEINUSE */ ":%s 433 %s %s :Nick en uso",
 /* 434    ERR_NORULES */ ":%s 434 %s :Falta archivo RULES",
-/* 435 */ NULL, /* Used */
+/* 435 */ NULL, /* bahamut */
 /* 436    ERR_NICKCOLLISION */ ":%s 436 %s %s :Colisión de nick KILL",
 /* 437    ERR_BANNICKCHANGE */ ":%s 437 %s %s :No puedes cambiarte el nick mientras estés baneado en canales",
 /* 438    ERR_NCHANGETOOFAST */ ":%s 438 %s %s :Cambio de nick rápido. Espera %d segundos",
@@ -514,11 +514,11 @@ static char *replies[] = {
 /* 446    ERR_USERSDISABLED */ ":%s 446 %s :USERS desactivado",
 /* 447    ERR_NONICKCHANGE */ ":%s 447 %s :No puedes cambiarte el nick mientras estés en %s (+N)",
 /* 448 */ NULL,
-/* 449 */ NULL,
+/* 449 */ NULL, /* ircu */
 /* 450 */ NULL,
 /* 451    ERR_NOTREGISTERED */ ":%s 451 %s :No estás conectado",
-/* 452 */ NULL,
-/* 453 */ NULL,
+/* 452 */ NULL, /* Used */
+/* 453 */ NULL, /* Used */
 /* 454 */ NULL,
 #ifdef HOSTILENAME
 /* 455    ERR_HOSTILENAME */ ":%s 455 %s :Tu ident %s contiene caracteres inválidos "
@@ -528,9 +528,9 @@ static char *replies[] = {
 #else
 /* 455 */ NULL, 
 #endif
-/* 456 */ NULL,
-/* 457 */ NULL,
-/* 458 */ NULL,
+/* 456 */ NULL, /* hybrid */
+/* 457 */ NULL, /* hybrid */
+/* 458 */ NULL, /* hybrid */
 /* 459    ERR_NOHIDING */ ":%s 459 %s %s :No puedes entrar (+H)",
 /* 460    ERR_NOTFORHALFOPS */ ":%s 460 %s :Halfops no pueden poner modo %c",
 /* 461    ERR_NEEDMOREPARAMS */ ":%s 461 %s %s :Faltan parámetros",
@@ -538,7 +538,7 @@ static char *replies[] = {
 /* 463    ERR_NOPERMFORHOST */ ":%s 463 %s :Tu host no goza de privilegios",
 /* 464    ERR_PASSWDMISMATCH */ ":%s 464 %s :Contraseña incorrecta.",
 /* 465    ERR_YOUREBANNEDCREEP */	":%s 465 %s :Estás baneado de este servidor. Envía un email a %s para más información",
-/* 466 */ NULL, /* Used */
+/* 466 */ NULL, /* rfc1459 */
 /* 467    ERR_KEYSET */ ":%s 467 %s %s :Clave para el canal fijada",
 /* 468    ERR_ONLYSERVERSCANCHANGE */ ":%s 468 %s %s :Modo sólo para servidores",
 /* 469    ERR_LINKSET */ ":%s 469 %s %s :Link para canal fijado",
@@ -565,18 +565,18 @@ static char *replies[] = {
 /* 490    ERR_NOSWEAR */ ":%s 490 %s :%s no acepta mensajes peyorativos",
 /* 491    ERR_NOOPERHOST */ ":%s 491 %s :Acceso denegado. No tienes O-line",
 /* 492    ERR_NOCTCP */ ":%s 492 %s :%s no acepta CTCPs",
-/* 493 */ NULL,
-/* 494 */ NULL,
-/* 495 */ NULL,
-/* 496 */ NULL,
-/* 497 */ NULL,
-/* 498 */ NULL,
-/* 499 */ NULL,
+/* 493 */ NULL, /* ircu */
+/* 494 */ NULL, /* ircu */
+/* 495 */ NULL, /* ircu */
+/* 496 */ NULL, /* ircu */
+/* 497 */ NULL, /* ircu */
+/* 498 */ NULL, /* ircu */
+/* 499    ERR_CHANOWNPRIVNEEDED */ ":%s 499 %s %s :No eres fundador de canal",
 /* 500 */ NULL,
 /* 501    ERR_UMODEUNKNOWNFLAG */ ":%s 501 %s :Modo desconocido",
 /* 502    ERR_USERSDONTMATCH */ ":%s 502 %s :No puedes cambiar este modo a los demás usuarios",
-/* 503 */ NULL,
-/* 504 */ NULL,
+/* 503 */ NULL, /* austhex */
+/* 504 */ NULL, /* Used */
 /* 505 */ NULL,
 /* 506 */ NULL,
 /* 507 */ NULL,
@@ -590,10 +590,10 @@ static char *replies[] = {
 /* 511    ERR_SILELISTFULL */ ":%s 511 %s %s :Tu lista de silences está llena",
 /* 512    ERR_TOOMANYWATCH */ ":%s 512 %s %s :Tamaño máximo de tu lista WATCH es 128",
 /* 513    ERR_NEEDPONG */ ":%s 513 %s :Para conectar escribe /QUOTE PONG %lX",
-/* 514 */ NULL,
-/* 515 */ NULL,
-/* 516 */ NULL,
-/* 517 */ NULL,
+/* 514    ERR_TOOMANYDCC */ ":%s 514 %s %s :Tu lista de DCC permitidos está llena. El máximo son %d entradas",
+/* 515 */ NULL, /* ircu */
+/* 516 */ NULL, /* ircu */
+/* 517 */ NULL, /* ircu */
 /* 518    518 */ ":%s 518 %s :No puedes invitar (+V) en %s",
 /* 519    519 */ ":%s 519 %s :No puedes entrar en %s (+A)",
 /* 520    520 */ ":%s 520 %s :No puedes entrar en %s (+O)",
@@ -601,8 +601,8 @@ static char *replies[] = {
 /* 522    ERR_WHOSYNTAX */ ":%s 522 %s :/WHO Sintaxis incorrecta, usa /who ?",
 /* 523 	  ERR_WHOLIMEXCEED */ ":%s 523 %s :Error, /who excede de %d entradas. Cierra tu búsqueda",
 /* 524    ERR_OPERSPVERIFY */ ":%s 524 %s :Trying to join +s or +p channel as an oper. Please invite yourself first.",
-/* 525 */ NULL,
-/* 526 */ NULL,
+/* 525 */ NULL, /* draft-brocklesby-irc-usercmdpfx */
+/* 526 */ NULL, /* draft-brocklesby-irc-usercmdpfx */
 /* 527 */ NULL,
 /* 528 */ NULL,
 /* 529 */ NULL,
@@ -626,10 +626,10 @@ static char *replies[] = {
 /* 547 */ NULL,
 /* 548 */ NULL,
 /* 549 */ NULL,
-/* 550 */ NULL,
-/* 551 */ NULL,
-/* 552 */ NULL,
-/* 553 */ NULL,
+/* 550 */ NULL, /* quakenet */
+/* 551 */ NULL, /* quakenet */
+/* 552 */ NULL, /* quakenet */
+/* 553 */ NULL, /* quakenet */
 /* 554 */ NULL,
 /* 555 */ NULL,
 /* 556 */ NULL,
@@ -687,27 +687,27 @@ static char *replies[] = {
 /* 608 */ NULL,
 /* 609 */ NULL,
 /* 610    RPL_MAPMORE */ ":%s 610 %s :%s%-*s --> *more*",
-/* 611 */ NULL,
-/* 612 */ NULL,
-/* 613 */ NULL,
+/* 611 */ NULL, /* ultimate */
+/* 612 */ NULL, /* ultimate */
+/* 613 */ NULL, /* ultimate */
 /* 614 */ NULL,
-/* 615 */ NULL,
-/* 616 */ NULL,
-/* 617 */ NULL,
-/* 618 */ NULL,
-/* 619 */ NULL,
-/* 620 */ NULL,
-/* 621 */ NULL,
-/* 622 */ NULL,
-/* 623 */ NULL,
-/* 624 */ NULL,
-/* 625 */ NULL,
-/* 626 */ NULL,
+/* 615 */ NULL, /* ptlink, ultimate */
+/* 616 */ NULL, /* ultimate */
+/* 617    RPL_DCCSTATUS */ ":%s 617 %s :%s ha sido %s en tu lista de DCC permitidos",
+/* 618    RPL_DCCLIST */ ":%s 618 %s :%s",
+/* 619    RPL_ENDOFDCCLIST */ ":%s 619 %s :Fin de DCCALLOW %s",
+/* 620    RPL_DCCINFO */ ":%s 620 %s :%s",
+/* 621 */ NULL, /* ultimate */
+/* 622 */ NULL, /* ultimate */
+/* 623 */ NULL, /* ultimate */
+/* 624 */ NULL, /* ultimate */
+/* 625 */ NULL, /* ultimate */
+/* 626 */ NULL, /* ultimate */
 /* 627 */ NULL,
 /* 628 */ NULL,
 /* 629 */ NULL,
-/* 630 */ NULL,
-/* 631 */ NULL,
+/* 630 */ NULL, /* ultimate */
+/* 631 */ NULL, /* ultimate */
 /* 632 */ NULL,
 /* 633 */ NULL,
 /* 634 */ NULL,
@@ -716,9 +716,9 @@ static char *replies[] = {
 /* 637 */ NULL,
 /* 638 */ NULL,
 /* 639 */ NULL,
-/* 640    RPL_DUMPING */ ":%s 640 %s :Dumping clients matching %s",
-/* 641    RPL_DUMPRPL */ ":%s 641 %s %s %s %s %s %s%s%s%s",
-/* 642    RPL_EODUMP */ ":%s 642 %s :End of /dusers - %i",
+/* 640 */ NULL,
+/* 641 */ NULL,
+/* 642 */ NULL,
 /* 643 */ NULL,
 /* 644 */ NULL,
 /* 645 */ NULL,
@@ -736,37 +736,37 @@ static char *replies[] = {
 /* 657 */ NULL,
 /* 658 */ NULL,
 /* 659 */ NULL,
-/* 660 */ NULL,
-/* 661 */ NULL,
-/* 662 */ NULL,
-/* 663 */ NULL,
-/* 664 */ NULL,
-/* 665 */ NULL,
-/* 666 */ NULL,
+/* 660 */ NULL, /* kineircd */
+/* 661 */ NULL, /* kineircd */
+/* 662 */ NULL, /* kineircd */
+/* 663 */ NULL, /* kineircd */
+/* 664 */ NULL, /* kineircd */
+/* 665 */ NULL, /* kineircd */
+/* 666 */ NULL, /* kineircd */
 /* 667 */ NULL,
 /* 668 */ NULL,
 /* 669 */ NULL,
-/* 670 */ NULL,
-/* 671 */ NULL,
-/* 672 */ NULL,
-/* 673 */ NULL,
+/* 670 */ NULL, /* kineircd */
+/* 671 */ NULL, /* kineircd */
+/* 672 */ NULL, /* ithildin */
+/* 673 */ NULL, /* ithildin */
 /* 674 */ NULL,
 /* 675 */ NULL,
 /* 676 */ NULL,
 /* 677 */ NULL,
-/* 678 */ NULL,
-/* 679 */ NULL,
+/* 678 */ NULL, /* kineircd */
+/* 679 */ NULL, /* kineircd */
 /* 680 */ NULL,
 /* 681 */ NULL,
-/* 682 */ NULL,
+/* 682 */ NULL, /* kineircd */
 /* 683 */ NULL,
 /* 684 */ NULL,
 /* 685 */ NULL,
 /* 686 */ NULL,
-/* 687 */ NULL,
-/* 688 */ NULL,
-/* 689 */ NULL,
-/* 690 */ NULL,
+/* 687 */ NULL, /* kineircd */
+/* 688 */ NULL, /* kineircd */
+/* 689 */ NULL, /* kineircd */
+/* 690 */ NULL, /* kineircd */
 /* 691 */ NULL,
 /* 692 */ NULL,
 /* 693 */ NULL,
@@ -792,9 +792,9 @@ static char *replies[] = {
 /* 713 */ NULL,
 /* 714 */ NULL,
 /* 715 */ NULL,
-/* 716 */ NULL,
-/* 717 */ NULL,
-/* 718 */ NULL,
+/* 716 */ NULL, /* ratbox */
+/* 717 */ NULL, /* ratbox */
+/* 718 */ NULL, /* ratbox */
 /* 719 */ NULL,
 /* 720 */ NULL,
 /* 721 */ NULL,
@@ -847,10 +847,10 @@ static char *replies[] = {
 /* 768 */ NULL,
 /* 769 */ NULL,
 /* 770 */ NULL,
-/* 771 */ NULL,
+/* 771 */ NULL, /* ithildin */
 /* 772 */ NULL,
-/* 773 */ NULL,
-/* 774 */ NULL,
+/* 773 */ NULL, /* ithildin */
+/* 774 */ NULL, /* ithildin */
 /* 775 */ NULL,
 /* 776 */ NULL,
 /* 777 */ NULL,
@@ -1048,18 +1048,18 @@ static char *replies[] = {
 /* 969 */ NULL,
 /* 970 */ NULL,
 /* 971 */ NULL,
-/* 972 */ NULL,
-/* 973 */ NULL,
-/* 974 */ NULL,
-/* 975 */ NULL,
-/* 976 */ NULL,
-/* 977 */ NULL,
-/* 978 */ NULL,
-/* 979 */ NULL,
-/* 980 */ NULL,
-/* 981 */ NULL,
-/* 982 */ NULL,
-/* 983 */ NULL,
+/* 972 ERR_CANNOTDOCOMMAND */ ":%s 972 %s %s :Este %s",
+/* 973 */ NULL, /* kineircd */
+/* 974 ERR_CANNOTCHANGECHANMODE */ ":%s 974 %s %c :%s",
+/* 975 */ NULL, /* kineircd */
+/* 976 */ NULL, /* kineircd */
+/* 977 */ NULL, /* kineircd */
+/* 978 */ NULL, /* kineircd */
+/* 979 */ NULL, /* kineircd */
+/* 980 */ NULL, /* kineircd */
+/* 981 */ NULL, /* kineircd */
+/* 982 */ NULL, /* kineircd */
+/* 983 */ NULL, /* kineircd */
 /* 984 */ NULL,
 /* 985 */ NULL,
 /* 986 */ NULL,

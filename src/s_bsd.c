@@ -118,7 +118,7 @@ static char readbuf[READBUF_SIZE];
 char zlinebuf[BUFSIZE];
 extern char *version;
 extern ircstats IRCstats;
-TS last_allinuse = 0;
+MODVAR TS last_allinuse = 0;
 
 #ifndef NO_FDLIST
 extern fdlist default_fdlist;
@@ -271,7 +271,7 @@ void report_error(char *text, aClient *cptr)
 	
 	host = (cptr) ? get_client_name(cptr, FALSE) : "";
 
-	Debug((DEBUG_ERROR, text, host, strerror(errtmp)));
+	Debug((DEBUG_ERROR, text, host, STRERROR(errtmp)));
 
 	/*
 	 * Get the *real* error from the socket (well try to anyway..).
@@ -290,14 +290,14 @@ void report_error(char *text, aClient *cptr)
 		 * some tricks are needed because of 2x strerror() (or at least
 		 * according to the man page) -- Syzop.
 		 */
-		snprintf(xbuf, 200, "[syserr='%s'", strerror(origerr));
+		snprintf(xbuf, 200, "[syserr='%s'", STRERROR(origerr));
 		n = strlen(xbuf);
-		snprintf(xbuf+n, 256-n, ", sockerr='%s']", strerror(errtmp));
+		snprintf(xbuf+n, 256-n, ", sockerr='%s']", STRERROR(errtmp));
 		sendto_snomask(SNO_JUNK, text, host, xbuf);
 		ircd_log(LOG_ERROR, text, host, xbuf);
 	} else {
-		sendto_snomask(SNO_JUNK, text, host, strerror(errtmp));
-		ircd_log(LOG_ERROR, text,host,strerror(errtmp));
+		sendto_snomask(SNO_JUNK, text, host, STRERROR(errtmp));
+		ircd_log(LOG_ERROR, text,host,STRERROR(errtmp));
 	}
 	return;
 }
@@ -316,7 +316,7 @@ void report_baderror(char *text, aClient *cptr)
 
 /*	fprintf(stderr, text, host, strerror(errtmp));
 	fputc('\n', stderr); */
-	Debug((DEBUG_ERROR, text, host, strerror(errtmp)));
+	Debug((DEBUG_ERROR, text, host, STRERROR(errtmp)));
 
 	/*
 	 * Get the *real* error from the socket (well try to anyway..).
@@ -330,7 +330,7 @@ void report_baderror(char *text, aClient *cptr)
 			if (err)
 				errtmp = err;
 #endif
-	sendto_umode(UMODE_OPER, text, host, strerror(errtmp));
+	sendto_umode(UMODE_OPER, text, host, STRERROR(errtmp));
 	return;
 }
 
@@ -1252,7 +1252,7 @@ add_con_refuse:
 			}
 		}
 
-		if ((bconf = Find_ban(acptr->sockhost, CONF_BAN_IP))) {
+		if ((bconf = Find_ban(acptr, Inet_ia2p(&acptr->ip), CONF_BAN_IP))) {
 			if (bconf)
 			{
 				ircsprintf(zlinebuf,
@@ -1276,7 +1276,7 @@ add_con_refuse:
 		else
 		{
 			int val;
-			if (!(val = throttle_can_connect(&acptr->ip)))
+			if (!(val = throttle_can_connect(acptr, &acptr->ip)))
 			{
 				ircsprintf(zlinebuf,
 					"ERROR :Cierra Link: [%s] (Throttled: reconexión demasiado rápida)\r\n", 
@@ -1416,11 +1416,7 @@ static int read_packet(aClient *cptr, fd_set *rfd)
 		if (!dbuf_put(&cptr->recvQ, readbuf, length))
 			return exit_client(cptr, cptr, cptr, "dbuf_put fail");
 
-		if (IsPerson(cptr) && DBufLength(&cptr->recvQ) > get_recvq(cptr)
-#ifdef UDB
-		   && !IsServices(cptr)
-#endif			
-		)
+		if (IsPerson(cptr) && DBufLength(&cptr->recvQ) > get_recvq(cptr))
 		{
 			sendto_snomask(SNO_FLOOD,
 			    "*** Flood -- %s!%s@%s (%d) sobrepasa %d recvQ",
@@ -1921,7 +1917,7 @@ deadsocket:
 				}
 				(void)exit_client(cptr, cptr, &me,
 				    ((sockerr = get_sockerr(cptr))
-				    ? strerror(sockerr) : "Cliente cierra"));
+				    ? STRERROR(sockerr) : "Cliente cierra"));
 				continue;
 			}
 		}
@@ -2008,7 +2004,7 @@ deadsocket:
 		if (length != FLUSH_BUFFER)
 			(void)exit_client(cptr, cptr, &me,
 			    ((sockerr = get_sockerr(cptr))
-			    ? strerror(sockerr) : "Cliente cierra"));
+			    ? STRERROR(sockerr) : "Cliente cierra"));
 	}
 	return 0;
 }
@@ -2293,7 +2289,7 @@ int  read_message(time_t delay, fdlist *listp)
 
 				(void)exit_client(cptr, cptr, &me,
 				    ((sockerr =
-				    get_sockerr(cptr)) ? strerror(sockerr) :
+				    get_sockerr(cptr)) ? STRERROR(sockerr) :
 				    "Cliente cierra"));
 				continue;
 			}
@@ -2315,7 +2311,7 @@ int  read_message(time_t delay, fdlist *listp)
 		if (IsDead(cptr))
 		{
 			ircsprintf(errmsg, "Read/Dead Error: %s",
-			    strerror(get_sockerr(cptr)));
+			    STRERROR(get_sockerr(cptr)));
 			exit_client(cptr, cptr, &me, errmsg);
 			continue;
 		}
@@ -2344,7 +2340,7 @@ int  read_message(time_t delay, fdlist *listp)
 		if (length != FLUSH_BUFFER)
 			(void)exit_client(cptr, cptr, &me,
 			    ((sockerr = get_sockerr(cptr))
-			    ? strerror(sockerr) : "Cliente cierra"));
+			    ? STRERROR(sockerr) : "Cliente cierra"));
 
 	}
 	return 0;
@@ -2448,6 +2444,9 @@ int  connect_server(ConfigItem_link *aconf, aClient *by, struct hostent *hp)
 	 */
 	(void)make_server(cptr);
 	cptr->serv->conf = aconf;
+	cptr->serv->conf->refcount++;
+	Debug((DEBUG_ERROR, "reference count for %s (%s) is now %d",
+		cptr->name, cptr->serv->conf->servername, cptr->serv->conf->refcount));
 	if (by && IsPerson(by))
 	{
 		(void)strlcpy(cptr->serv->by, by->name, sizeof cptr->serv->by);
@@ -2467,6 +2466,7 @@ int  connect_server(ConfigItem_link *aconf, aClient *by, struct hostent *hp)
     add_local_client(cptr);
 	cptr->listener = &me;
 	SetConnecting(cptr);
+	SetOutgoing(cptr);
 	IRCstats.unknown++;
 	get_sockhost(cptr, aconf->hostname);
 	add_client_to_list(cptr);

@@ -52,7 +52,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.2 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -192,6 +192,15 @@ DLLFUNC CMD_FUNC(m_invite)
 #endif
                 }
         }
+
+		if (MyClient(sptr) && SPAMFILTER_VIRUSCHANDENY && SPAMFILTER_VIRUSCHAN &&
+		    !strcasecmp(chptr->chname, SPAMFILTER_VIRUSCHAN) &&
+		    !is_chan_op(sptr, chptr) && !IsAnOper(sptr) && !IsULine(sptr))
+		{
+			sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),
+				me.name, parv[0], chptr->chname);
+			return -1;
+		}
 
         if (MyConnect(sptr))
         {
