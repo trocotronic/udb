@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.6 2004-08-14 13:12:55 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.7 2004-10-31 20:21:42 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -61,6 +61,7 @@ Callback	*Callbacks[MAXCALLBACKS];	/* Callback objects for modules, used for reh
 Callback	*RCallbacks[MAXCALLBACKS];	/* 'Real' callback function, used for callback function calls */
 MODVAR Module          *Modules = NULL;
 MODVAR Versionflag     *Versionflags = NULL;
+
 int     Module_Depend_Resolve(Module *p);
 Module *Module_make(ModuleHeader *header, 
 #ifdef _WIN32
@@ -459,6 +460,9 @@ void Unload_all_loaded_modules(void)
 			else if (objs->type == MOBJ_CALLBACK) {
 				CallbackDel(objs->object.callback);
 			}
+			else if (objs->type == MOBJ_ISUPPORT) {
+				IsupportDel(objs->object.isupport);
+			}
 		}
 		for (child = mi->children; child; child = childnext)
 		{
@@ -518,6 +522,9 @@ void Unload_all_testing_modules(void)
 			}
 			else if (objs->type == MOBJ_CALLBACK) {
 				CallbackDel(objs->object.callback);
+			}
+			else if (objs->type == MOBJ_ISUPPORT) {
+				IsupportDel(objs->object.isupport);
 			}
 		}
 		for (child = mi->children; child; child = childnext)
@@ -585,6 +592,10 @@ int    Module_free(Module *mod)
 		else if (objs->type == MOBJ_CALLBACK) {
 			CallbackDel(objs->object.callback);
 		}
+		else if (objs->type == MOBJ_ISUPPORT) {
+			IsupportDel(objs->object.isupport);
+		}
+
 	}
 	for (p = Modules; p; p = p->next)
 	{
@@ -1323,8 +1334,7 @@ static const char *module_error_str[] = {
 
 const char *ModuleGetErrorStr(Module *module)
 {
-	if (module->errorcode < 0 
-	    || module->errorcode >= sizeof(module_error_str)/sizeof(module_error_str[0]))
+	if (module->errorcode >= sizeof(module_error_str)/sizeof(module_error_str[0]))
 		return NULL;
 
 	return module_error_str[module->errorcode];

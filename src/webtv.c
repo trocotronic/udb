@@ -305,7 +305,11 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 						*(buf + len++) = '^';
 #else
 					if (access & CHFL_CHANOWNER)
+#ifdef UDB
+						*(buf + len++) = '.';
+#else
 						*(buf + len++) = '~';
+#endif
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '&';
 #endif

@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.6 2004-08-14 13:12:55 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.7 2004-10-31 20:21:39 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -263,6 +263,8 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	SetClient(x)		((x)->status = STAT_CLIENT)
 #define	SetLog(x)		((x)->status = STAT_LOG)
 
+#define IsSynched(x)	(x->serv->flags.synced)
+
 /* opt.. */
 #define OPT_SJOIN	0x0001
 #define OPT_NOT_SJOIN	0x0002
@@ -327,7 +329,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
  * -DuffJ
  */
 
-#define SNO_DEFOPER "+kscfvGq"
+#define SNO_DEFOPER "+kscfvGqo"
 #define SNO_DEFUSER "+ks"
 
 #define SEND_UMODES (SendUmodes)
@@ -383,6 +385,9 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define IsSAdmin(x)		((x)->umodes & UMODE_SADMIN)
 #define SendFailops(x)		((x)->umodes & UMODE_FAILOP)
 #define	IsOper(x)		((x)->umodes & UMODE_OPER)
+#ifdef UDB
+#define IsHOper(x)		(IsOper(x) || IsHelpOp(x))
+#endif
 #define	IsLocOp(x)		((x)->umodes & UMODE_LOCOP)
 #define	IsInvisible(x)		((x)->umodes & UMODE_INVISIBLE)
 #define IsServices(x)		((x)->umodes & UMODE_SERVICES)
@@ -695,7 +700,9 @@ struct MotdItem {
 struct aloopStruct {
 	unsigned do_garbage_collect : 1;
 	unsigned ircd_booted : 1;
-	unsigned do_bancheck : 1;
+	unsigned do_bancheck : 1; /* perform *line bancheck? */
+	unsigned do_bancheck_spamf_user : 1; /* perform 'user' spamfilter bancheck */
+	unsigned do_bancheck_spamf_away : 1; /* perform 'away' spamfilter bancheck */
 	unsigned ircd_rehashing : 1;
 	unsigned tainted : 1;
 	aClient *rehash_save_cptr, *rehash_save_sptr;
@@ -768,6 +775,9 @@ struct Server {
 #endif
 	struct {
 		unsigned synced:1;		/* Server linked? (3.2beta18+) */
+#ifdef UDB
+		u_int bloqs; /* bloques sincronizados */
+#endif
 	} flags;
 };
 
@@ -779,6 +789,7 @@ struct Server {
 #define M_ALIAS			0x0020
 #define M_RESETIDLE		0x0040
 #define M_VIRUS			0x0080
+#define M_ANNOUNCE		0x0100
 
 
 /* tkl:
@@ -802,6 +813,8 @@ struct Server {
 #define SPAMF_PART			0x0010 /* P */
 #define SPAMF_QUIT			0x0020 /* q */
 #define SPAMF_DCC			0x0040 /* d */
+#define SPAMF_USER			0x0080 /* u */
+#define SPAMF_AWAY			0x0100 /* a */
 
 struct _spamfilter {
 	unsigned short action; /* see BAN_ACT* */
@@ -1274,24 +1287,24 @@ struct _configitem_unknown_ext {
 	ConfigEntry     *ce_entries;
 };
 
-#define ALIAS_SERVICES 1
-#define ALIAS_STATS 2
-#define ALIAS_NORMAL 3
-#define ALIAS_COMMAND 4
+
+typedef enum { 
+	ALIAS_SERVICES=1, ALIAS_STATS, ALIAS_NORMAL, ALIAS_COMMAND, ALIAS_CHANNEL
+} AliasType;
 
 struct _configitem_alias {
 	ConfigItem *prev, *next;
 	ConfigFlag flag;
 	ConfigItem_alias_format *format;
 	char *alias, *nick;
-	short type;
+	AliasType type;
 };
 
 struct _configitem_alias_format {
 	ConfigItem *prev, *next;
 	ConfigFlag flag;
 	char *nick;
-	short type;
+	AliasType type;
 	char *format, *parameters;
 	regex_t expr;
 };

@@ -18,7 +18,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: msg.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
+ *   $Id: msg.h,v 1.1.1.4 2004-10-31 20:21:37 Trocotronic Exp $
  */
 
 #ifndef	__msg_include__
@@ -239,7 +239,6 @@
 #define MSG_TSCTL 	"TSCTL"
 #define TOK_TSCTL 	"AW"
 #define MSG_SVSJOIN 	"SVSJOIN"
-#define TOK_SVSJOIN 	"BR"
 #define MSG_SAJOIN 	"SAJOIN"
 #define TOK_SAJOIN 	"AX"
 #define MSG_SVSPART 	"SVSPART"

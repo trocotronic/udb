@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.6 2004-08-14 13:12:57 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.7 2004-10-31 20:21:55 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -172,7 +172,6 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				    me.name, IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, sptr->name,
 				    sptr->user->username, sptr->user->realhost);
 			}
-
 #ifdef UDB
 			sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
 				    parv[0], name, user->username,
@@ -185,12 +184,15 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    acptr->info);
 
 #endif
-			if (IsEyes(sptr) && IsOper(sptr))
+			if (IsOper(sptr))
 			{
+				char sno[512];
+				strcpy(sno, get_sno_str(acptr));
+				
 				/* send the target user's modes */
 				sendto_one(sptr, rpl_str(RPL_WHOISMODES),
 				    me.name, parv[0], name,
-				    get_mode_str(acptr));
+				    get_mode_str(acptr), sno[1] == 0 ? "" : sno);
 			}
 #ifndef UDB
 			if ((acptr == sptr) || IsAnOper(sptr))
@@ -221,9 +223,9 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				if ((acptr->umodes & UMODE_HIDEWHOIS) && !IsMember(sptr, chptr) && !IsAnOper(sptr))
 					showchannel = 0;
 #ifdef UDB
-				if (IsBot(acptr) && !IsNetAdmin(sptr))
+				if (IsBot(acptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
 #else
-				if (IsServices(acptr) && !IsNetAdmin(sptr))
+				if (IsServices(acptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
 #endif
 					showchannel = 0;
 				if (acptr == sptr)

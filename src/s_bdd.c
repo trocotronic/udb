@@ -23,10 +23,8 @@
 #include "config.h"
 #include "struct.h"
 #include "common.h"
-#include "sys.h"
-#include "numeric.h"
-#include "msg.h"
 #include "channel.h"
+#include "numeric.h"
 #include <time.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -34,353 +32,291 @@
 #include <string.h>
 #ifdef _WIN32
 #include <io.h>
+#else
+#include <sys/mman.h>
 #endif
 #include <fcntl.h>
 #include "h.h"
-#include "proto.h"
-#ifdef STRIPBADWORDS
-#include "badwords.h"
-#endif
 
-#ifdef _WIN32
-#include "version.h"
-#endif
 #ifdef UDB
 #include "s_bdd.h"
-
-#define ircstrdup(x,y) if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y)
-#define ircfree(x) if (x) MyFree(x); x = NULL
+#ifndef _WIN32
+#define O_BINARY 0x0
+#endif
+DLLFUNC Udb *nicks = NULL;
+DLLFUNC Udb *canales = NULL;
+DLLFUNC Udb *ips = NULL;
+DLLFUNC Udb *set = NULL;
+DLLFUNC u_int BDD_NICKS, BDD_CHANS, BDD_IPS, BDD_SET;
+Udb ***hash;
+Udb *ultimo = NULL;
+extern char modebuf[BUFSIZE], parabuf[BUFSIZE];
+#define da_Udb(x) do{ x = (Udb *)MyMalloc(sizeof(Udb)); bzero(x, sizeof(Udb)); }while(0)
+#define ircstrdup(x,y) do{ if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); }while(0)
 #define atoul(x) strtoul(x, NULL, 10)
-static char buf[512];
-
-unsigned MODVAR long hashes[DB_SIZE];
-unsigned MODVAR long series[DB_SIZE];
-unsigned MODVAR int registros[DB_SIZE];
-unsigned MODVAR char corruptas[DB_SIZE];
-unsigned MODVAR char residentes[DB_SIZE];
-unsigned MODVAR int lens[DB_SIZE];
-
-char *clave_cifrado = NULL;
-udb *primeradb[DB_SIZE], *ultimadb[DB_SIZE];
-
-/* Rutinas de hash extraídas de hash.c */
-/* En fase ALFA */
-
-#ifdef HASH_UDB
-udb **udbTable[DB_SIZE];
-
-void clear_hash_udb(char bdd)
+void carga_bloques(void);
+static char buf[BUFSIZE];
+char *chan_nick();
+static char bloques[128];
+static int BDD_TOTAL = 0;
+void alta_bloque(char letra, char *ruta, Udb **reg, u_int *id)
+{
+	static u_int ids = 0;
+	da_Udb(*reg);
+	(*reg)->id |= (u_int)letra;
+	(*reg)->id |= (ids << 8);
+	(*reg)->item = ruta;
+	(*reg)->mid = ultimo;
+	*id = ids;
+	ultimo = *reg;
+	bloques[BDD_TOTAL++] = letra;
+	ids++;
+}
+void alta_hash()
+{
+	Udb *reg;
+	hash = (Udb ***)MyMalloc(sizeof(Udb **) * BDD_TOTAL);
+	for (reg = ultimo; reg; reg = reg->mid)
+	{
+		hash[(reg->id >> 8)] = (Udb **)MyMalloc(sizeof(Udb *) * 2048);
+		bzero(hash[(reg->id >> 8)], sizeof(Udb *) * 2048);
+	}
+}
+void bdd_init()
+{
+	FILE *fh;
+#ifdef _WIN32
+	mkdir(DB_DIR);
+#else
+	mkdir(DB_DIR, 0744);
+#endif
+	bzero(bloques, sizeof(bloques));
+	if (!nicks)
+		alta_bloque('N', DB_DIR "nicks.udb", &nicks, &BDD_NICKS);
+	if (!canales)
+		alta_bloque('C', DB_DIR "canales.udb", &canales, &BDD_CHANS);
+	if (!ips)
+		alta_bloque('I', DB_DIR "ips.udb", &ips, &BDD_IPS);
+	if (!set)
+		alta_bloque('S', DB_DIR "set.udb", &set, &BDD_SET);
+	alta_hash();
+	if ((fh = fopen(DB_DIR "crcs", "a")))
+		fclose(fh);
+	carga_bloques();
+}
+void cifrado_str(char *origen, char *destino, int len)
 {
 	int i;
-	for (i = 0; i < dblen(bdd); i++)
-		udbTable[bdd][i] = NULL;
-}
-int  add_to_udb_hash_table(char *name, char bdd, udb *registro)
-{
-	unsigned int  hashv;
-	hashv = hash_nick_name(name) % dblen(bdd);
-	if (!udbTable[bdd])
+	destino[0] = 0;
+	for (i = 0; i < len; i++)
 	{
-		udbTable[bdd] = (udb **)malloc(sizeof(udb *) * dblen(bdd));
-		clear_hash_udb(bdd);
+		char tmp[3];
+		ircsprintf(tmp, "%02x", origen[i]);
+		strcat(destino, tmp);
 	}
-	registro->hnext = udbTable[bdd][hashv];
-	udbTable[bdd][hashv] = registro;
+}
+u_long obtiene_hash(Udb *bloq)
+{
+	int fp;
+	char *par;
+	u_long hashl = 0L;
+	struct stat inode;
+	if ((fp = open(bloq->item, O_RDONLY|O_BINARY|O_CREAT, S_IREAD|S_IWRITE)) == -1)
+		return 0;
+	if (fstat(fp, &inode) == -1)
+	{
+		close(fp);
+		return 0;
+	}
+	par = MyMalloc(inode.st_size + 1);
+	par[inode.st_size] = '\0';
+	if (read(fp, par, inode.st_size) == inode.st_size)
+	{
+		MD5_CTX hash;
+		char res[512];
+		MD5_Init(&hash);
+		MD5_Update(&hash, par, inode.st_size);
+		MD5_Final(res, &hash);
+		if (bloq->data_char)
+			MyFree(bloq->data_char);
+		bloq->data_long = inode.st_size;
+		bloq->data_char = MyMalloc(33);
+		cifrado_str(res, bloq->data_char, 16);
+		hashl = our_crc32(par, inode.st_size);
+	}
+	close(fp);
+	MyFree(par);
+	return hashl;
+}
+u_long lee_hash(int id)
+{
+	FILE *fp;
+	u_long hash = 0L;
+	char lee[9];
+	if (!(fp = fopen(DB_DIR "crcs", "r")))
+		return 0L;
+	fseek(fp, 8 * id, SEEK_SET);
+	bzero(lee, 9);
+	fread(lee, 1, 8, fp);
+	fclose(fp);
+	if (!sscanf(lee, "%X", &hash))
+		return 0L;
+	return hash;
+}
+int actualiza_hash(Udb *bloque)
+{
+	char lee[9];
+	FILE *fh;
+	u_long lo;
+	bzero(lee, 9);
+	if (!(fh = fopen(DB_DIR "crcs", "r+")))
+		return -1;
+	lo = obtiene_hash(bloque);
+	fseek(fh, 8 * (bloque->id >> 8), SEEK_SET);
+	ircsprintf(lee, "%X", lo);
+	fwrite(lee, 1, 8, fh);
+	fclose(fh);
 	return 0;
 }
-int  del_from_udb_hash_table(char *name, char bdd, udb *registro)
+/* devuelve el puntero a todo el bloque a partir de su id o letra */
+Udb *coge_de_id(int id)
 {
-	udb *tmp, *prev = NULL;
-	unsigned int  hashv;
-	hashv = hash_nick_name(name) % dblen(bdd);
-	for (tmp = (udb *)udbTable[bdd][hashv]; tmp; tmp = tmp->hnext)
+	Udb *reg;
+	for (reg = ultimo; reg; reg = reg->mid)
 	{
-		if (tmp == registro)
+		if (((reg->id & 0xFF) == id) || ((reg->id >> 8) == id))
+			return reg;
+	}
+	return NULL;
+}
+/* devuelve su id a partir de una letra */
+int coge_de_char(char tipo)
+{
+	Udb *reg;
+	for (reg = ultimo; reg; reg = reg->mid)
+	{
+		if ((reg->id & 0xFF) == tipo)
+			return (reg->id >> 8);
+	}
+	return tipo;
+}
+char coge_de_tipo(int tipo)
+{
+	Udb *reg;
+	for (reg = ultimo; reg; reg = reg->mid)
+	{
+		if ((reg->id >> 8) == tipo)
+			return (reg->id & 0xFF);
+	}
+	return tipo;
+}
+void inserta_registro_en_hash(Udb *registro, int donde, char *clave)
+{
+	u_int hashv;
+	hashv = hash_nick_name(clave) % 2048;
+	registro->hsig = hash[donde][hashv];
+	hash[donde][hashv] = registro;
+}
+int borra_registro_de_hash(Udb *registro, int donde, char *clave)
+{
+	Udb *aux, *prev = NULL;
+	u_int hashv;
+	hashv = hash_nick_name(clave) % 2048;
+	for (aux = hash[donde][hashv]; aux; aux = aux->hsig)
+	{
+		if (aux == registro)
 		{
 			if (prev)
-				prev->hnext = tmp->hnext;
+				prev->hsig = aux->hsig;
 			else
-				udbTable[bdd][hashv] = tmp->hnext;
+				hash[donde][hashv] = aux->hsig;
 			return 1;
 		}
-		prev = tmp;
+		prev = aux;
 	}
 	return 0;
 }
-udb *hash_find_udb(char *name, char bdd, udb *registro)
+Udb *busca_udb_en_hash(char *clave, int donde, Udb *lugar)
 {
-	udb *tmp;
-	unsigned int hashv;
-	if (!udbTable[bdd])
-		return registro;
-	hashv = hash_nick_name(name) % dblen(bdd);
-	for (tmp = udbTable[bdd][hashv]; tmp; tmp = tmp->hnext)
+	u_int hashv;
+	Udb *aux;
+	hashv = hash_nick_name(clave) % 2048;
+	for (aux = hash[donde][hashv]; aux; aux = aux->hsig)
 	{
-		if (!strcasecmp(name, tmp->index))
-			return tmp;
+		if (!strcasecmp(clave, aux->item))
+			return aux;
 	}
-	return registro;
+	return lugar;
 }
-#endif
-ConfigItem_badword *busca_word(char *word, ConfigItem_badword **conf)
+Udb *busca_registro(int tipo, char *clave)
 {
-	ConfigItem_badword *badword_ptr;
-	for (badword_ptr = *conf; badword_ptr; badword_ptr = (ConfigItem_badword *) badword_ptr->next) 
-	{
-		if (!strcasecmp(badword_ptr->word, word))
-			return badword_ptr;
-	}
-	return NULL;
-}
-udb *busca_serie(char bdd, unsigned long serie)
-{
-	udb *db;
-	for (db = primeradb[bdd]; db; db = db->next)
-	{
-		if (db->serie >= serie)
-			return db;
-	}
-	return NULL;
-}
-udb *busca_registro(char bdd, char *index)
-{
-#ifdef HASH_UDB
-	if (!index)
+	if (!clave)
 		return NULL;
-	return hash_find_udb(index, bdd, NULL);
-#else
-	udb *db;
-	if (!index)
+	tipo = coge_de_char(tipo);
+	return busca_udb_en_hash(clave, tipo, NULL);
+}
+Udb *busca_bloque(char *clave, Udb *bloque)
+{
+	Udb *aux;
+	if (!clave)
 		return NULL;
-	for (db = primeradb[bdd]; db; db = db->next)
+	for (aux = bloque->down; aux; aux = aux->mid)
 	{
-		if (!strcasecmp(db->index, index))
-			return db;
+		if (!strcasecmp(clave, aux->item))
+			return aux;
 	}
 	return NULL;
-#endif
 }
-int addword_conf(char *index, int bits, char *reemp, ConfigItem_badword **conf)
+Udb *crea_registro(Udb *bloque)
 {
-	ConfigItem_badword *bwd;
-	int regflags = 0;
-	char *tmp;
-	short regex = 0;
-#ifdef FAST_BADWORD_REPLACE
-	int ast_l = 0, ast_r = 0;
-#endif	
-	if (!(bwd = busca_word(index, conf)))
-		bwd = MyMallocEx(sizeof(ConfigItem_badword));
-	regflags = REG_ICASE|REG_EXTENDED;
-	bwd->action = BADWORD_REPLACE;
-	if (bits & BWD_BLOCK)
-	{
-		bwd->action = BADWORD_BLOCK;
-		regflags |= REG_NOSUB;
-	}			
-#ifdef FAST_BADWORD_REPLACE
-	for (tmp = index; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
-			if ((index == tmp) && (*tmp == '*')) {
-				ast_l = 1; /* Asterisk at the left */
-				continue;
-			}
-			if ((*(tmp + 1) == '\0') && (*tmp == '*')) {
-				ast_r = 1; /* Asterisk at the right */
-				continue;
-			}
-			regex = 1;
-			break;
-		}
-	}
-	if (regex) {
-		bwd->type = BADW_TYPE_REGEX;
-		ircstrdup(bwd->word, index);
-		regcomp(&bwd->expr, bwd->word, regflags);
-	} else {
-		char *tmpw;
-		bwd->type = BADW_TYPE_FAST;
-		bwd->word = tmpw = MyMalloc(strlen(index) - ast_l - ast_r + 1);
-		for (tmp = index; *tmp; tmp++)
-			if (*tmp != '*')
-				*tmpw++ = *tmp;
-		*tmpw = '\0';
-		if (ast_l)
-			bwd->type |= BADW_TYPE_FAST_L;
-		if (ast_r)
-			bwd->type |= BADW_TYPE_FAST_R;
-	}
-#else	
-	for (tmp = index; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
-			regex = 1;
-			break;
-		}
-	}
-	if (regex) {
-		ircstrdup(bwd->word, index);
-	}
-	else {
-		bwd->word = MyMalloc(strlen(index) + strlen(PATTERN) -1);
-		ircsprintf(bwd->word, PATTERN, index);
-	}
-	regcomp(&bwd->expr, bwd->word, regflags);
-#endif	
-	if (reemp) {
-		ircstrdup(bwd->replace, reemp);
-	}
-	else {
-		bwd->replace = NULL;
-	}
-	AddListItem(bwd, *conf);
-	return 0;
+	Udb *reg;
+	da_Udb(reg);
+	reg->up = bloque;
+	reg->mid = bloque->down;
+	bloque->down = reg;
+	return reg;
 }
-int delword_conf(char *index, ConfigItem_badword **conf)
+Udb *da_formato(char *form, Udb *reg)
 {
-	ConfigItem_badword *bwd;
-	if (!(bwd = busca_word(index, conf)))
-		return 0;
-	ircfree(bwd->word);
-	if (bwd->replace)
-		ircfree(bwd->replace);
-	regfree(&bwd->expr);
-	DelListItem(bwd, *conf);
-	MyFree(bwd);
-	return 0;
-}
-int addword(char *index, char *valor)
-{
-	int bits = 0;
-	char *valaux, *reemp;
-	valaux = strdup(valor);
-	bits = atoi(strtok(valaux,"\t"));
-	reemp = strtok(NULL,"\t");
-	delword(index);
-	if (bits & BWD_MESSAGE)
-		addword_conf(index, bits, reemp, &conf_badword_message);
-	if (bits & BWD_CHANNEL)
-		addword_conf(index, bits, reemp, &conf_badword_channel);
-	if (bits & BWD_QUIT)
-		addword_conf(index, bits, reemp, &conf_badword_quit);
-	return 0;
-}
-int delword(char *index)
-{
-	delword_conf(index, &conf_badword_message);
-	delword_conf(index, &conf_badword_channel);
-	delword_conf(index, &conf_badword_quit);
-	return 0;
-}
-int addchan(char *index, char *valor)
-{
-	char *valaux, *founder, *modos, *topic;
-	aChannel *chptr;
-	valaux = strdup(valor);
-	founder = strtok(valaux,"\t");
-	modos = strtok(NULL,"\t");
-	topic = strtok(NULL,"\t");
-	chptr = get_channel(NULL, index, CREATE);
-	chptr->mode.mode |= MODE_RGSTR;
-	if (!BadPtr(modos))
-	{
-		int pcount, p = 0;
-		char pvar[MAXMODEPARAMS][MODEBUFLEN + 3], *parms[7], *modaux;
-		modaux = strdup(modos);
-		parms[p++] = strtok(modaux, " ");
-		if (BadPtr(parms[p-1]))
-			goto topic;
-		while ((parms[p++] = strtok(NULL, " ")));
-		if (!chptr)
-			goto topic;
-		set_mode(chptr, &me, p, parms, &pcount, pvar, 0);
-	}
-	topic:
-	if (topic)
-		set_topic(&me, &me, chptr, topic, 0);
-	return 0;
-}
-int delchan(char *index)
-{
-	aChannel *chptr;
-	chptr = get_channel(NULL, index, !CREATE);
-	chptr->mode.mode &= ~MODE_RGSTR;
-	if (!loop.ircd_rehashing)
-		sendto_channel_butserv(chptr, &me, ":%s MODE %s -r", me.name, chptr->chname);
-	if (chptr->users == 0)
-		sub1_from_channel(chptr);
-	return 0;
-}	
-int addpriv(char *index, char *valor)
-{
-	char *id;
-	aChannel *chptr;
-	chptr = get_channel(NULL, index, CREATE);
-	delpriv(index);
-	add_banid(&me, chptr, "*!*@*");
-	if (!loop.ircd_rehashing)
-		sendto_channel_butserv(chptr, &me, ":%s MODE %s +b *!*@*", me.name, chptr->chname);
-	for (id = strtok(valor, " "); id; id = strtok(NULL, " "))
-	{
-		if (!loop.ircd_rehashing)
-			sendto_channel_butserv(chptr, &me, ":%s MODE %s +e %s", me.name, chptr->chname, id);
-		add_exbanid(&me, chptr, id);
-	}
-	return 0;
-}
-int delpriv(char *index)
-{
-	aChannel *chptr;
-	Ban *ban;
-	chptr = get_channel(NULL, index, !CREATE);
-	del_banid(chptr, "*!*@*");
-	if (!loop.ircd_rehashing)
-		sendto_channel_butserv(chptr, &me, ":%s MODE %s -b *!*@*", me.name, chptr->chname);
-	while (chptr->exlist)
-	{
-		ban = chptr->exlist;
-		chptr->exlist = ban->next;
-		if (!loop.ircd_rehashing)
-			sendto_channel_butserv(chptr, &me, ":%s MODE %s -e %s", me.name, chptr->chname, ban->banstr);
-		MyFree(ban->banstr);
-		MyFree(ban->who);
-		free_ban(ban);
-	}
-	return 0;
-}
-int level_oper_bdd(char *oper)
-{
-	udb *reg;
-	if (!(reg = busca_registro(BDD_OPERS, oper)))
-		return 0;
+	Udb *root = NULL;
+	form[0] = '\0';
+	if (reg->up)
+		root = da_formato(form, reg->up);
 	else
-		return atoi(reg->value);
-}
-int delbdd(char bdd, unsigned long serie)
-{
-	udb *db, *aux;
-	FILE *fp;
-	char archivo[128];
-#ifdef _WIN32
-	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
-#else
-	ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
-#endif
-	if (!(fp = fopen(archivo, "w")))
-		return 0;
-	series[bdd] = 0L;
-	for (db = primeradb[bdd]; db; db = aux)
+		return reg;
+	strcat(form, reg->item);
+	if (reg->down)
+		strcat(form, "::");
+	else
 	{
-		aux = db->next;
-		if (db->serie < serie)
+		if (reg->data_char)
 		{
-			series[bdd] = db->serie;
-			fprintf(fp, "%09lu %s :%s\n", db->serie, db->index, db->value);
+			strcat(form, " ");
+			strcat(form, reg->data_char);
 		}
-		else
-			delreg(db, 0);
+		else if (reg->data_long)
+		{
+			char tmp[32];
+			sprintf(tmp, "%c%lu", CHAR_NUM, reg->data_long);
+			strcat(form, " ");
+			strcat(form, tmp);
+		}
 	}
+	return root ? root : reg;
+}
+int guarda_en_archivo(Udb *reg, int tipo)
+{
+	char form[BUFSIZE];
+	Udb *root;
+	FILE *fp;
+	form[0] = '\0';
+	root = da_formato(form, reg);
+	strcat(form, "\n");
+	if (!(fp = fopen(root->item, "ab")))
+		return -1;
+	fputs(form, fp);
 	fclose(fp);
-	actualiza_hash(bdd);
+	actualiza_hash(coge_de_id(tipo));
 	return 0;
 }
 void regenera_claves()
@@ -391,596 +327,679 @@ void regenera_claves()
 		if (IsClient(acptr))
 		{
 			if (IsHidden(acptr))
-			{
-				Debug((DEBUG_ERROR, "Regeneramos ip de %s (%i)", acptr->name, IsHidden(acptr)));
 				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 0);
-			}
 			else
 				BorraIpVirtual(acptr);
 		}
 	}
 }
-int addreg_especial(char bdd, char *index, char *valor)
+void inserta_registro_especial(int tipo, Udb *reg)
 {
-	aClient *acptr;
-	if (valor)
+	if (loop.ircd_rehashing) /* si estamos refrescando, no tocamos nada */
+		return;
+	if (tipo == BDD_CHANS)
 	{
-		if (bdd == BDD_BADWORDS)
-			addword(index, valor);
-		else if (bdd == BDD_CANALES)
-			addchan(index, valor);
-		else if (bdd == BDD_PRIV)
-			addpriv(index, valor);
-		else if (bdd == BDD_VHOSTS || bdd == BDD_VHOSTS2)
+		aChannel *chptr;
+		Udb *root = reg;
+		while (*root->item != '#')
 		{
-			if (bdd == BDD_VHOSTS && !strcmp(index, "."))
+			if (!(root = root->up))
+				return;
+		}
+		chptr = get_channel(&me, root->item, CREATE);
+		chptr->mode.mode |= MODE_RGSTR;
+		if (!strcmp(reg->item, "modos"))
+		{
+			struct ChMode store;
+			memset(&store, 0, sizeof(store));
+			set_channelmodes(reg->data_char, &store, 0);
+			chptr->mode.mode |= store.mode;
+			if (chptr->mode.mode & MODE_FLOODLIMIT)
 			{
-				if (clave_cifrado)
-					MyFree(clave_cifrado);
-				clave_cifrado = strdup(valor);
-				if (!loop.ircd_rehashing)
-					regenera_claves();
+#ifdef NEWCHFLOODPROT
+				if (!chptr->mode.floodprot)
+					chptr->mode.floodprot = MyMalloc(sizeof(ChanFloodProt));
+				memcpy(chptr->mode.floodprot, &store.floodprot, sizeof(ChanFloodProt));
+#else
+				chptr->mode.msgs = store.mode.msgs;
+				chptr->mode.per = store.mode.per;
+				chptr->mode.kmode = store.mode.kmode;
+#endif
 			}
-			else if (!loop.ircd_rehashing && (acptr = find_client(index, NULL)))
+#ifdef  EXTCMODE
+			chptr->mode.extmode = store.extmodes;
+#endif
+			if (chptr->members)
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s +%s", chan_nick(), chptr->chname, reg->data_char);
+		}
+		else if (!strcmp(reg->item, "topic"))
+		{
+			int topiclen = strlen(reg->data_char);
+			int nicklen = strlen(me.name);
+			if (topiclen > (TOPICLEN))
+				topiclen = TOPICLEN;
+			chptr->topic = MyMalloc(topiclen + 1);
+			strncpyzt(chptr->topic, reg->data_char, topiclen + 1);
+			chptr->topic_time = TStime();
+			chptr->topic_nick = MyMalloc(nicklen + 1);
+			strncpyzt(chptr->topic_nick, me.name, nicklen + 1);
+			if (chptr->members)
+				sendto_channel_butserv(chptr, &me, ":%s TOPIC %s :%s", chan_nick(), chptr->chname, chptr->topic);
+		}
+	}
+	else if (tipo == BDD_SET)
+	{
+		if (!strcmp(reg->item, "clave_cifrado") || !strcmp(reg->item, "sufijo"))
+			regenera_claves();
+	}
+	else if (tipo == BDD_NICKS)
+	{
+		if (!strcmp(reg->item, "vhost"))
+		{
+			aClient *acptr;
+			if ((acptr = find_client(reg->up->item, NULL)) && IsARegNick(acptr))
 				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
 		}
-		else if (bdd == BDD_OPERS)
-		{
-			if ((acptr = find_client(index, NULL)))
-				sube_oper(acptr);
-		}
 	}
-	return 0;
 }
-int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
+void borra_registro_especial(int tipo, Udb *reg)
 {
-	udb *db;
-	if (series[bdd] >= serie)
-		return 0;
-	if (corruptas[bdd])
-		return 0;
-	series[bdd] = serie;
-	if ((db = busca_registro(bdd, index)))
+	if (loop.ircd_rehashing) /* si estamos refrescando, no tocamos nada */
+		return;
+	if (tipo == BDD_CHANS)
 	{
-		if (BadPtr(valor))
+		aChannel *chptr;
+		Udb *bloq = NULL, *root = reg;
+		while (*root->item != '#')
 		{
-			delreg(db, add);
-			if (bdd == BDD_BADWORDS)
-				delword(index);
-			if (bdd == BDD_CANALES)
-				delchan(index);
-			if (bdd == BDD_PRIV)
-				delpriv(index);
-			return 0;
+			if (!(root = root->up))
+				return;
 		}
-		if (!db->next)
-			ultimadb[bdd] = db->prev;
-		else
-			db->next->prev = db->prev;
-		if (!db->prev)
-			primeradb[bdd] = db->next;
-		else
-			db->prev->next = db->next;
-		ircstrdup(db->value, valor);
-		db->serie = serie;
-		db->next = NULL;
-		if (!primeradb[bdd])
+		chptr = get_channel(&me, root->item, !CREATE);
+		if (!strcmp("modos", reg->item) || (*reg->item == '#' && (bloq = busca_bloque("modos", reg))))
 		{
-			db->prev = NULL;
-			primeradb[bdd] = db;
+			char *modos = (bloq ? bloq->data_char : reg->data_char);
+			aCtab *tab;
+			while (*modos != '\0')
+			{
+				switch (*modos)
+				{
+					case 'f':
+					{
+#ifdef NEWCHFLOODPROT
+						MyFree(chptr->mode.floodprot);
+						chptr->mode.floodprot = NULL;
+						chanfloodtimer_stopchantimers(chptr);
+#else
+						chptr->mode.msgs = chptr->mode.per = chptr->mode.kmode = 0;
+#endif
+						break;
+					}
+					default:
+						for (tab = &cFlagTab[0]; tab->mode; tab++)
+						{
+							if (tab->flag == *modos)
+							{
+								chptr->mode.mode &= ~tab->mode;
+								break;
+							}
+						}
+				}
+				modos++;
+			}
+			bloq = NULL;
 		}
-		else
+		if (*reg->item == '#')
 		{
-			db->prev = ultimadb[bdd];
-			ultimadb[bdd]->next = db;
+			chptr->mode.mode &= ~MODE_RGSTR;
+			if (!chptr->members) /* si hay gente no tocamos nada */
+				sub1_from_channel(chptr);
 		}
-		ultimadb[bdd] = db;
-		addreg_especial(bdd, index, valor);
-		if (add)
-			addreg_file(bdd, serie, index, valor);
-		return 0;
 	}
-	if (BadPtr(valor))
-		return 0;
-	db = (udb *)malloc(sizeof(udb));
-	db->index = strdup(index);
-	db->value = strdup(valor);
-	db->bdd = bdd;
-	db->serie = serie;
-	db->next = NULL;
-	if (!primeradb[bdd])
+}
+#ifdef DEBUGMODE
+void printea(Udb *bloq, int escapes)
+{
+	int i;
+	buf[0] = 0;
+	for (i = 0; i < escapes; i++)
+		debug(2, "\t");
+	debug(2, bloq->item);
+	if (bloq->data_char)
+		debug(2, " %s", bloq->data_char);
+	debug(2, "\r\n");
+	if (bloq->down)
+		printea(bloq->down, ++escapes);
+	if (bloq->mid)
+		printea(bloq->mid, escapes);
+	return;
+}
+#endif
+void libera_memoria_udb(int tipo, Udb *reg)
+{
+	if (reg->down)
 	{
-		db->prev = NULL;
-		primeradb[bdd] = db;
+		borra_registro_de_hash(reg->down, tipo, reg->down->item);
+		libera_memoria_udb(tipo, reg->down);
+	}
+	if (reg->mid)
+	{
+		borra_registro_de_hash(reg->mid, tipo, reg->mid->item);
+		libera_memoria_udb(tipo, reg->mid);
+	}
+	if (reg->data_char)
+		MyFree(reg->data_char);
+	if (reg->item)
+		MyFree(reg->item);
+	MyFree(reg);
+}
+void borra_registro(int tipo, Udb *reg, int archivo)
+{
+	Udb *aux, *down, *prev = NULL, *up;
+	if (!(up = reg->up)) /* estamos arriba de todo */
+		return;
+	tipo = coge_de_char(tipo);
+	aux = coge_de_id(tipo);
+	borra_registro_de_hash(reg, tipo, reg->item);
+	borra_registro_especial(tipo, reg);
+	if (reg->data_char)
+		MyFree(reg->data_char);
+	reg->data_char = NULL;
+	reg->data_long = 0L;
+	down = reg->down;
+	
+	reg->down = NULL;
+	if (archivo)
+		guarda_en_archivo(reg, tipo);
+	if (!reg->sig)
+		aux->sig = reg->prev;
+	else
+		reg->sig->prev = reg->prev;
+	if (!reg->prev)
+		aux->prev = reg->sig;
+	else
+		reg->prev->sig = reg->sig;
+	for (aux = up->down; aux; aux = aux->mid)
+	{
+		if (aux == reg)
+		{
+			if (prev)
+				prev->mid = aux->mid;
+			else
+				up->down = aux->mid;
+			break;
+		}
+		prev = aux;
+	}
+	reg->mid = NULL;
+	reg->down = down;
+	libera_memoria_udb(tipo, reg);
+	if (!up->down)
+		borra_registro(tipo, up, archivo);
+}	
+Udb *inserta_registro(int tipo, Udb *bloque, char *item, char *data_char, u_long data_long, int archivo)
+{
+	Udb *reg;
+	if (!bloque || !item)
+		return NULL;
+	tipo = coge_de_char(tipo);
+	if (!(reg = busca_bloque(item, bloque)))
+	{
+		reg = crea_registro(bloque);
+		reg->item = strdup(item);
+		inserta_registro_en_hash(reg, tipo, item);
 	}
 	else
 	{
-		db->prev = ultimadb[bdd];
-		ultimadb[bdd]->next = db;
+		if (data_char && reg->data_char && !strcmp(reg->data_char, data_char))
+			return NULL;
 	}
-	ultimadb[bdd] = db;
-	registros[bdd]++;
-#ifdef HASH_UDB
-	add_to_udb_hash_table(index, bdd, db);
-#endif	
-	if (add)
-		addreg_file(bdd, serie, index, valor);
-	addreg_especial(bdd, index, valor);
-	return 0;
+	if (reg->data_char)
+		MyFree(reg->data_char);
+	reg->data_char = NULL;
+	if (data_char)
+		reg->data_char = strdup(data_char);
+	reg->data_long = data_long;
+	if (archivo && (data_char || data_long))
+		guarda_en_archivo(reg, tipo);
+	inserta_registro_especial(tipo, reg);
+	return reg;
 }
-int addreg_file(char bdd, unsigned long serie, char *index, char *valor)
+DLLFUNC int level_oper_bdd(char *oper)
 {
-	FILE *fp;
-	char archivo[128];
-#ifdef _WIN32
-	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
-#else
-	ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
-#endif	
-	if (!(fp = fopen(archivo, "a")))
-		return 0;
-	fprintf(fp, "%09lu %s :%s\n", serie, index, valor ? valor : "");
-	fclose(fp);
-	actualiza_hash(bdd);
-	return 0;
-}
-unsigned long obtiene_hash(char bdd)
-{
-	int fp;
-	char *par, bddf[128];
-	unsigned long hash = 0L;
-	struct stat inode;
-#ifdef _WIN32
-	ircsprintf(bddf, DB_DIR "\\%c.bdd", bdd);
-	if ((fp = open(bddf, O_RDONLY|O_BINARY)) == -1)
-#else
-	ircsprintf(bddf, DB_DIR "/%c.bdd", bdd);
-	if ((fp = open(bddf, O_RDONLY)) == -1)
-#endif
-		return 0;
-	if (fstat(fp, &inode) == -1)
-		return 0;
-	if (!inode.st_size)
+	Udb *reg;
+	if ((reg = busca_registro(BDD_NICKS, oper)))
 	{
-		close(fp);
-		return 0;
+		Udb *aux;
+		if ((aux = busca_bloque("oper", reg)))
+			return aux->data_long;
 	}
-	par = (char *)malloc(inode.st_size + 1);
-	par[inode.st_size] = '\0';
-	if (read(fp, par, inode.st_size) == inode.st_size)
-		hash = our_crc32(par, strlen(par));
-	close(fp);
-	MyFree(par);
-	return hash;
-}
-unsigned long lee_hash(char bdd)
-{
-	FILE *fp;
-	char archivo[128], lee[17];
-#ifdef _WIN32
-	ircsprintf(archivo, DB_DIR "\\hash");
-#else
-	ircsprintf(archivo, DB_DIR "/hash");
-#endif
-	if (!(fp = fopen(archivo, "r")))
-		return 0L;
-	fseek(fp, 16 * (bdd - PRIMERA_LETRA), SEEK_SET);
-	bzero(lee, 17);
-	fread(lee, 1, 16, fp);
-	fclose(fp);
-	return atoul(lee);
-}
-int actualiza_hash(char bdd)
-{
-	char hashf[128], c, lee[17];
-	FILE *fh;
-#ifdef _WIN32
-	ircsprintf(hashf, DB_DIR "\\hash");
-#else
-	ircsprintf(hashf, DB_DIR "/hash");
-#endif
-	if (!(fh = fopen(hashf, "r+")))
-		return 0;
-	hashes[bdd] = obtiene_hash(bdd);
-	fseek(fh, 16 * (bdd - PRIMERA_LETRA), SEEK_SET);
-	ircsprintf(lee, "%016lu", hashes[bdd]);
-	fwrite(lee, 1, 16, fh);
-	fclose(fh);
 	return 0;
 }
-int comprueba_hash(char bdd)
+char *cifra_ip(char *ipreal)
 {
+	static char cifrada[512], clave[13];
+	char *p, *clavec;
+	int ts = 0;
+	Udb *bloq;
+	unsigned int ourcrc, v[2], k[2], x[2];
+	bzero(clave, 13);
+	bzero(cifrada, 512);
+	ourcrc = our_crc32(ipreal, strlen(ipreal));
+	if ((bloq = busca_registro(BDD_SET, "clave_cifrado")))
+		clavec = bloq->data_char;
+	else
+		clavec = CLOAK_KEYCRC;
+	strncpy(clave, clavec, 12);
+	p = cifrada;
+	while (1)
+  	{
+		x[0] = x[1] = 0;
+		k[0] = base64toint(clave);
+		k[1] = base64toint(clave + 6);
+    		v[0] = (k[0] & 0xffff0000) + ts;
+    		v[1] = ourcrc;
+    		tea(v, k, x);
+    		inttobase64(p, x[0], 6);
+    		p[6] = '.';
+    		inttobase64(p + 7, x[1], 6);
+		if (strchr(p, '[') == NULL && strchr(p, ']') == NULL)
+			break;
+    		else
+		{
+			if (++ts == 65536)
+			{
+				strcpy(p, ipreal);
+				break;
+			}
+		}
+	}
+	return cifrada;
+}	
+char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
+{
+	Udb *reg, *bloq;
+	char x[HOSTLEN+1], *suf;
+	if (!viejo)
+		return NULL;
+	if ((reg = busca_registro(BDD_SET, "sufijo")))
+		suf = reg->data_char;
+	else
+		suf = "virtual";
+	if (IsARegNick(acptr) && (reg = busca_registro(BDD_NICKS, acptr->name)) && (bloq = busca_bloque("vhost", reg)))
+		strncpyzt(x, bloq->data_char, HOSTLEN);
+	else
+		snprintf(x, HOSTLEN, "%s.%s", cifra_ip(viejo), suf);
+	if (nuevo)
+		MyFree(nuevo);
+	if (MyClient(acptr) && mostrar)
+	{
+		char *botname;
+		if (!(reg = busca_registro(BDD_SET, "IpServ")))
+			botname = me.name;
+		else
+			botname = reg->data_char;
+		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
+			botname, acptr->name, x);
+	}
+	return strdup(x);
+}
+void parsea_linea(int tipo, char *cur, int archivo)
+{
+	char *ds, *cop, *sp;
+	Udb *bloq;
+	int ins = 0;
+	bloq = coge_de_id(tipo);
+	cop = cur = strdup(cur);
+	while ((ds = strchr(cur, ':')))
+	{
+		if (*(ds + 1) == ':')
+		{
+			*ds++ = '\0';
+			if ((sp = strchr(cur, ' ')))
+				*sp = '\0';
+			bloq = inserta_registro(tipo, bloq, cur, sp, 0, archivo);
+		}
+		else /* ya no son :: */
+			break;
+		cur = ++ds;
+	}
+	if ((ds = strchr(cur, ' ')))
+	{
+		*ds++ = '\0';
+		if (*ds == CHAR_NUM)
+			inserta_registro(tipo, bloq, cur, NULL, atoul(++ds), archivo);
+		else
+			inserta_registro(tipo, bloq, cur, ds, 0, archivo);
+	}
+	else
+	{
+		if ((bloq = busca_bloque(cur, bloq)))
+			borra_registro(tipo, bloq, archivo);
+	}
+	MyFree(cop);
+}
+void carga_bloque(int tipo)
+{
+	char *cur, *ds, *p;
+	Udb *root;
 	u_long lee, obtiene;
-	lee = lee_hash(bdd);
-	obtiene = obtiene_hash(bdd);
-	if (lee != obtiene)
-	{
-		Debug((DEBUG_ERROR, "La tabla '%c' está corrupta. (%lu != %lu)",bdd,lee,obtiene));
-		sendto_ops("La tabla '%c' está corrupta. (%lu != %lu)",bdd,lee,obtiene);
-		delbdd(bdd, 0);
-		sendto_serv_butone(NULL,":%s DB * C J 0 %c", me.name, bdd);
-		corruptas[bdd] = 1;
-		return 1;
-	}
-	return 0;
-}
-void libera_memoria_udb(udb *db)
-{
-	if (db->value)
-		MyFree(db->value);
-	MyFree(db->index);
-	MyFree(db);
-}
-int delreg(udb *db, int add)
-{
-	char bdd = db->bdd;
-	if (!db->next)
-		ultimadb[bdd] = db->prev;
-	else
-		db->next->prev = db->prev;
-	if (!db->prev)
-		primeradb[bdd] = db->next;
-	else
-		db->prev->next = db->next;
-	if (add)
-		addreg_file(bdd, series[bdd], db->index, "");
-	registros[bdd]--;
-#ifdef HASH_UDB
-	del_from_udb_hash_table(db->index, bdd, db);
-#endif
-	libera_memoria_udb(db);
-	return 0;
-}
-unsigned long savebdd(char bdd)
-{
-	udb *db;
-	FILE *fp;
-	char archivo[128], buf[BUFSIZE];
-	unsigned long ini, orig;
+	char bloque;
+	int len, fd;
 #ifdef _WIN32
-	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
+	HANDLE mapa, archivo;
 #else
-	ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
+	struct stat sb;
 #endif
-	if (!(fp = fopen(archivo, "r")))
-		return 0;
-	ini = ftell(fp);
-	fseek(fp, 0L, SEEK_END);
-	orig = ftell(fp) - ini;
-	fclose(fp);
-	if (!(fp = fopen(archivo, "w")))
-		return 0;
-	for (db = primeradb[bdd]; db; db = db->next)
+	bloque = coge_de_tipo(tipo);
+	root = coge_de_id(tipo);
+	if ((lee = lee_hash(root->id >> 8)) != (obtiene = obtiene_hash(root)))
 	{
-		ircsprintf(buf, "%09lu %s :%s\n", db->serie, db->index, db->value);
-		orig -= strlen(buf);
-		fputs(buf, fp);
+		sendto_ops("El bloque %c está corrupto (%lu != %lu)", bloque, lee, obtiene);
+		if ((fd = open(root->item, O_WRONLY|O_TRUNC)))
+		{
+			close(fd);
+			actualiza_hash(root);
+		}
+		if (Servers && !IsMe(Servers->value.cptr))
+			sendto_one(Servers->value.cptr, ":%s DB %s RES %c 0", me.name, Servers->value.cptr->name, bloque);
+		return;
 	}
-	fclose(fp);
-	actualiza_hash(bdd);
-	return orig ? orig - 1 : 0;
-}
-int loadbdd(char bdd)
-{
-	int fp;
-	struct stat inode;
-	char *cont, *item, *no, *valor, *f, *archivo = malloc(sizeof(char) * (strlen(DB_DIR) + 7));
-	udb *dbaux, *dbtmp;
-	if (comprueba_hash(bdd))
-		return 0;
-	series[bdd] = 0L;
-	registros[bdd] = 0;
-#ifdef HASH_UDB
-	if (udbTable[bdd])
-		MyFree(udbTable[bdd]);
-	udbTable[bdd] = NULL;
-#endif
-	for (dbaux = primeradb[bdd]; dbaux; dbaux = dbtmp)
-	{
-		dbtmp = dbaux->next;
-		libera_memoria_udb(dbaux);
-	}
-	primeradb[bdd] = ultimadb[bdd] = NULL;
 #ifdef _WIN32
-	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
-	if ((fp = open(archivo, O_RDONLY|O_BINARY|O_CREAT, 0644)) == -1)
+	if ((archivo = CreateFile(root->item, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
 #else
-	ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
-	if ((fp = open(archivo, O_RDONLY|O_CREAT, 0644)) == -1)
+	if ((fd = open(root->item, O_RDONLY)) == -1)
 #endif
-		return 0;
-	if (fstat(fp, &inode) == -1)
-		return 0;
-	if (!inode.st_size)
-	{
-		close(fp);
-		return 0;
-	}
-	f = cont = (char *)malloc(inode.st_size + 1);
-	cont[inode.st_size] = '\0';
-	if (read(fp, cont, inode.st_size) != inode.st_size)
-		return 0;
-	close(fp);
-	MyFree(archivo);
-	while (!BadPtr(cont))
-	{
-		char *pos;
-		pos = strchr(cont, ' ');
-		*pos = '\0';
-		no = cont;
-		cont = pos + 1;
-		pos = strchr(cont, ' ');
-		*pos = '\0';
-		item = cont;
-		cont = pos + 1;
-		if (!(pos = strchr(cont, '\r')))
-			pos = strchr(cont, '\n');
-		*pos = '\0';
-		valor = cont;
-		cont = *(pos + 1) == '\n' ? pos + 2 : pos + 1;
-		addreg(bdd, atoul(no), item, BadPtr(valor) ? "" : valor + 1, 0);
-	}
-	hashes[bdd] = lee_hash(bdd);
-	MyFree(f);
-	if (registros[bdd])
-		sendto_ops("Tabla '%c' R=%09lu", bdd, registros[bdd]);
-	return 0;
-}
-int loadbdds()
-{
-	char bdd;
+		return;
 #ifdef _WIN32
-	mkdir(DB_DIR);
+	len = GetFileSize(archivo, NULL);
+	if (!(mapa = CreateFileMapping(archivo, NULL, PAGE_READWRITE, 0, len, NULL)))
+		return;
+	p = cur = MapViewOfFile(mapa, FILE_MAP_COPY, 0, 0, 0);
+	if (!p)
+		return;
 #else
-	mkdir(DB_DIR, 0744);
+	if (fstat(fd, &sb) == -1)
+		return;
+	len = sb.st_size;
+	p = cur = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 #endif
-	sendto_ops("Releyendo Bases de Datos...",NULL);
-	for (bdd = PRIMERA_LETRA; bdd <= ULTIMA_LETRA; bdd++)
-		loadbdd(bdd);
-	return 0;
-}
-void bdd_init()
-{
-	char i;
-	memset(lens, 0, sizeof(unsigned int) * DB_SIZE);
-	memset(residentes, 0, sizeof(unsigned int) * DB_SIZE);
-	residentes[BDD_NICKS] = 1;
-	residentes[BDD_OPERS] = 1;
-	residentes[BDD_VHOSTS] = 1;
-	residentes[BDD_ILINES] = 1;
-	residentes[BDD_BOTS] = 1;
-	residentes[BDD_CANALES] = 1;
-	residentes[BDD_VHOSTS2] = 1;
-	residentes[BDD_BADWORDS] = 1;
-	residentes[BDD_PRIV] = 1;
-	/* valores tomados de irc-hispano */
-	lens[BDD_NICKS] = 32768;
-	lens[BDD_OPERS] = 256;
-	lens[BDD_VHOSTS] = 256;
-	lens[BDD_ILINES] = 512;
-	lens[BDD_BOTS] = 256;
-	lens[BDD_CANALES] = 16384;
-	lens[BDD_VHOSTS2] = 256;
-	lens[BDD_BADWORDS] = 256;
-	lens[BDD_PRIV] = 256;
-	for (i = PRIMERA_LETRA; i <= ULTIMA_LETRA; i++)
+	while (cur < (p + len))
 	{
-		primeradb[i] = ultimadb[i] = NULL;
-		series[i] = hashes[i] = 0L;
-		registros[i] = corruptas[i] = 0;
-#ifdef HASH_UDB
-		udbTable[i] = NULL;
-#endif
+		if ((ds = strchr(cur, '\r')))
+			*ds = '\0';
+		if ((ds = strchr(cur, '\n')))
+			*ds = '\0';
+		parsea_linea(tipo, cur, 0);
+		cur = ++ds;
 	}
-	loadbdds();
+#ifdef _WIN32
+	UnmapViewOfFile(p);
+	CloseHandle(mapa);
+	CloseHandle(archivo);
+#else
+	munmap(p, len);
+	close(fd);
+#endif
 }
+void descarga_bloque(int tipo)
+{
+	Udb *aux, *sig, *bloq;
+	bloq = coge_de_id(tipo);
+	for (aux = bloq->down; aux; aux = sig)
+	{
+		sig = aux->mid;
+		borra_registro(tipo, aux, 0);
+	}
+	bloq->data_long = 0L;
+}
+void carga_bloques()
+{
+	int i;
+	for (i = 0; i < BDD_TOTAL; i++)
+		descarga_bloque(i);
+	sendto_ops("Releyendo Bases de Datos...");
+	for (i = 0; i < BDD_TOTAL; i++)
+		carga_bloque(i);
+}
+/* comandos
+ * 
+ * INF: da información (su md5) si no coinciden, se piden resúmenes
+ * RES: resumen de la base de datos. se utiliza para solicitar un resumen o para solicitar al otro nodo que resuma 
+ *	 el nodo que tenga mas registros, es el que manda los que le faltan al otro
+ * INS: insertar registro. este comando solo puede emitirlo un hub. si no es asi, no se propaga
+ * DEL: borra un registro. lo mismo, solo desde hubs
+ * ERR: hay un error
+ * DRP: trunca una db
+ * eso es todo amigos 
+ */
+ 
 CMD_FUNC(m_db)
 {
-	ConfigItem_link *aconf;
-	char hub = 0;
 	if (!IsServer(cptr))
 		return 0;
 	if (!IsUDB(cptr))
 		return 0;
 	if (parc < 5)
-		return 0;
-	aconf = cptr->serv->conf;
-	if (aconf->hubmask)
-		hub = 1;
-	switch(*parv[3])
 	{
-		/*
-		 * DB * 0 J serie bdd
-		 */
-		case 'J':
+		sendto_one(cptr, ":%s DB %s ERR 0 %i", me.name, sptr->name, E_UDB_PARAMS);
+		return 1;
+	}
+	/* DB * INF <bdd> <md5> */
+	if (!strcasecmp(parv[2], "INF"))
+	{
+		if (!match(parv[1], me.name))
 		{
-			char bdd;
-			udb *db;
-			unsigned long ultimo, cur;
-			if (!match(parv[1], me.name))
+			Udb *bloq;
+			if (!strchr(bloques, *parv[3]))
 			{
-				if (parc < 6)
-					return 0;
-				bdd = *parv[5];
-				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-					return 0;
-				ultimo = atoul(parv[4]);
-				if (ultimo > series[bdd] && !hub)
-					sendto_one(cptr,":%s DB %s BDD_DESYNCH D %09lu %c", me.name, cptr->name, series[bdd], bdd);
-				else if (ultimo < series[bdd])
+				sendto_one(cptr, ":%s DB %s ERR RES %i %c", me.name, sptr->name, E_UDB_NODB, *parv[3]);
+				return 1;
+			}
+			bloq = coge_de_id(*parv[3]);
+			if (strcmp(parv[4], bloq->data_char))
+				sendto_one(cptr, ":%s DB %s RES %c %lu", me.name, parv[0], *parv[3], bloq->data_long);
+			else
+			{
+				if (++(sptr->serv->flags.bloqs) == BDD_TOTAL)
+					sendto_one(cptr, ":%s %s", me.name, (IsToken(cptr) ? TOK_EOS : MSG_EOS));
+			}
+		}
+		/* pasamos el comando puesto que no es necesario que sea hub */
+		sendto_serv_butone(cptr, ":%s DB %s INF %c %s", parv[0], parv[1], *parv[3], parv[4]);
+	}
+	/* DB * RES <bdd> <btyes> */
+	else if (!strcasecmp(parv[2], "RES"))
+	{
+		if (!match(parv[1], me.name))
+		{
+			/* el nodo nos pide resumen, siempre se lo damos en caso que sea menor */
+			u_long bytes;
+			Udb *bloq;
+			if (!strchr(bloques, *parv[3]))
+			{
+				sendto_one(cptr, ":%s DB %s ERR RES %i %c", me.name, sptr->name, E_UDB_NODB, *parv[3]);
+				return 1;
+			}
+			bloq = coge_de_id(*parv[3]);
+			bytes = atoul(parv[4]);
+			if (bytes < bloq->data_long) /* tiene menos, se los mandamos */
+			{
+				FILE *fp;
+				if ((fp = fopen(bloq->item, "rb")))
 				{
-					/* hay desynch, vamos a mandar el archivo .bdd, resumiéndolo claro */
-					FILE *fp;
-					char archivo[128], cont1[BUFSIZE], item[BUFSIZE], cont2[BUFSIZE], cont3[BUFSIZE];
-					u_long registro;
-#ifdef _WIN32
-					ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
-#else
-					ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
-#endif
-					if ((fp = fopen(archivo, "r")))
+					char linea[512], *d;
+					fseek(fp, bytes, SEEK_SET);
+					while (!feof(fp))
 					{
-						int le;
-						while (!feof(fp))
-						{
-							char *cur;
-							u_long serie;
-							bzero(buf, BUFSIZE);
-							if (!fgets(buf, BUFSIZE, fp))
-								break;
-							cur = strchr(buf, ' ');
-							*cur = '\0';
-							serie = atoul(buf);
-							cur++;
-							if (serie > ultimo)
-								sendto_one(cptr,":%s DB %s %s I %09lu %c %s", me.name, parv[0], parv[2], serie, bdd, cur);
-						}
-						fclose(fp);
-					}
-				}
-			}
-			sendto_serv_butone(cptr,":%s DB %s %s J %s %c",parv[0],parv[1],parv[2],parv[4],*parv[5]);
-			/* el comando J es el único que lo propaga el nodo que lo emite
-			   todos los demás, los propagan el nodo que lo recibe */
-			break;
-		}
-		
-		/*
-		 * DB * 0 D serie bdd
-		 */
-		case 'D':
-		{
-			char bdd;
-			unsigned long serie;
-			if (!match(parv[1], me.name))
-			{
-				if (parc < 6)
-					return 0;
-				if (hub)
-				{
-					bdd = *parv[5];
-					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-						return 0;
-					serie = atoul(parv[4]);
-					delbdd(bdd, serie);
-					sendto_ops("%s ha borrado la tabla '%c' (R=%09lu)%s",cptr->name, bdd, serie,
-						(!strcmp(parv[2],"BDD_DESYNCH") ? " (BDD_DESYNCH)" : ""));
-					sendto_one(cptr, ":%s DB %s %s J %09lu %c", me.name, cptr->name, parv[2], serie, bdd);
-				}
-			}
-			sendto_serv_butone(cptr,":%s DB %s %s D %s %c",me.name,parv[1],parv[2],parv[4],*parv[5]);
-			break;
-		}
-		
-		/*
-		 * DB * 0 O 0 bdd
-		 */
-		 /*
-		  * 14/05/04 Quito este comando por un motivo muy en concreto:
-		  * Cuando se aplica O el archivo se borra y se regenera de nuevo, *SÓLO* con los registros.
-		  * Entonces, un archivo .bdd también contiene órdenes de borrar un registro (si no hay campo).
-		  * Así pues, cuando se linka, se mandan los registros en si y además las órdenes de borrarlos.
-		  * 
-		  * Si un nodo estuviera en split y se mandara un O en toda la red, los archivos de la red sólo guardarían
-		  * sus registros y NO sus órdenes de borrar. Así, cuando conectara el nodo spliteado continuaría con estos registros
-		  * "fantasma" puesto que no recibiría las órdenes de borrado.
-		  *
-		  * Por ahora no se me ocurre ninguna otra alternativa, puesto que tal y como está planteado el protocolo,
-		  * este comando resulta inconsistente. Si alguien se le ocurre alguna otra sugerencia, dejadla en el foro de http://www.rallados.net
-		  */
-		/* case 'O':
-		 {
-		 	char bdd;
-		 	unsigned long serie, bytes = 0L;
-			udb *db;
-			if (!match(parv[1], me.name))
-			{
-				if (parc < 6)
-					return 0;
-				if (hub)
-				{
-					bdd = *parv[5];
-					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-						return 0;
-					bytes = savebdd(bdd);
-					sendto_ops("%s ha optimizado la tabla '%c'. R=%09lu Bytes ahorrados: %lu", cptr->name, bdd, series[bdd], bytes);
-				}
-			}
-			sendto_serv_butone(cptr,":%s DB %s %s O %s %c",me.name,parv[1],parv[2],parv[4],*parv[5]);
-			break;
-		}
-		*/
-		/*
-		 * DB * 0 A serie bdd
-		 */
-		 case 'A':
-		 {
-		 	char bdd;
-		 	if (!match(parv[1], me.name))
-			{
-				if (parc < 6)
-					return 0;
-				if (hub)
-				{
-					bdd = *parv[5];
-					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-						return 0;
-					if (!strcmp(parv[2],"C"))
-						corruptas[bdd] = 0;
-					series[bdd] = atoul(parv[4]);
-				}
-			}
-			sendto_serv_butone(cptr,":%s DB %s %s A %s %c",me.name,parv[1],parv[2],parv[4],bdd);
-			break;
-		}
-		
-		/*
-		 * DB * 0 I serie bdd index :valor
-		 */
-		case 'I':
-		{
-			char bdd;
-		 	unsigned long serie;
-		 	if (!match(parv[1], me.name))
-			{
-		 		if (parc < 7)
-		 			return 0;
-				if (hub)
-				{
-					bdd = *parv[5];
-					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-						return 0;
-					serie = atoul(parv[4]);
-					if (!strcmp(parv[2],"C"))
-						corruptas[bdd] = 0;
-					else if (!strcmp(parv[2], "E"))
-					{
-						udb *reg;
-						if ((reg = busca_serie(bdd, serie)))
-							delreg(reg, 1);
+						bzero(linea, 512);
+						if (!fgets(linea, 512, fp))
+							break;
+						if ((d = strchr(linea, '\r')))
+							*d = '\0';
+						if ((d = strchr(linea, '\n')))
+							*d = '\0';
+						if (strchr(linea, ' '))
+							sendto_one(cptr, ":%s DB * INS %lu %c::%s", me.name, bytes, *parv[3], linea);
 						else
-							Debug((DEBUG_ERROR, "no encuentra la serie %lu", serie));
+							sendto_one(cptr, ":%s DB * DEL %lu %c::%s", me.name, bytes, *parv[3], linea);
+						bytes = ftell(fp);
 					}
-					else
-						addreg(bdd, serie, parv[6], parv[7] ? parv[7] : "", 1);
+					fclose(fp);
 				}
 			}
-			sendto_serv_butone(cptr,":%s DB %s %s I %s %c %s :%s",me.name,parv[1],parv[2],parv[4],*parv[5],parv[6],parv[7] ? parv[7] : "");
-			break;
+			if (++(sptr->serv->flags.bloqs) == BDD_TOTAL)
+					sendto_one(cptr, ":%s %s", me.name, (IsToken(cptr) ? TOK_EOS : MSG_EOS));
+		}		
+		sendto_serv_butone(cptr, ":%s DB %s RES %c %s", parv[0], parv[1], *parv[3], parv[4]);
+	}
+	/* DB * INS <offset> <bdd>::a::b::...::item valor */
+	else if (!strcasecmp(parv[2], "INS"))
+	{
+		if (!strcmp(sptr->name, parv[0]) && !cptr->serv->conf->hubmask) /* el nodo emisor no es hub, paramos */
+		{
+			sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_NOHUB);
+			return 0;
 		}
+		if (!match(parv[1], me.name))
+		{
+			char buf[1024], tipo, *r = parv[4];
+			u_long bytes;
+			Udb *bloq;
+			tipo = *r;
+			if (parc < 6)
+			{
+				sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_PARAMS);
+				return 1;
+			}
+			if (!strchr(bloques, tipo))
+			{
+				sendto_one(cptr, ":%s DB %s ERR INS %i %c", me.name, sptr->name, E_UDB_NODB, tipo);
+				return 1;
+			}
+			bytes = atoul(parv[3]);
+			bloq = coge_de_id(tipo);
+			if (bytes != bloq->data_long)
+			{
+				sendto_one(cptr, ":%s DB %s ERR INS %i %c %lu", me.name, sptr->name, E_UDB_LEN, tipo, bloq->data_long);
+				return 1;
+			}
+			r += 3;
+			ircsprintf(buf, "%s %s", r, parv[5]);
+			parsea_linea(tipo, buf, 1);
+		}
+		sendto_serv_butone(cptr, ":%s DB %s INS %s %s %s", parv[0], parv[1], parv[3], parv[4], parv[5]);
+	}
+	/* DB * DEL <offset> <bdd>::a::b::...::item */
+	else if (!strcasecmp(parv[2], "DEL"))
+	{
+		if (!strcmp(sptr->name, parv[0]) && !cptr->serv->conf->hubmask)
+		{
+			sendto_one(cptr, ":%s DB %s ERR DEL %i", me.name, sptr->name, E_UDB_NOHUB);
+			return 0;
+		}
+		if (!match(parv[1], me.name))
+		{
+			char tipo, *r = parv[4];
+			u_long bytes;
+			Udb *bloq;
+			tipo = *r;
+			if (!strchr(bloques, tipo))
+			{
+				sendto_one(cptr, ":%s DB %s ERR DEL %i %c", me.name, sptr->name, E_UDB_NODB, tipo);
+				return 1;
+			}
+			bytes = atoul(parv[3]);
+			bloq = coge_de_id(tipo);
+			if (bytes != bloq->data_long)
+			{
+				sendto_one(cptr, ":%s DB %s ERR DEL %i %c %lu", me.name, sptr->name, E_UDB_LEN, tipo, bloq->data_long);
+				return 1;
+			}
+			r += 3;
+			parsea_linea(tipo, r, 1);
+		}
+		sendto_serv_butone(cptr, ":%s DB %s DEL %s %s", parv[0], parv[1], parv[3], parv[4]);
+	}
+	/* DB * DRP <bdd> <byte> */
+	else if (!strcasecmp(parv[2], "DRP"))
+	{
+		if (!strcmp(sptr->name, parv[0]) && !cptr->serv->conf->hubmask)
+		{
+			sendto_one(cptr, ":%s DB %s ERR DRP %i", me.name, sptr->name, E_UDB_NOHUB);
+			return 0;
+		}
+		if (!match(parv[1], me.name))
+		{
+			FILE *fp;
+			Udb *bloq;
+			char *contenido = NULL;
+			u_long bytes;
+			if (!strchr(bloques, *parv[3]))
+			{
+				sendto_one(cptr, ":%s DB %s ERR DRP %i %c", me.name, sptr->name, E_UDB_NODB, *parv[3]);
+				return 1;
+			}
+			bloq = coge_de_id(*parv[3]);
+			bytes = atoul(parv[4]);
+			if (bytes > bloq->data_long)
+			{
+				sendto_one(cptr, ":%s DB %s ERR DRP %i %c", me.name, sptr->name, E_UDB_LEN, *parv[3]);
+				return 1;
+			}
+			if ((fp = fopen(bloq->item, "rb")))
+			{
+				contenido = MyMalloc(bytes);
+				if (fread(contenido, 1, bytes, fp) != bytes)
+				{
+					fclose(fp);
+					sendto_one(cptr, ":%s DB %s ERR DRP %i %c fread", me.name, sptr->name, E_UDB_FATAL, *parv[3]);
+					return 1;
+				}
+				fclose(fp);
+				if ((fp = fopen(bloq->item, "wb")))
+				{
+					int id;
+					id = coge_de_char(*parv[3]);
+					if (fwrite(contenido, 1, bytes, fp) != bytes)
+					{
+						fclose(fp);
+						sendto_one(cptr, ":%s DB %s ERR DRP %i %c fwrite", me.name, sptr->name, E_UDB_FATAL, *parv[3]);
+						return 1;
+					}
+					fclose(fp);
+					actualiza_hash(bloq);
+					descarga_bloque(id);
+					carga_bloque(id);
+				}
+				else
+				{
+					sendto_one(cptr, ":%s DB %s ERR DRP %i %c fopen(wb)", me.name, sptr->name, E_UDB_FATAL, *parv[3]);
+					return 1;
+				}
+				if (contenido)
+					MyFree(contenido);
+			}
+			else
+			{
+				sendto_one(cptr, ":%s DB %s ERR DRP %i %c fopen(rb)", me.name, sptr->name, E_UDB_FATAL, *parv[3]);
+				return 1;
+			}
+		}
+		sendto_serv_butone(cptr, ":%s DB %s DRP %s %s", parv[0], parv[1], parv[3], parv[4]);
 	}
 	return 0;
 }
-
 CMD_FUNC(m_ghost)
 {
 	aClient *acptr;
-	udb *reg, *breg;
+	Udb *reg, *breg;
 	char *botname, who[NICKLEN + 2], nick[NICKLEN + 2], quitbuf[TOPICLEN + 1];
-   	if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
+	int val;
+   	if (!(breg = busca_registro(BDD_SET, "NickServ")))
 		botname = me.name;
 	else
-		botname = breg->value;
+		botname = breg->data_char;
 	if (parc < 2) 
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** Sintaxis incorrecta. Formato: GHOST <nick> [clave]", botname, sptr->name);
@@ -992,7 +1011,7 @@ CMD_FUNC(m_ghost)
 	if (!IsRegistered(sptr))
 		ircsprintf(who, "%s!", nick);
 	else
-		strcpy(who, sptr->name);
+		strncpy(who, sptr->name, NICKLEN);
 	if (!reg) 
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** El nick %s no está registrado en la base de datos.", botname, sptr->name, nick);
@@ -1008,27 +1027,31 @@ CMD_FUNC(m_ghost)
 		sendto_one(cptr, ":%s NOTICE %s :*** No puedes hacer ghost a ti mismo.", botname, sptr->name);
 		return 0;
 	}
-	if (!IsAnOper(sptr) && !IsHelpOp(sptr) && (tipo_de_pass(nick, parv[2]) != 2))
+	val = tipo_de_pass(nick, parv[2]);
+	if (!IsAnOper(sptr) && !IsHelpOp(sptr))
 	{
-		sendto_one(cptr, ":%s NOTICE %s :*** Contraseña incorrecta.", botname, sptr->name);
-		return 0;
+		if (val < 0)
+		{
+			sendto_one(cptr, ":%s NOTICE %s :*** Contraseña incorrecta.", botname, sptr->name);
+			return 0;
+		}
+		else if (val == 1)
+		{
+			sendto_one(cptr, ":%s NOTICE %s :*** No puedes aplicar ghost sobre un nick suspendido.", botname, sptr->name);
+			return 0;
+		}
 	}
-	sendto_serv_butone_token(NULL,me.name,MSG_KILL,TOK_KILL,"%s :Comando GHOST utilizado por %s.",acptr->name, who);
+	sendto_serv_butone_token(NULL, me.name, MSG_KILL, TOK_KILL, "%s :Comando GHOST utilizado por %s.", acptr->name, who);
 	if (MyClient(acptr))
 		sendto_one(acptr, ":%s KILL %s :Comando GHOST utilizado por %s.", me.name, acptr->name, who);
 	sendto_one(cptr, ":%s NOTICE %s :*** Sesión fantasma del nick %s liberada.", botname, sptr->name, nick);
 	ircsprintf(quitbuf, "Killed (Comando GHOST utilizado por %s)", who);
-	exit_client(cptr, acptr, &me, quitbuf);
-	return 0;
+	return exit_client(cptr, acptr, &me, quitbuf);
 }
-
 CMD_FUNC(m_dbq)
 {
-	/*
-	 * DBQ [server] bdd index
-	 */
-	udb *cmp;
-	char bdd, *index;
+	char *cur, *pos, *ds;
+	Udb *bloq;
 	if (!IsClient(sptr)) 
 		return 0;
 	if (!IsOper(sptr)) 
@@ -1036,52 +1059,55 @@ CMD_FUNC(m_dbq)
 		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
 		return 0;
 	}
-	if (parc == 4)
+	if (parc < 2)
 	{
-		/* server bdd index */
-		if (parv[2][1] != '\0')
-		{
-			sendto_one(cptr, ":%s NOTICE %s :Parámetros incorrectos: Formato: DBQ server tabla  indice", me.name, parv[0]);
-			return 0;
-		}
+		sendto_one(sptr, ":%s NOTICE %s :Parámetros insuficientes. Sintaxis: /dbq [servidor] <bloque>.", me.name, sptr->name);
+		return 0;
+	}
+	if (parc == 3)
+	{
 		if (!(find_match_server(parv[1]))) 
 		{
 			sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, sptr->name, parv[1]);
 			return 0;
 		}
-		sendto_serv_butone(cptr,":%s DBQ %s %c %s",parv[0],parv[1],*parv[2],parv[3]);
+		sendto_serv_butone(cptr, ":%s DBQ %s %s", parv[0], parv[1], parv[2]);
 		if (match(parv[1], me.name))
 			return 0;
-		bdd = *parv[2];
-		index = parv[3];
+		parv[1] = parv[2];
 	}
-	else if (parc == 3)
+	pos = cur = strdup(parv[1]);
+	if (!(bloq = coge_de_id(*pos)))
 	{
-		/* bdd index */
-		if (parv[1][1] != '\0')
+		sendto_one(sptr, ":%s NOTICE %s :La base de datos %c no existe.", me.name, sptr->name, *pos);
+		return 0;
+	}
+	cur += 3;
+	while ((ds = strchr(cur, ':')))
+	{
+		if (*(ds + 1) == ':')
 		{
-			sendto_one(cptr, ":%s NOTICE %s :Parámetros incorrectos: Formato: DBQ tabla  indice", me.name, parv[0]);
-			return 0;
+			*ds++ = '\0';
+			if (!(bloq = busca_bloque(cur, bloq)))
+				goto nobloq;
 		}
-		bdd = *parv[1];
-		index = parv[2];
+		else
+			break;
+		cur = ++ds;
+	}
+	if (!(bloq = busca_bloque(cur, bloq)))
+	{
+		nobloq:
+		sendto_one(sptr, ":%s NOTICE %s :No se encuentra el bloque %s.", me.name, sptr->name, cur);
 	}
 	else
 	{
-		sendto_one(cptr, ":%s NOTICE %s :Parámetros incorrectos: Formato: DBQ [server] tabla indice", me.name, parv[0]);
-		return 0;
+		if (bloq->data_long)
+			sendto_one(sptr, ":%s NOTICE %s :DBQ %s %lu", me.name, sptr->name, parv[1], bloq->data_long);
+		else
+			sendto_one(sptr, ":%s NOTICE %s :DBQ %s %s", me.name, sptr->name, parv[1], bloq->data_char);
 	}
-	if (!registros[bdd]) 
-	{
-		sendto_one(cptr, ":%s NOTICE %s :DBQ ERROR Tabla='%c' Clave='%s' TABLA_NO_RESIDENTE", me.name, parv[0], bdd, index);
-		return 0;
-	}
-	if (!(cmp = busca_registro(bdd, index))) 
-	{
-		sendto_one(cptr, ":%s NOTICE %s :DBQ ERROR Tabla='%c' Clave='%s' REGISTRO_NO_ENCONTRADO", me.name, parv[0], bdd, index);
-		return 0;
-	}
-    	sendto_one(cptr, ":%s NOTICE %s :DBQ OK Tabla='%c' Clave='%s' Valor='%s'", me.name, parv[0], bdd, cmp->index, cmp->value);
+	MyFree(pos);
 	return 0;
 }
 /* 2 ok
@@ -1090,47 +1116,76 @@ CMD_FUNC(m_dbq)
  * -1 forbid
  * -2 incorrecto
  * -3 no ha dado pass
- * -4 hay un problema
  */
-int tipo_de_pass(char *nick, char *pass)
+int tipo_de_pass(aClient *sptr, char *nick, char *pass)
 {
-	udb *reg;
-	static char realpass[BUFSIZE], *k;
-	int sus = 0;
+	Udb *reg, *bloq, *cha;
+	anAuthStruct *as;
+	int tipo = AUTHTYPE_PLAINTEXT;
 	if (!(reg = busca_registro(BDD_NICKS, nick)))
 		return 0; /* no existe */
-	if (strchr(reg->value, '*'))
+	if (busca_bloque("forbid", reg))
 		return -1; /* tiene el nick en forbid, no importa la pass */
+	if (!(bloq = busca_bloque("pass", reg)))
+		return 0; /* no existe */
 	if (!pass)
 		return -3;
-	bzero(realpass, BUFSIZE);
-	strcpy(realpass, reg->value);
-	if ((k = strchr(realpass, '+')))
+	bzero(buf, sizeof(buf));
+	if ((cha = busca_bloque("desafio", reg)))
 	{
-		sus = 1;
-		*k = '\0';
-	}
-	if (*realpass == '.')
-	{
-		if (atoul(realpass + 1) == our_crc32(pass, strlen(pass)))
+		int len;
+		char *bpass, buf2[22];
+		if ((tipo = Auth_FindType(cha->data_char)) == -1)
+			return 0; /* si el desafio no es correcto, el nick no existe */
+		bpass = bloq->data_char;
+		bzero(buf2, sizeof(buf2));
+		switch(tipo)
 		{
-			if (sus)
-				return 1;  /* suspendido */
-			return 2; /* todo ok */
+#ifdef AUTHENABLE_MD5
+			case AUTHTYPE_MD5:
+				len = 17;
+				break;
+#endif
+#ifdef AUTHENABLE_SHA1
+			case AUTHTYPE_SHA1:
+				len = 21;
+				break;
+#endif
+#ifdef AUTHENABLE_RIPEMD160
+			case AUTHTYPE_RIPEMD160:
+				len = 21;
+				break;
+#endif
+		}
+		if (len)
+		{
+			char tmp[3];
+			int i;
+			for (i = 0; i < len; i++)
+			{
+				ircsprintf(tmp, "%c%c", *bpass, *(bpass + 1));
+				buf2[i] = (char)strtol(tmp, NULL, 16);
+				bpass += 2;
+			}
+			b64_encode(buf2, len - 1, buf, sizeof(buf));
 		}
 		else
-			return -2; /* pass incorrecto */
+			strcpy(buf, bpass);
 	}
 	else
+		strcpy(buf, pass);
+	as = (anAuthStruct *) MyMalloc(sizeof(anAuthStruct));
+	as->type = tipo;
+	as->data = strdup(buf);
+	if (Auth_Check(&me, as, pass) == 2) /* ok */
 	{
-		if (!strcmp(cifranick(nick, pass), realpass))
-		{
-			if (sus)
-				return 1;  /* suspendido */
-			return 2; /* todo ok */
-		}
+		Auth_DeleteAuthStruct(as);
+		if (busca_bloque("suspendido", reg))
+			return 1;
+		return 2;
 	}
-	return -2; /* pass incorrecto */
+	Auth_DeleteAuthStruct(as);
+	return -2;
 }
 int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char *parv[], char *nick, char *pass, char nick_used)
 {
@@ -1139,16 +1194,16 @@ int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char
 		return 1;
 	do
 	{
-		udb *breg;
+		Udb *breg;
 		char *botname;
 		if (sptr == acptr)
 			break;
-		if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
+		if (!(tipo = tipo_de_pass(sptr, nick, pass)))
+			break;
+		if (!(breg = busca_registro(BDD_SET, "NickServ")))
 			botname = me.name;
 		else
-			botname = breg->value;
-		if (!(tipo = tipo_de_pass(nick, pass)))
-			break;
+			botname = breg->data_char;
 		if (tipo < 0)
 		{
 			if (tipo == -1)
@@ -1192,204 +1247,160 @@ int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char
 	}
 	return tipo;
 }
-void set_topic(aClient *cptr, aClient *sptr, aChannel *chptr, char *topic, int send)
+DLLFUNC char *get_visiblehost(aClient *acptr, aClient *sptr)
 {
-	char *name, *tnick;
-	TS   ttime = 0;
-	int  topiclen = strlen(topic);
-	int  nicklen = 0;
-#ifndef TOPIC_NICK_IS_NUHOST
-	nicklen = strlen(sptr->name);
-#else
-	tnick = make_nick_user_host(sptr->name, sptr->user->username, GetHost(sptr));
-	nicklen = strlen(tnick);
-#endif
-	if (chptr->topic)
-		MyFree(chptr->topic);
-
-	if (topiclen > (TOPICLEN))
-		topiclen = TOPICLEN;
-	if (nicklen > (NICKLEN+USERLEN+HOSTLEN+5))
-		nicklen = NICKLEN+USERLEN+HOSTLEN+5;
-	chptr->topic = MyMalloc(topiclen + 1);
-	strncpyzt(chptr->topic, topic, topiclen + 1);
-
-	if (chptr->topic_nick)
-		MyFree(chptr->topic_nick);
-
-	chptr->topic_nick = MyMalloc(nicklen + 1);
-#ifndef TOPIC_NICK_IS_NUHOST
-	strncpyzt(chptr->topic_nick, sptr->name, nicklen + 1);
-#else
-	strncpyzt(chptr->topic_nick, tnick, nicklen + 1);
-#endif
-	chptr->topic_time = TStime();
-	if (send)
-	{
-		sendto_serv_butone_token(cptr, sptr->name, MSG_TOPIC, TOK_TOPIC, "%s %s %lu :%s", chptr->chname, chptr->topic_nick, chptr->topic_time, chptr->topic);
-		sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s", sptr->name, chptr->chname, chptr->topic);
-	}
-}
-
-/* 
- * get_visiblehost
- * Devuelve el host del usuario según los permisos del solicitante
- * (Código del fuente de iRC-Hispano)
- */
-char *get_visiblehost(aClient *acptr, aClient *sptr)
-{
-  if (!IsHidden(acptr) || (sptr && IsShowIp(sptr)) || sptr == acptr)
-    return acptr->user->realhost;
-  else
-  {
-    if (BadPtr(acptr->user->virthost))
-      acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 0);
-    return acptr->user->virthost;
-  }
-}
-/*
- * make_virtualhost
- * Setea el host virtual del usuario, conforme a la BDD.
- *                                                                
- */
-char *cifra_ip(char *ipreal)
-{
-	static char cifrada[512], clave[13];
-	char *p;
-	udb *reg;
-	int ts = 0;
-	unsigned int ourcrc, v[2], k[2], x[2];
-	if (!clave_cifrado)
-		return "no.hay.clave.de.cifrado";
-	ourcrc = our_crc32(ipreal, strlen(ipreal));
-	strncpy(clave, clave_cifrado, 12);
-	clave[12] = '\0';
-	p = cifrada;
-	while (1)
-  	{
-		x[0] = x[1] = 0;
-		k[0] = base64toint(clave);
-		k[1] = base64toint(clave + 6);
-    		v[0] = (k[0] & 0xffff0000) + ts;
-    		v[1] = ourcrc;
-    		tea(v, k, x);
-    		inttobase64(p, x[0], 6);
-    		p[6] = '.';
-    		inttobase64(p + 7, x[1], 6);
-		if (strchr(p, '[') == NULL && strchr(p, ']') == NULL)
-			break;
-    		else
-		{
-			if (++ts == 65536)
-			{
-				strcpy(p, ipreal);
-				break;
-			}
-		}
-	}
-	return cifrada;
-}	
-char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
-{
-	char *cifrada, buf[HOSTLEN], *sufix, *x;
-	udb *vip, *vh;
-	if (!viejo)
-		return NULL;
-	cifrada = cifra_ip(viejo);
-	if (!(vh = busca_registro(BDD_VHOSTS, "..")))
-		sufix = "virtual";
-	else
-		sufix = vh->value;
-	if (busca_registro(BDD_NICKS, acptr->name)) /* si acptr está migrado, lleva puesto el +r */
-	{
-		if ((vip = busca_registro(BDD_VHOSTS, acptr->name))) 
-				cifrada = vip->value;
-		else if ((vip = busca_registro(BDD_VHOSTS2, acptr->name))) 
-		{
-			if (!(vh = busca_registro(BDD_VHOSTS2, ".")) || *(vh->value) == '0')
-				snprintf(buf, HOSTLEN, "%s.%s", vip->value, sufix);
-			else 
-				snprintf(buf, HOSTLEN, "%s.%s.%s", cifrada, vip->value, sufix);
-			cifrada = buf;
-		}
-		else
-		{
-			snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
-			cifrada = buf;
-		}
-	}
+	if (!IsHidden(acptr) || (sptr && IsShowIp(sptr)) || sptr == acptr)
+		return acptr->user->realhost;
 	else
 	{
-		snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
-		cifrada = buf;
+		if (BadPtr(acptr->user->virthost))
+			acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 0);
+		return acptr->user->virthost;
 	}
-	if (nuevo)
-		MyFree(nuevo);
-	x = strdup(cifrada);
-	if (MyClient(acptr) && mostrar)
-	{
-		char *botname;
-		udb *reg;
-		if (!(reg = busca_registro(BDD_BOTS, BDD_VHOSTSERV)))
-			botname = me.name;
-		else
-			botname = reg->value;
-		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
-			botname, acptr->name, x);
-	}
-	return x;
 }
-void sube_oper(aClient *sptr)
+void dale_cosas(int val, aClient *sptr)
 {
-	int level = level_oper_bdd(sptr->name);
-	ConfigItem_oper *aconf;
-	if (!level || !IsARegNick(sptr))
-		return;
-	if (level & BDD_OPER)
-		sptr->umodes |= UMODE_HELPOP;
-	if (level & BDD_ADMIN)
+	if (val > 0)
 	{
-		sptr->umodes |= UMODE_NETADMIN;
-		if (!IsAnOper(sptr)) /* si ya es operador no vamos a subirlo otra vez */
+		if (val == 2)
 		{
-			sptr->umodes |= UMODE_OPER;
-			IRCstats.operators++;
-			if (MyClient(sptr) && IsRegisteredUser(sptr) && (aconf = Find_oper(sptr->name)))
+			Udb *reg, *bloq;
+			sptr->umodes |= UMODE_REGNICK;
+			reg = busca_registro(BDD_NICKS, sptr->name);
+			if ((bloq = busca_bloque("modos", reg)))
 			{
+				char *cur = bloq->data_char;
+				while (!BadPtr(cur))
+				{
+					switch(*cur)
+					{
+						case 'o':
+							if (!IsAnOper(sptr))
+							{
+								sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, sptr->name);
+								IRCstats.operators++;
 #ifndef NO_FDLIST
-				addto_fdlist(sptr->slot, &oper_fdlist);
+								addto_fdlist(sptr->slot, &oper_fdlist);
 #endif
-				RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
-				if (sptr->class)
-					sptr->class->clients--;
-				sptr->class = aconf->class;
-				sptr->class->clients++;
-				sptr->oflag = 0;
-				if (aconf->swhois) {
-					if (sptr->user->swhois)
-						MyFree(sptr->user->swhois);
-					sptr->user->swhois = MyMalloc(strlen(aconf->swhois) +1);
-					strcpy(sptr->user->swhois, aconf->swhois);
-					sendto_serv_butone_token(sptr, me.name,
-						MSG_SWHOIS, TOK_SWHOIS, "%s :%s", sptr->name, aconf->swhois);
-				}
-				sptr->oflag = aconf->oflags;
-				if (aconf->snomask)
-					set_snomask(sptr, aconf->snomask);
-				else
-					set_snomask(sptr, OPER_SNOMASK);
-				if (sptr->user->snomask)
-				{
-					sptr->user->snomask |= SNO_SNOTICE;
-					sptr->umodes |= UMODE_SERVNOTICE;
-				}
-				if (IsCoAdmin(sptr) && IsAdmin(sptr))
-				{
-					sptr->umodes &= ~UMODE_COADMIN;
-					sptr->oflag &= ~OFLAG_COADMIN;
+								RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
+							}
+							sptr->umodes |= UMODE_OPER;
+							break;
+						case 'h':
+							sptr->umodes |= UMODE_HELPOP;
+							sptr->oflag |= OFLAG_HELPOP;
+							break;
+						case 'a':
+							sptr->umodes |= UMODE_SADMIN;
+							sptr->oflag |= OFLAG_SADMIN;
+							break;
+						case 'A':
+							sptr->umodes |= UMODE_ADMIN;
+							sptr->oflag |= OFLAG_ADMIN;
+							break;
+						case 'O':
+							sptr->umodes |= UMODE_LOCOP;
+							break;
+						case 'k':
+							sptr->umodes |= UMODE_SERVICES;
+							sptr->oflag |= OFLAG_OVERRIDE;
+							break;
+						case 'N':
+							sptr->umodes |= UMODE_NETADMIN;
+							sptr->oflag |= OFLAG_NETADMIN;
+							break;
+						case 'C':
+							sptr->umodes |= UMODE_COADMIN;
+							sptr->oflag |= OFLAG_COADMIN;
+							break;
+						case 'W':
+							sptr->umodes |= UMODE_WHOIS;
+							sptr->oflag |= OFLAG_WHOIS;
+							break;
+						case 'q':
+							sptr->umodes |= UMODE_KIX;
+							break;
+						case 'H':
+							if (!IsHideOper(sptr) && IsOper(sptr))
+								IRCstats.operators--;
+							sptr->umodes |= UMODE_HIDEOPER;
+							break;
+						case 'X':
+							sptr->umodes |= UMODE_SHOWIP;
+							break;
+					}
+					cur++;
 				}
 			}
+			if ((bloq = busca_bloque("oper", reg)))
+			{
+				u_long nivel = bloq->data_long;
+				if (nivel & BDD_OPER)
+				{
+					sptr->umodes |= UMODE_HELPOP;
+					sptr->oflag |= OFLAG_HELPOP;
+				}
+				if (nivel & BDD_ADMIN || nivel & BDD_ROOT)
+				{
+					sptr->umodes |= (UMODE_OPER | UMODE_NETADMIN);
+					if (!IsAnOper(sptr))
+					{
+						sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, sptr->name);
+						IRCstats.operators++;
+#ifndef NO_FDLIST
+						addto_fdlist(sptr->slot, &oper_fdlist);
+#endif
+						RunHook2(HOOKTYPE_LOCAL_OPER, sptr, 1);
+					}
+					if (nivel & BDD_ROOT)
+						sptr->oflag |= (OFLAG_NADMIN | OFLAG_DIE | OFLAG_RESTART | OFLAG_TKL | OFLAG_GZL | OFLAG_OVERRIDE | OFLAG_ADDLINE | OFLAG_ZLINE);
+				}
+			}
+			if (IsClient(sptr))
+			{
+				if ((bloq = busca_bloque("snomasks", reg)))
+					set_snomask(sptr, bloq->data_char);
+				if ((bloq = busca_bloque("swhois", reg)))
+					ircstrdup(sptr->user->swhois, bloq->data_char);
+			}
 		}
+		else if (val == 1)
+			sptr->umodes |= UMODE_SUSPEND;
 	}
 }
+char *chan_mask()
+{
+	char botnick[NICKLEN+1+USERLEN+1+HOSTLEN+1];
+	Udb *chanserv;
+	char *desde, *b;
+	if ((chanserv = busca_registro(BDD_SET, "ChanServ")))
+		strcpy(botnick, chanserv->data_char);
+	else
+		strcpy(botnick, me.name);
+	if ((b = strchr(botnick, '!')))
+		*b = 0;
+	if (!find_client(botnick, NULL) || !chanserv) /* no está online */
+		desde = me.name;
+	else
+		desde = chanserv->data_char;
+	return desde;
+}
+char *chan_nick()
+{
+	static char botnick[NICKLEN+1+USERLEN+1+HOSTLEN+1];
+	Udb *chanserv;
+	char *desde, *b;
+	if ((chanserv = busca_registro(BDD_SET, "ChanServ")))
+		strcpy(botnick, chanserv->data_char);
+	else
+		strcpy(botnick, me.name);
+	if ((b = strchr(botnick, '!')))
+		*b = 0;
+	if (!find_client(botnick, NULL) || !chanserv) /* no está online */
+		desde = me.name;
+	else
+		desde = botnick;
+	return desde;
+}
+
 #endif

@@ -604,6 +604,17 @@ extern TS check_pings(TS currenttime)
 			}
 
 		}
+		/* Do spamfilter 'user' banchecks.. */
+		if (loop.do_bancheck_spamf_user && IsPerson(cptr))
+		{
+			if (find_spamfilter_user(cptr) == FLUSH_BUFFER)
+				continue;
+		}
+		if (loop.do_bancheck_spamf_away && IsPerson(cptr) && cptr->user->away)
+		{
+			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL) == FLUSH_BUFFER)
+				continue;
+		}
 		/*
 		 * We go into ping phase 
 		 */
@@ -725,8 +736,7 @@ extern TS check_pings(TS currenttime)
 	 * * - lucas
 	 * *
 	 */
-	if (loop.do_bancheck)
-		loop.do_bancheck = 0;
+	loop.do_bancheck = loop.do_bancheck_spamf_user = loop.do_bancheck_spamf_away = 0;
 	Debug((DEBUG_NOTICE, "Next check_ping() call at: %s, %d %d %d",
 	    myctime(currenttime+9), ping, currenttime+9, currenttime));
 
@@ -1002,7 +1012,7 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef EXTCMODE
 	extcmode_init();
 #endif
-	extban_init();	
+	extban_init();
 	init_random(); /* needs to be done very early!! */
 	clear_scache_hash_table();
 #ifdef FORCE_CORE
@@ -1215,9 +1225,6 @@ int InitwIRCD(int argc, char *argv[])
 	initlists();
 	initwhowas();
 	initstats();
-#ifdef UDB	
-	bdd_init();
-#endif		
 	DeleteTempModules();
 	booted = FALSE;
 /* Hack to stop people from being able to read the config file */
@@ -1256,6 +1263,8 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef EXTCMODE
 	make_extcmodestr();
 #endif
+	make_extbanstr();
+	isupport_init();
 	if (!find_Command_simple("AWAY") /*|| !find_Command_simple("KILL") ||
 		!find_Command_simple("OPER") || !find_Command_simple("PING")*/)
 	{ 
@@ -1414,6 +1423,9 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef NEWCHFLOODPROT
 	init_modef();
 #endif
+#ifdef UDB	
+	bdd_init();
+#endif	
 	loop.do_bancheck = 0;
 	loop.ircd_booted = 1;
 #if defined(HAVE_SETPROCTITLE)

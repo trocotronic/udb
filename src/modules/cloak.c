@@ -68,7 +68,7 @@ Callback *cloak = NULL, *cloak_csum = NULL;
 ModuleHeader MOD_HEADER(cloak)
   = {
   "cloak",
-  "$Id: cloak.c,v 1.2.2.1 2004-07-04 02:58:05 Trocotronic Exp $",
+  "$Id: cloak.c,v 1.2.2.2 2004-10-31 20:21:48 Trocotronic Exp $",
   "Official cloaking module (md5)",
   "3.2-b8-1",
   NULL
@@ -107,6 +107,12 @@ DLLFUNC int MOD_LOAD(cloak)(int module_load)
 
 DLLFUNC int MOD_UNLOAD(cloak)(int module_unload)
 {
+	if (cloak_key1)
+	{
+		MyFree(cloak_key1);
+		MyFree(cloak_key2);
+		MyFree(cloak_key3);
+	}
 	return MOD_SUCCESS;
 }
 

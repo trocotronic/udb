@@ -34,7 +34,7 @@ static char *replies[] = {
 /* 002    RPL_YOURHOST */ ":%s 002 %s :Tu servidor es %s, bajo la versión %s",
 /* 003    RPL_CREATED */  ":%s 003 %s :Este servidor fue creado el %s",
 /* 004    RPL_MYINFO */   ":%s 004 %s %s %s %s %s",
-/* 005    RPL_PROTOCTL */ ":%s 005 %s",
+/* 005    RPL_ISUPPORT */ ":%s 005 %s %s :se soportan por este servidor",
 /* 006    RPL_MAP */      ":%s 006 %s :%s%-*s(%d)  %s",
 /* 007    RPL_MAPEND */   ":%s 007 %s :End of /MAP",
 /* 008    RPL_SNOMASK */  ":%s 008 %s :Server notice mask (%s)",
@@ -134,7 +134,7 @@ static char *replies[] = {
 /* 102 */ NULL,
 /* 103 */ NULL,
 /* 104 */ NULL,
-/* 105    RPL_REMOTEPROTOCTL */ ":%s 105 %s",
+/* 105    RPL_REMOTEISUPPORT */ ":%s 105 %s %s :se soportan por este servidor",
 /* 106 */ NULL,
 /* 107 */ NULL,
 /* 108 */ NULL,
@@ -381,7 +381,7 @@ static char *replies[] = {
 /* 337 */ NULL,
 /* 338 */ NULL, /* ircu, bahamut */
 /* 339 */ NULL, /* Used */
-/* 340 */ NULL, /* ircu */
+/* 340    RPL_USERIP */ ":%s 340 %s :%s %s %s %s %s",
 /* 341    RPL_INVITING */ ":%s 341 %s %s %s",
 #ifdef UDB
 /* 342    RPL_MSGONLYREG */ ":%s 342 %s %s :Sólo admite privados de usuarios registrados",
@@ -427,15 +427,15 @@ static char *replies[] = {
 /* 374    RPL_ENDOFINFO */ ":%s 374 %s :Fin de /INFO",
 /* 375    RPL_MOTDSTART */ ":%s 375 %s :- %s Mensaje del día - ",
 /* 376    RPL_ENDOFMOTD */ ":%s 376 %s :Fin de /MOTD",
-/* 377 */ NULL,
+/* 377 */ NULL, /* aircd, austhex */
 /* 378    RPL_WHOISHOST */ ":%s 378 %s %s :Dirección VIRTUAL %s",
-/* 379    RPL_WHOISMODES */ ":%s 379 %s %s :utiliza los modos [%s]",
-/* 380 */ NULL, 
+/* 379    RPL_WHOISMODES */ ":%s 379 %s %s :utiliza los modos [%s %s]",
+/* 380 */ NULL, /* aircd, austhex */
 /* 381    RPL_YOUREOPER */ ":%s 381 %s :Eres un IRCop",
 /* 382    RPL_REHASHING */ ":%s 382 %s %s :Refrescando",
-/* 383 */ NULL, /* Used */
+/* 383 */ NULL, /* rfc2812 */
 /* 384    RPL_MYPORTIS */ ":%s 384 %s %d :Puerto al servidor local\r\n",
-/* 385 */ NULL, /* Used */
+/* 385 */ NULL, /* austhex, hybrid */
 /* 386    RPL_QLIST */ ":%s 386 %s %s %s",
 /* 387    RPL_ENDOFQLIST */ ":%s 387 %s %s :Fin de la lista founder",
 /* 388    RPL_ALIST */ ":%s 388 %s %s %s",

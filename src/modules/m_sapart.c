@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.5 2004-08-14 13:12:56 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.6 2004-10-31 20:21:51 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 
@@ -94,7 +94,11 @@ DLLFUNC CMD_FUNC(m_sapart)
 	aClient *acptr;
 	char *comment = (parc > 3 && parv[3] ? parv[3] : NULL);
 	char commentx[512];
+#ifdef UDB
+	if (!IsSAdmin(sptr) && !IsULine(sptr) && !IsNetAdmin(sptr))
+#else
 	if (!IsSAdmin(sptr) && !IsULine(sptr))
+#endif
 	{
 		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
 		return 0;

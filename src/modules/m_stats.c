@@ -40,9 +40,6 @@
 #ifdef STRIPBADWORDS
 #include "badwords.h"
 #endif
-#ifdef UDB
-#include "s_bdd.h"
-#endif
 #ifdef _WIN32
 #include "version.h"
 #endif
@@ -55,7 +52,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.5 2004-10-31 20:21:53 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -122,9 +119,6 @@ int stats_class(aClient *, char *);
 int stats_zip(aClient *, char *);
 int stats_officialchannels(aClient *, char *);
 int stats_spamfilter(aClient *, char *);
-#ifdef UDB
-int stats_tablas(aClient *, char *);
-#endif
 
 #define SERVER_AS_PARA 0x1
 #define FLAGS_AS_PARA 0x2
@@ -149,11 +143,7 @@ struct statstab StatsTable[] = {
 	{ 'D', "denylinkall",	stats_denylinkall,	0		},
 	{ 'E', "exceptban",	stats_exceptban,	0 		},
 	{ 'F', "denydcc",	stats_denydcc,		0 		},
-#ifdef UDB	
-	{ 'G', "badword", 	stats_badwords,		0 		},
-#else
 	{ 'G', "gline",		stats_gline,		FLAGS_AS_PARA	},
-#endif	
 	{ 'H', "link",	 	stats_links,		0 		},	
 	{ 'I', "allow",		stats_allow,		0 		},
 	{ 'K', "kline",		stats_kline,		0 		},
@@ -170,11 +160,7 @@ struct statstab StatsTable[] = {
 	{ 'X', "notlink",	stats_notlink,		0 		},	
 	{ 'Y', "class",		stats_class,		0 		},	
 	{ 'Z', "mem",		stats_mem,		0 		},
-#ifdef UDB
-	{ 'b', "tablas", 	stats_tablas,		0 		},
-#else
 	{ 'b', "badword", 	stats_badwords,		0 		},
-#endif	
 	{ 'c', "link", 		stats_links,		0 		},
 	{ 'd', "denylinkauto",	stats_denylinkauto,	0 		},
 	{ 'e', "exceptthrottle",stats_exceptthrottle,	0		},
@@ -1607,25 +1593,3 @@ int stats_linkinfoint(aClient *sptr, char *para, int all)
 #endif
 	return 0;
 }
-#ifdef UDB
-int stats_tablas(aClient *sptr, char *para)
-{
-	char bdd;
-	for (bdd = PRIMERA_LETRA; bdd <= ULTIMA_LETRA; bdd++) 
-	{
-		if (residentes[bdd]) 
-		{
-			if (IsOper(sptr))
-				sendto_one(sptr, ":%s %i %s b Tabla '%c' :S=%09lu R=%09lu H=%09lu %s", me.name, RPL_STATSDEBUG, sptr->name, bdd, series[bdd], registros[bdd], hashes[bdd], corruptas[bdd] ? "(Corrupta)" : "");
-			else
-				sendto_one(sptr, ":%s %i %s b Tabla '%c' :S=%09lu R=%09lu", me.name, RPL_STATSDEBUG, sptr->name, bdd, series[bdd], registros[bdd]);
-		}
-		else
-		{
-			if (series[bdd])
-				sendto_one(sptr, ":%s %i %s b Tabla '%c' :S=%09lu NoResidente", me.name, RPL_STATSDEBUG, sptr->name, bdd, series[bdd]);
-		}
-	}
-	return 0;
-}
-#endif

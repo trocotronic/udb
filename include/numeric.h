@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.3 2004-07-04 13:19:16 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.4 2004-10-31 20:21:38 Trocotronic Exp $
  */
 
 /*
@@ -33,11 +33,11 @@
 #define	RPL_YOURHOST         002
 #define	RPL_CREATED          003
 #define	RPL_MYINFO           004
-#define RPL_PROTOCTL	     005
+#define RPL_ISUPPORT	     005
 
 #define RPL_REDIR	     10
 
-#define RPL_REMOTEPROTOCTL 105
+#define RPL_REMOTEISUPPORT 105
 
 /*
  * Errors are in the range from 400-599 currently and are grouped by what
@@ -187,6 +187,7 @@
 
 #define RPL_LISTSYNTAX       334
 #define RPL_WHOISBOT	     335
+#define RPL_USERIP	     340
 #define RPL_INVITING         341
 #ifdef UDB
 #define RPL_MSGONLYREG       342

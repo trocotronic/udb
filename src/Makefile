@@ -16,7 +16,7 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*   
-#*   $Id: Makefile,v 1.1.1.4 2004-07-04 13:19:18 Trocotronic Exp $
+#*   $Id: Makefile,v 1.1.1.5 2004-10-31 20:21:40 Trocotronic Exp $
 #*/
 
 CC = danger will robinson
@@ -30,7 +30,7 @@ OBJS=auth.o aln.o badwords.o channel.o cloak.o crule.o dbuf.o \
 	ssl.o s_user.o scache.o send.o support.o umodes.o \
 	version.o webtv.o whowas.o zip.o cidr.o random.o extcmodes.o \
 	tea.o s_bdd.o \
-	extbans.o md5.o $(URL)
+	extbans.o md5.o api-isupport.o api-command.o $(URL)
 
 SRC=$(OBJS:%.o=%.c)
 
@@ -256,6 +256,12 @@ extbans.o: extbans.c $(INCLUDES)
 
 md5.o: md5.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c md5.c
+
+api-command.o: api-command.c $(INCLUDES)
+	$(CC) $(CFLAGS) -c api-command.c
+
+api-isupport.o: api-isupport.c $(INCLUDES)
+	$(CC) $(CFLAGS) -c api-isupport.c
 
 url.o: url.c $(INCLUDES) ../include/url.h
 	$(CC) $(CFLAGS) -c url.c

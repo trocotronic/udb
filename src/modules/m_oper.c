@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.6 2004-10-31 20:21:51 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -326,15 +326,14 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 
 		if (announce != NULL) {
-			sendto_ops
-			    ("%s (%s@%s) [%s] %s",
+			sendto_snomask(SNO_OPER, 
+			    "%s (%s@%s) [%s] %s",
 			    parv[0], sptr->user->username, GetHost(sptr),
 			    parv[1], announce);
-				sendto_serv_butone(&me,
-				    ":%s GLOBOPS :%s (%s@%s) [%s] %s",
-				    me.name, parv[0], sptr->user->username,
-				    GetHost(sptr), parv[1], announce);
-
+			sendto_serv_butone_token(NULL, me.name, MSG_SENDSNO, TOK_SENDSNO, 
+			    "o :%s (%s@%s) [%s] %s",
+			    parv[0], sptr->user->username,
+			    GetHost(sptr), parv[1], announce);
 		} 
 		if (aconf->snomask)
 			set_snomask(sptr, aconf->snomask);

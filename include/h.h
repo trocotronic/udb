@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.7 2004-08-14 13:12:55 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.8 2004-10-31 20:21:37 Trocotronic Exp $
  */
 
 /*
@@ -443,8 +443,13 @@ extern MODVAR long UMODE_STRIPBADWORDS; /* 0x80000000	 */
 extern MODVAR long UMODE_HIDEWHOIS; /* hides channels in /whois */
 extern MODVAR long UMODE_NOCTCP;    /* blocks all ctcp (except dcc and action) */
 #ifdef UDB
-extern MODVAR long UMODE_SHOWIP;	/* 0x200000000	Puede ver las ips de los usuarios con +x */
-extern MODVAR long UMODE_SUSPEND;	/* 0x400000000	Nick SUSPENDido */
+  #ifdef MODULE_COMPILE
+    extern MODVAR long UMODE_SHOWIP;	/* 0x200000000	Puede ver las ips de los usuarios con +x */
+    extern MODVAR long UMODE_SUSPEND;	/* 0x400000000	Nick SUSPENDido */
+  #else
+    DLLFUNC extern MODVAR long UMODE_SHOWIP;
+    DLLFUNC extern MODVAR long UMODE_SUSPEND;
+  #endif
 #endif
 extern MODVAR long AllUmodes, SendUmodes;
 
@@ -461,6 +466,7 @@ extern MODVAR long SNO_FNICKCHANGE;
 extern MODVAR long SNO_QLINE;
 extern MODVAR long SNO_SNOTICE;
 extern MODVAR long SNO_SPAMF;
+extern MODVAR long SNO_OPER;
 
 #ifdef EXTCMODE
 /* Extended chanmodes... */
@@ -711,3 +717,6 @@ extern int del_dccallow(aClient *sptr, aClient *optr);
 extern void delete_linkblock(ConfigItem_link *link_ptr);
 extern void delete_classblock(ConfigItem_class *class_ptr);
 extern void del_async_connects(void);
+extern int find_spamfilter_user(aClient *sptr);
+extern void make_extbanstr(void);
+extern void isupport_init(void);

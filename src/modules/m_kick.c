@@ -52,7 +52,7 @@ DLLFUNC int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_kick)
   = {
 	"m_kick",
-	"$Id: m_kick.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_kick.c,v 1.1.4.4 2004-10-31 20:21:49 Trocotronic Exp $",
 	"command /kick", 
 	"3.2-b8-1",
 	NULL 
@@ -293,6 +293,8 @@ CMD_FUNC(m_kick)
 					if (breakit)
 						continue;
 					RunHook5(HOOKTYPE_LOCAL_KICK, cptr,sptr,who,chptr,comment);
+				} else {
+					RunHook5(HOOKTYPE_REMOTE_KICK, cptr, sptr, who, chptr, comment);
 				}
 				if (lp)
 				{

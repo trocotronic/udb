@@ -203,7 +203,7 @@ void debug(int level, char *form, ...)
 #endif
 	va_list vl;
 	va_start(vl, form);
-#ifdef UDB
+#if defined(UDB) && defined(_WIN32)
 	debuglevel = 2;
 #endif
 	if ((debuglevel >= 0) && (level <= debuglevel))

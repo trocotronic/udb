@@ -52,7 +52,7 @@ DLLFUNC int m_sajoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sajoin)
   = {
 	"m_sajoin",
-	"$Id: m_sajoin.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_sajoin.c,v 1.1.4.5 2004-10-31 20:21:51 Trocotronic Exp $",
 	"command /sajoin", 
 	"3.2-b8-1",
 	NULL 
@@ -91,7 +91,11 @@ DLLFUNC int MOD_UNLOAD(m_sajoin)(int module_unload)
 DLLFUNC CMD_FUNC(m_sajoin)
 {
 	aClient *acptr;
+#ifdef UDB
+	if (!IsSAdmin(sptr) && !IsULine(sptr) && !IsNetAdmin(sptr))
+#else
 	if (!IsSAdmin(sptr) && !IsULine(sptr))
+#endif
 	{
 	 sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
 	 return 0;

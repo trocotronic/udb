@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: support.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $
+ * $Id: support.c,v 1.1.1.6 2004-10-31 20:21:47 Trocotronic Exp $
  */
 
 #ifndef CLEAN_COMPILE
@@ -72,8 +72,11 @@ char	*my_itoa(int i)
 **			of separators
 **			argv 9/90
 <<<<<<< support.c
+<<<<<<< support.c
 **
-**	$Id: support.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $
+**	$Id: support.c,v 1.1.1.6 2004-10-31 20:21:47 Trocotronic Exp $
+=======
+>>>>>>> 1.1.1.1.2.9
 =======
 >>>>>>> 1.1.1.1.2.9
 */
@@ -127,7 +130,10 @@ char *strtok2(char *str, char *fs)
 **
 **		   argv 11/90
 <<<<<<< support.c
-**	$Id: support.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $
+<<<<<<< support.c
+**	$Id: support.c,v 1.1.1.6 2004-10-31 20:21:47 Trocotronic Exp $
+=======
+>>>>>>> 1.1.1.1.2.9
 =======
 >>>>>>> 1.1.1.1.2.9
 */
@@ -161,7 +167,10 @@ char *strerror(int err_no)
 **			argv 11/90).
 **	inet_ntoa --	its broken on some Ultrix/Dynix too. -avalon
 <<<<<<< support.c
-**	$Id: support.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $
+<<<<<<< support.c
+**	$Id: support.c,v 1.1.1.6 2004-10-31 20:21:47 Trocotronic Exp $
+=======
+>>>>>>> 1.1.1.1.2.9
 =======
 >>>>>>> 1.1.1.1.2.9
 */
@@ -186,8 +195,11 @@ char *inetntoa(char *in)
 **	inet_netof --	return the net portion of an internet number
 **			argv 11/90
 <<<<<<< support.c
-**	$Id: support.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $
+<<<<<<< support.c
+**	$Id: support.c,v 1.1.1.6 2004-10-31 20:21:47 Trocotronic Exp $
 **
+=======
+>>>>>>> 1.1.1.1.2.9
 =======
 >>>>>>> 1.1.1.1.2.9
 */

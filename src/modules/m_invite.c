@@ -43,6 +43,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -52,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.4 2004-10-31 20:21:49 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -122,8 +125,13 @@ DLLFUNC CMD_FUNC(m_invite)
         if (chptr->mode.mode & MODE_NOINVITE && !IsULine(sptr))
         {
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
+		    IsHOper(sptr)) && sptr == acptr)
+#else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
+#endif
                         over = 1;
                 else {
 #endif
@@ -138,8 +146,13 @@ DLLFUNC CMD_FUNC(m_invite)
         if (!IsMember(sptr, chptr) && !IsULine(sptr))
         {
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
+		    IsHOper(sptr)) && sptr == acptr)
+#else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
+#endif
                         over = 1;
                 else {
 #endif
@@ -163,8 +176,13 @@ DLLFUNC CMD_FUNC(m_invite)
                 if (!is_chan_op(sptr, chptr) && !IsULine(sptr))
                 {
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
+		    IsHOper(sptr)) && sptr == acptr)
+#else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
+#endif
                                 over = 1;
                         else {
 #endif
@@ -178,8 +196,13 @@ DLLFUNC CMD_FUNC(m_invite)
                 else if (!IsMember(sptr, chptr) && !IsULine(sptr))
                 {
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
+		    IsHOper(sptr)) && sptr == acptr)
+#else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
+#endif
                                 over = 1;
                         else {
 #endif
@@ -227,7 +250,7 @@ DLLFUNC CMD_FUNC(m_invite)
 	        if (is_banned(sptr, chptr, BANCHK_JOIN))
         	{
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +b).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +b).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
 			/* Logging implementation added by XeRXeS */
@@ -238,7 +261,7 @@ DLLFUNC CMD_FUNC(m_invite)
         	else if (chptr->mode.mode & MODE_INVITEONLY)
 	        {
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +i).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +i).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
                         /* Logging implementation added by XeRXeS */
@@ -249,7 +272,7 @@ DLLFUNC CMD_FUNC(m_invite)
         	else if (chptr->mode.limit)
 	        {
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +l).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +l).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
                         /* Logging implementation added by XeRXeS */
@@ -260,7 +283,7 @@ DLLFUNC CMD_FUNC(m_invite)
         	else if (chptr->mode.mode & MODE_RGSTRONLY)
 	        {
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +R).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +R).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
                         /* Logging implementation added by XeRXeS */
@@ -271,7 +294,7 @@ DLLFUNC CMD_FUNC(m_invite)
         	else if (*chptr->mode.key)
 	        {
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +k).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +k).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
                         /* Logging implementation added by XeRXeS */
@@ -282,7 +305,7 @@ DLLFUNC CMD_FUNC(m_invite)
         	else if (chptr->mode.mode & MODE_ONLYSECURE)
 	        {
                         sendto_snomask(SNO_EYES,
-                          "*** OperOverride -- %s (%s@%s) invited him/herself into %s (overriding +z).",
+                          "*** OperOverride -- %s (%s@%s) se invita a %s (overriding +z).",
                           sptr->name, sptr->user->username, sptr->user->realhost, chptr->chname);
 
                         /* Logging implementation added by XeRXeS */
@@ -306,17 +329,29 @@ DLLFUNC CMD_FUNC(m_invite)
 		    && (is_chan_op(sptr, chptr)
 		    || IsULine(sptr)
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+		    || IsHOper(sptr)
+#else
 		    || IsOper(sptr)
 #endif
+#endif
 		    )) {
+#ifdef UDB
+			char *botname;
+			botname = chan_mask();
+#endif
 		        if (over == 1)
                 		sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
-		                  ":%s NOTICE " CHANOPPFX "%s :OperOverride -- %s invited him/herself into the channel.",
+		                  ":%s NOTICE " CHANOPPFX "%s :OperOverride -- %s se invita al canal.",
                 		  me.name, chptr->chname, sptr->name);
 		        else if (over == 0)
 		                sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
-                		  ":%s NOTICE " CHANOPPFX "%s :%s invited %s into the channel.",
+                		  ":%s NOTICE " CHANOPPFX "%s :%s invita a %s al canal.",
+#ifdef UDB
+					botname, chptr->chname, sptr->name, acptr->name);
+#else
 		                  me.name, chptr->chname, sptr->name, acptr->name);
+#endif
 
 		        add_invite(acptr, chptr);
 			}

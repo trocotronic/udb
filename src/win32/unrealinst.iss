@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.1
+AppVerName=UnrealIRCd3.2.2+UDB 3.0-es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -30,15 +30,15 @@ MinVersion=4.0.1111,4.0.1381
 OutputDir=../../
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"
-Name: "quicklaunchicon"; Description: "Create a &Quick Launch icon"; GroupDescription: "Additional icons:"; Flags: unchecked
-Name: "installservice"; Description: "Install as a &service (not for beginners)"; GroupDescription: "Service support:"; Flags: unchecked; MinVersion: 0,4.0
-Name: "installservice/startboot"; Description: "S&tart UnrealIRCd when Windows starts"; GroupDescription: "Service support:"; MinVersion: 0,4.0; Flags: exclusive
-Name: "installservice/startdemand"; Description: "Start UnrealIRCd on &request"; GroupDescription: "Service support:"; MinVersion: 0,4.0; Flags: exclusive
-Name: "installservice/crashrestart"; Description: "Restart UnrealIRCd if it &crashes"; GroupDescription: "Service support:"; MinVersion: 0,5.0;
+Name: "desktopicon"; Description: "Crear un icono en el &escritorio"; GroupDescription: "Iconos adicionales:"
+Name: "quicklaunchicon"; Description: "Crear un icono en la barra de menú &rápido"; GroupDescription: "Iconos adicionales:"; Flags: unchecked
+Name: "installservice"; Description: "Instalarlo como &servicio (no principiantes)"; GroupDescription: "Soporte servicio:"; Flags: unchecked; MinVersion: 0,4.0
+Name: "installservice/startboot"; Description: "&Iniciar UnrealIRCd cuando Windows arranca"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive
+Name: "installservice/startdemand"; Description: "Iniciar UnrealIRCd por &petición"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive
+Name: "installservice/crashrestart"; Description: "Reiniciar UnrealIRCd si se cierra inesperadamente"; GroupDescription: "Soporte servicio:"; MinVersion: 0,5.0;
 #ifdef USE_SSL
-Name: "makecert"; Description: "&Create certificate"; GroupDescription: "SSL options:";
-Name: "enccert"; Description: "&Encrypt certificate"; GroupDescription: "SSL options:"; Flags: unchecked;
+Name: "makecert"; Description: "&Crear certificado"; GroupDescription: "Opciones SSL:";
+Name: "enccert"; Description: "&Encriptar certificado"; GroupDescription: "Opciones SSL:"; Flags: unchecked;
 #endif
 
 [Files]
@@ -92,7 +92,7 @@ external 'isxdl_Download@files:isxdl.dll stdcall';
 function isxdl_SetOption(Option, Value: PChar): Integer;
 external 'isxdl_SetOption@files:isxdl.dll stdcall';
 const dbgurl = 'http://www.unrealircd.com/downloads/DbgHelp.Dll';
-const crturl = 'http://www.unrealircd.com/downloads/msvcr70d.dll';
+const crturl = 'http://www.unrealircd.com/downloads/msvcr70.dll';
 var didDbgDl,didCrtDl: Boolean;
 
 function NextButtonClick(CurPage: Integer): Boolean;
@@ -106,36 +106,36 @@ begin
     if ((CurPage = wpReady)) then begin
       dbghelp := ExpandConstant('{sys}\DbgHelp.Dll');
       output := ExpandConstant('{app}\DbgHelp.Dll');
-      msvcrt := ExpandConstant('{sys}\msvcr70d.Dll');
+      msvcrt := ExpandConstant('{sys}\msvcr70.Dll');
       GetVersionNumbersString(dbghelp,m);
     if (NOT FileExists(msvcrt)) then begin
-      answer := MsgBox('Unreal requires the MS C Runtime 7.0 in order to run, do you wish to install it now?', mbConfirmation, MB_YESNO);
+      answer := MsgBox('Unreal necesita MS C Runtime 7.0 para funcionar. ¿Quiere instalarlo?', mbConfirmation, MB_YESNO);
       if answer = IDYES then begin
-        tmp := ExpandConstant('{tmp}\msvcr70d.Dll');
-        isxdl_SetOption('title', 'Downloading msvcr70d.dll');
+        tmp := ExpandConstant('{tmp}\msvcr70.Dll');
+        isxdl_SetOption('title', 'Descargando msvcr70.dll');
         hWnd := StrToInt(ExpandConstant('{wizardhwnd}'));
         if isxdl_Download(hWnd, crturl, tmp) = 0 then begin
-          MsgBox('Download and installation of msvcr70d.dll failed, the file must be manually installed. The file can be downloaded at http://www.unrealircd.com/downloads/mscvr70.dll', mbInformation, MB_OK);
+          MsgBox('La descarga e instalación de msvcr70.dll han fallado. El archivo tiene que instalarse manualmente. Puede descargarlo de http://www.unrealircd.com/downloads/mscvr70.dll', mbInformation, MB_OK);
         end else
           didCrtDl := true;
       end else
-        MsgBox('In order for Unreal to properly function, you must manually install msvcr70d.dll. The dll can be downloaded from http://www.unrealircd.com/downloads/msvcr70d.dll', mbInformation, MB_OK);
+        MsgBox('Esta librería es necesaria. Puede descargarla de http://www.unrealircd.com/downloads/msvcr70.dll', mbInformation, MB_OK);
     end;
     if (NOT FileExists(output)) then begin
           if (NOT FileExists(dbghelp)) then
         m := StringOfChar('0',1);
       if (StrToInt(m[1]) < 5) then begin
-        answer := MsgBox('DbgHelp.dll version 5.0 or higher is required to install Unreal, do you wish to install it now?', mbConfirmation, MB_YESNO);
+        answer := MsgBox('Se requiere DbgHelp.dll versión 5.0 o mayor. ¿Quiere instalarla?', mbConfirmation, MB_YESNO);
         if answer = IDYES then begin
           tmp := ExpandConstant('{tmp}\dbghelp.dll');
           isxdl_SetOption('title', 'Downloading DbgHelp.dll');
           hWnd := StrToInt(ExpandConstant('{wizardhwnd}'));
           if isxdl_Download(hWnd, dbgurl, tmp) = 0 then begin
-            MsgBox('Download and installation of DbgHelp.Dll failed, the file must be manually installed. The file can be downloaded at http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
+            MsgBox('La descarga e instalación de DbgHelp.Dll han fallado. El archivo tiene que instalarse manualmente. Puede descargarlo de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
           end else
             didDbgDl := true;
         end else
-        MsgBox('In order for Unreal to properly function you must manually install dbghelp.dll. The dll can be downloaded from http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
+        MsgBox('Esta librería es necesaria. Puede descargarla de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
       end;
     end;
   end;
@@ -153,8 +153,8 @@ begin
       FileCopy(input, output, true);
     end;
     if (didCrtDl) then begin
-      input := ExpandConstant('{tmp}\msvcr70d.dll');
-      output := ExpandConstant('{sys}\msvcr70d.dll');
+      input := ExpandConstant('{tmp}\msvcr70.dll');
+      output := ExpandConstant('{sys}\msvcr70.dll');
       FileCopy(input, output, true);
     end;
   end;
@@ -172,10 +172,10 @@ Name: "{userdesktop}\UnrealIRCd"; Filename: "{app}\wircd.exe"; WorkingDir: "{app
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\UnrealIRCd"; Filename: "{app}\wircd.exe"; WorkingDir: "{app}"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "notepad"; Description: "View example.conf"; Parameters: "{app}\doc\example.conf"; Flags: postinstall skipifsilent shellexec runmaximized
-Filename: "{app}\doc\unreal32docs.html"; Description: "View UnrealIRCd documentation"; Parameters: ""; Flags: postinstall skipifsilent shellexec runmaximized
-Filename: "notepad"; Description: "View Release Notes"; Parameters: "{app}\RELEASE.NOTES.txt"; Flags: postinstall skipifsilent shellexec runmaximized
-Filename: "notepad"; Description: "View Changes"; Parameters: "{app}\Changes.txt"; Flags: postinstall skipifsilent shellexec runmaximized
+Filename: "notepad"; Description: "Ver example.conf"; Parameters: "{app}\doc\example.conf"; Flags: postinstall skipifsilent shellexec runmaximized
+Filename: "{app}\doc\unreal32docs.html"; Description: "Ver UnrealIRCd documentation"; Parameters: ""; Flags: postinstall skipifsilent shellexec runmaximized
+Filename: "notepad"; Description: "Ver Release Notes"; Parameters: "{app}\RELEASE.NOTES.txt"; Flags: postinstall skipifsilent shellexec runmaximized
+Filename: "notepad"; Description: "Ver Changes"; Parameters: "{app}\Changes.txt"; Flags: postinstall skipifsilent shellexec runmaximized
 Filename: "{app}\unreal.exe"; Parameters: "install"; Flags: runminimized nowait; Tasks: installservice
 Filename: "{app}\unreal.exe"; Parameters: "config startup manual"; Flags: runminimized nowait; Tasks: installservice/startdemand
 Filename: "{app}\unreal.exe"; Parameters: "config startup auto"; Flags: runminimized nowait; Tasks: installservice/startboot
@@ -188,3 +188,5 @@ Filename: "{app}\encpem.bat"; WorkingDir: "{app}"; Tasks: enccert
 [UninstallRun]
 Filename: "{app}\unreal.exe"; Parameters: "uninstall"; Flags: runminimized; RunOnceID: "DelService"; Tasks: installservice
 
+[Languages]
+Name: "Castellano"; MessagesFile: "compiler:Languages\Spanish-5-4.1.4.isl"

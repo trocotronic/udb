@@ -43,9 +43,6 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
-#ifdef UDB
-#include "s_bdd.h"
-#endif
 
 DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -55,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.3 2004-10-31 20:21:54 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -246,9 +243,6 @@ DLLFUNC CMD_FUNC(m_topic)
 				}
 			}				
 			/* ready to set... */
-#ifdef UDB
-			set_topic(cptr, sptr, chptr, topic, 1);
-#else				
 			if (MyClient(sptr))
 			{
 				Hook *tmphook;
@@ -299,7 +293,6 @@ DLLFUNC CMD_FUNC(m_topic)
 			sendto_channel_butserv(chptr, sptr,
 			    ":%s TOPIC %s :%s", parv[0], chptr->chname,
 			    chptr->topic);
-#endif			    
 		}
 		else
 			sendto_one(sptr, err_str(ERR_CHANOPRIVSNEEDED),

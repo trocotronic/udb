@@ -78,8 +78,8 @@ long UMODE_STRIPBADWORDS = 0L; /* Strip badwords */
 long UMODE_HIDEWHOIS = 0L;     /* Hides channels in /whois */
 long UMODE_NOCTCP = 0L;	       /* Blocks ctcp (except dcc and action) */
 #ifdef UDB
-long UMODE_SHOWIP = 0L;		/* Puede ver las ips de usuarios con modo +x */
-long UMODE_SUSPEND = 0L;	/* Nick SUSPENDido */
+DLLFUNC long UMODE_SHOWIP = 0L;		/* Puede ver las ips de usuarios con modo +x */
+DLLFUNC long UMODE_SUSPEND = 0L;	/* Nick SUSPENDido */
 #endif
 
 long SNO_KILLS = 0L;
@@ -95,6 +95,7 @@ long SNO_FNICKCHANGE = 0L;
 long SNO_QLINE = 0L;
 long SNO_SPAMF = 0L;
 long SNO_SNOTICE = 0L;
+long SNO_OPER = 0L;
 
 long AllUmodes;		/* All umodes */
 long SendUmodes;	/* All umodes which are sent to other servers (global umodes) */
@@ -178,6 +179,7 @@ void	umode_init(void)
 	SnomaskAdd(NULL, 'q', umode_allow_opers, &SNO_QLINE);
 	SnomaskAdd(NULL, 'S', umode_allow_opers, &SNO_SPAMF);
 	SnomaskAdd(NULL, 's', umode_allow_all, &SNO_SNOTICE);
+	SnomaskAdd(NULL, 'o', umode_allow_opers, &SNO_OPER);
 }
 
 void make_umodestr(void)

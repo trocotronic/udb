@@ -47,12 +47,12 @@ DLLFUNC int m_svsjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
 /* Place includes here */
 #define MSG_SVSJOIN       "SVSJOIN"
-#define TOK_SVSJOIN       "BR"
+#define TOK_SVSJOIN       "BX"
 
 ModuleHeader MOD_HEADER(m_svsjoin)
   = {
 	"svsjoin",	/* Name of module */
-	"$Id: m_svsjoin.c,v 1.1.1.2 2004-07-04 13:19:23 Trocotronic Exp $", /* Version */
+	"$Id: m_svsjoin.c,v 1.1.1.3 2004-10-31 20:21:53 Trocotronic Exp $", /* Version */
 	"command /svsjoin", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

@@ -58,7 +58,7 @@ DLLFUNC int  m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.5 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.6 2004-10-31 20:21:50 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -380,6 +380,9 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					else
 						abort();
 					strlcpy(pfixchan+1, p2, sizeof(pfixchan)-1);
+					nick = pfixchan;
+				} else {
+					strlcpy(pfixchan, p2, sizeof(pfixchan));
 					nick = pfixchan;
 				}
 			}

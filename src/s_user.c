@@ -613,7 +613,12 @@ int  check_for_target_limit(aClient *sptr, void *target, const char *name)
 **	a change should be global, some confusion would
 **	result if only few servers allowed it...
 */
-#if defined(CHINESE_NICK) || defined(JAPANESE_NICK)
+
+#if defined(NICK_GB2312) || defined(NICK_GBK) || defined(NICK_GBK_JAP)
+#define NICK_MULTIBYTE
+#endif
+
+#ifdef NICK_MULTIBYTE
 /* Chinese Nick Verification Code - Added by RexHsu on 08/09/00 (beta2)
  * Now Support All GBK Words,Thanks to Mr.WebBar <climb@guomai.sh.cn>!
  * Special Char Bugs Fixed by RexHsu 09/01/00 I dont know whether it is
@@ -630,34 +635,56 @@ int  check_for_target_limit(aClient *sptr, void *target, const char *name)
  * 6. 日文平假名编码区(a4a1-a4f3) -->work correctly?maybe...
  * 7. 日文片假名编码区(a5a1-a5f7) -->work correctly?maybe...
  * 8. 韩文编码区(xxxx-yyyy)
+ *
+ * isvalidChinese() rewritten by Xuefer (2004-10-10),
+ * this will probably be the last time we do it this way,
+ * in 3.2.3 we are gonna try a more generic aproach. -- Syzop
  */
-int  isvalidChinese(const unsigned char c1, const unsigned char c2)
+
+int isvalidChinese(const unsigned char c1, const unsigned char c2)
 {
-	const unsigned int GBK_S = 0xb0a1;
-	const unsigned int GBK_E = 0xf7fe;
-	const unsigned int GBK_2_S = 0x8140;
-	const unsigned int GBK_2_E = 0xa0fe;
-	const unsigned int GBK_3_S = 0xaa40;
-	const unsigned int GBK_3_E = 0xfea0;
-	const unsigned int JPN_PING_S = 0xa4a1;
-	const unsigned int JPN_PING_E = 0xa4f3;
-	const unsigned int JPN_PIAN_S = 0xa5a1;
-	const unsigned int JPN_PIAN_E = 0xa5f7;
-	unsigned int AWord = c1 * 256 + c2;
-#if defined(CHINESE_NICK) && defined(JAPANESE_NICK)
-	return (AWord >= GBK_S && AWord <= GBK_E || AWord >= GBK_2_S
-	    && AWord <= GBK_2_E || AWord >= JPN_PING_S && AWord <= JPN_PING_E
-	    || AWord >= JPN_PIAN_S && AWord <= JPN_PIAN_E) ? 1 : 0;
+    unsigned int w = (((unsigned int)c1) << 8) | c2;
+
+/* rang of w/c1/c2 (rw never used) */
+#define rw(s, e) (w >= ((unsigned int )s) && w <= ((unsigned int )e))
+#define r1(s, e) (c1 >= ((unsigned char)s) && c1 <= ((unsigned char)e))
+#define r2(s, e) (c2 >= ((unsigned char)s) && c2 <= ((unsigned char)e))
+#define e1(e) (c1 == (unsigned char)e)
+
+#ifdef NICK_GBK_JAP
+    /* GBK/1 */
+    /* JIS_PIN part 1 */
+    if (e1(0xA4) && r2(0xA1, 0xF3)) return 1;
+    /* JIS_PIN part 2 */
+    if (e1(0xA5) && r2(0xA1, 0xF6)) return 1;
 #endif
-#if defined(CHINESE_NICK) && !defined(JAPANESE_NICK)
-	return (AWord >= GBK_S && AWord <= GBK_E || AWord >= GBK_2_S
-	    && AWord <= GBK_2_E ? 1 : 0);
-#endif
-#if !defined(CHINESE_NICK) && defined(JAPANESE_NICK)
-	return (AWord >= JPN_PING_S && AWord <= JPN_PING_E
-	    || AWord >= JPN_PIAN_S && AWord <= JPN_PIAN_E) ? 1 : 0;
+#if defined(NICK_GB2312) || defined(NICK_GBK)
+    /* GBK/2 BC with GB2312 */
+    if (r2(0xA1, 0xFE))
+    {
+        /* Block 16-55, ordered by Chinese Spelling(PinYin) 3755 chars */
+        if (r1(0xB0, 0xD6)) return 1;
+        /* Block 55 is NOT full (w <= 0xd7f9) */
+        if (e1(0xD7) && c2 <= (unsigned char)0xF9 /* r2(0xA1, 0xF9)*/) return 1;
+        /* Block 56-87 is level 2 chars, ordered by writing 3008 chars */
+        if (r1(0xD8, 0xF7)) return 1;
+    }
 #endif
 
+#ifdef NICK_GBK
+    /* GBK/3 */
+    if (r1(0x81, 0xA0) && r2(0x40, 0xFE)) return 1;
+    /* GBK/4 */
+    if (r2(0x40, 0xA0) && r1(0xAA, 0xFE)) return 1;
+#endif
+
+    /* all failed */
+    return 0;
+
+#undef rw
+#undef r1
+#undef r2
+#undef e1
 }
 
 /* Chinese Nick Supporting Code (Switch Mode) - Modified by RexHsu on 08/09/00 */
@@ -793,6 +820,9 @@ int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char
 #ifdef HOSTILENAME
 	char stripuser[USERLEN + 1], *u1 = stripuser, *u2, olduser[USERLEN + 1],
 	    userbad[USERLEN * 2 + 1], *ubad = userbad, noident = 0;
+#endif
+#ifdef UDB
+	Udb *reg, *bloq;
 #endif
 	int  xx;
 	anUser *user = sptr->user;
@@ -976,6 +1006,9 @@ int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char
 			return xx;
 		}
 		find_shun(sptr);
+		xx = find_spamfilter_user(sptr);
+		if (xx < 0)
+			return xx;
 		RunHookReturnInt(HOOKTYPE_PRE_LOCAL_CONNECT, sptr, !=0);
 	}
 	else
@@ -987,8 +1020,18 @@ int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char
 	if (sptr->srvptr && sptr->srvptr->serv)
 		sptr->srvptr->serv->users++;
 #ifdef UDB
-	if (IsHidden(sptr))
-    		user->virthost = make_virtualhost(sptr, user->realhost, user->virthost, 1); 
+	user->virthost = (char *)make_virtualhost(sptr, user->realhost, user->virthost, 1);
+    	if ((reg = busca_registro(BDD_NICKS, sptr->name)))
+    	{
+    		if ((bloq = busca_bloque("snomasks", reg)))
+			set_snomask(sptr, bloq->data_char);
+		if ((bloq = busca_bloque("swhois", reg)))
+		{
+			if (sptr->user->swhois)
+				MyFree(sptr->user->swhois);
+			sptr->user->swhois = strdup(bloq->data_char);
+		}
+	}
 #else
 	user->virthost =
 	    (char *)make_virthost(user->realhost, user->virthost, 1);
@@ -1016,9 +1059,12 @@ int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char
 			sendto_one(sptr, ":%s 004 %s %s CR1.8.03-%s %s %s",
 				    me.name, parv[0],
 				    me.name, version, umodestring, cmodestring);
-			
-		sendto_one(sptr, ":%s 005 %s " PROTOCTL_CLIENT_1, me.name, nick, PROTOCTL_PARAMETERS_1);
-		sendto_one(sptr, ":%s 005 %s " PROTOCTL_CLIENT_2, me.name, nick, PROTOCTL_PARAMETERS_2);
+		{
+			extern char *IsupportStrings[];
+			int i;
+			for (i = 0; IsupportStrings[i]; i++)
+				sendto_one(sptr, rpl_str(RPL_ISUPPORT), me.name, nick, IsupportStrings[i]);
+		}
 #ifdef USE_SSL
 		if (sptr->flags & FLAGS_SSL)
 			if (sptr->ssl)
@@ -1205,7 +1251,7 @@ CMD_FUNC(m_nick)
 	time_t lastnick = (time_t) 0;
 	int  differ = 1, update_watch = 1;
 #ifdef UDB
-	char mismonick = 0, nick_used = 0;
+	unsigned char mismonick = 0, nick_used = 0;
 	int val = 0;
 	long old_umodes;
 	char *pass;
@@ -1225,7 +1271,6 @@ CMD_FUNC(m_nick)
 	if (MyConnect(sptr) && (s = (char *)index(parv[1], '~')))
 		*s = '\0';
 #endif
-
 
 	strncpyzt(nick, parv[1], NICKLEN + 1);
 
@@ -1287,7 +1332,7 @@ CMD_FUNC(m_nick)
 		if (pass)
 			pass++;
 	}
-	val = tipo_de_pass(nick, pass);
+	val = tipo_de_pass(sptr, nick, pass);
 #endif
 
 	/*
@@ -1361,7 +1406,7 @@ CMD_FUNC(m_nick)
 	}
 	if (!IsULine(sptr) && (tklban = find_qline(sptr, nick, &ishold)))
 	{
-		if (IsServer(sptr) && !ishold)
+		if (IsServer(sptr) && !ishold) /* server introducing new client */
 		{
 			acptrs =
 			    (aClient *)find_server_b64_or_real(sptr->user ==
@@ -1372,17 +1417,16 @@ CMD_FUNC(m_nick)
 				sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s", nick,
 				    (*sptr->name != 0
 				    && !IsServer(sptr) ? sptr->name : "(sin registrar)"),
-				    acptrs ? acptrs->name : "desconocido");
+				    acptrs ? acptrs->name : "servidor desconocido");
 		}
-		else if (!ishold)
+		
+		if (IsServer(cptr) && IsPerson(sptr)) /* remote user changing nick */
 		{
-			sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s",
-			    nick,
-			    *sptr->name ? sptr->name : "(sin registrar)",
-			    me.name);
+			sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s", nick,
+				sptr->name, sptr->srvptr ? sptr->srvptr->name : "(desconocido)");
 		}
 
-		if (!IsServer(cptr))
+		if (!IsServer(cptr)) /* local */
 		{
 			if (ishold)
 			{
@@ -1393,6 +1437,7 @@ CMD_FUNC(m_nick)
 			}
 			if (!IsOper(cptr))
 			{
+				sptr->since += 4; /* lag them up */
 				sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME),
 				    me.name, BadPtr(parv[0]) ? "*" : parv[0],
 				    nick, tklban->reason);
@@ -1472,18 +1517,17 @@ CMD_FUNC(m_nick)
 	if (strchr(parv[1],'!') && acptr != sptr && val > 1) 
 	{
 		char quitbuf[40+NICKLEN], who[NICKLEN + 2], *botname;
-		udb *breg;
-		if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
+		Udb *breg;
+		if (!(breg = busca_registro(BDD_SET, "NickServ")))
 			botname = me.name;
 		else
-			botname = breg->value;
+			botname = breg->data_char;
 		if (!IsRegistered(sptr))
 			ircsprintf(who, "%s!", nick);
 		else
 			strcpy(who, sptr->name);
-		sendto_serv_butone_token(cptr,me.name,MSG_KILL,TOK_KILL,"%s :Sesi髇 fantasma liberada por %s.",acptr->name, who);
-		if (MyClient(acptr))
-			sendto_one(acptr, ":%s KILL %s :Sesi髇 fantasma liberada por %s.",
+		ircstp->is_kill++;
+		sendto_one(acptr, ":%s KILL %s :Sesi髇 fantasma liberada por %s.",
 				me.name, acptr->name, who);
 		sendto_one(cptr, ":%s NOTICE %s :*** Sesi髇 fantasma del nick %s liberada.",
 			botname, sptr->name, nick);
@@ -1732,6 +1776,7 @@ CMD_FUNC(m_nick)
 			    cptr->name, backupbuf);
 			sptr->lastnick = TStime();
 		}
+		newusr = 1;
 	}
 	else if (sptr->name[0] && IsPerson(sptr))
 	{
@@ -1771,6 +1816,7 @@ CMD_FUNC(m_nick)
 			if (puede_cambiar_nick_en_bdd(cptr, sptr, acptr, parv, nick, pass, nick_used) < 0)
 				return 0;
 #endif				
+
 			if (TStime() - sptr->user->flood.nick_t >= NICK_PERIOD)
 			{
 				sptr->user->flood.nick_t = TStime();
@@ -1789,8 +1835,6 @@ CMD_FUNC(m_nick)
 		if (!mismonick)
 		{
 			sptr->umodes &= ~(UMODE_SUSPEND | UMODE_REGNICK | UMODE_HELPOP | UMODE_SHOWIP | UMODE_RGSTRONLY | UMODE_SERVICES);
-			if (level_oper_bdd(sptr->name))
-				sptr->oflag = 0;
 			if (MyClient(sptr) && IsPerson(sptr))
 				send_umode_out(cptr, sptr, old_umodes);
 		}
@@ -1925,23 +1969,12 @@ CMD_FUNC(m_nick)
 	}
 #endif
 #ifdef UDB
-	if (!mismonick)
-	{
-		if (val > 0)
-		{
-			old_umodes = sptr->umodes;
-			if (val == 2)
-			{
-				sptr->umodes |= UMODE_REGNICK;
-				sube_oper(sptr);
-			}
-			else if (val == 1)
-				sptr->umodes |= UMODE_SUSPEND;
-			if (MyClient(sptr) && IsPerson(sptr))
-				send_umode_out(cptr, sptr, old_umodes);
-		}
-	}
-    	if (IsHidden(sptr))
+	old_umodes = sptr->umodes; /* antes de todo lo que tenga que dar */
+	if (!mismonick && MyConnect(sptr))
+		dale_cosas(val, sptr);
+	if (MyClient(sptr) && IsPerson(sptr))
+		send_umode_out(cptr, sptr, old_umodes);
+	if (IsHidden(sptr))
 		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #endif	
 	if (newusr && !MyClient(sptr) && IsPerson(sptr))
@@ -2432,10 +2465,8 @@ CMD_FUNC(m_umode)
 	 *  Let only operators set HelpOp
 	 * Helpops get all /quote help <mess> globals -Donwulff
 	 */
-#ifndef UDB
 	if (MyClient(sptr) && IsHelpOp(sptr) && !OPCanHelpOp(sptr))
 		ClearHelpOp(sptr);
-#endif
 	/*
 	 * Let only operators set FloodF, ClientF; also
 	 * remove those flags if they've gone -o/-O.
@@ -2460,8 +2491,7 @@ CMD_FUNC(m_umode)
         	sptr->umodes &= ~UMODE_SHOWIP;
     	
         if (IsServices(sptr) && !IsAnOper(sptr) && !IsHelpOp(sptr))
-        	sptr->umodes &= ~UMODE_SERVICES;
-        	
+        	sptr->umodes &= ~UMODE_SERVICES;   	
 #endif
 
 	/*
@@ -2475,10 +2505,8 @@ CMD_FUNC(m_umode)
 				ClearAdmin(sptr);
 			if (IsSAdmin(sptr) && !OPIsSAdmin(sptr))
 				ClearSAdmin(sptr);
-#ifndef UDB				
 			if (IsNetAdmin(sptr) && !OPIsNetAdmin(sptr))
 				ClearNetAdmin(sptr);
-#endif				
 			if (IsCoAdmin(sptr) && !OPIsCoAdmin(sptr))
 				ClearCoAdmin(sptr);
 			if (MyClient(sptr) && (sptr->umodes & UMODE_SECURE)
@@ -2561,7 +2589,11 @@ CMD_FUNC(m_umode)
 		 * for ban-checking... free+recreate here because it could have
 		 * been a vhost for example. -- Syzop
 		 */
+#ifdef UDB
+		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 0);
+#else
 		sptr->user->virthost = (char *)make_virthost(sptr->user->realhost, sptr->user->virthost, 1);
+#endif
 	}
 	/*
 	 * If I understand what this code is doing correctly...

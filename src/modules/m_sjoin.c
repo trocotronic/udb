@@ -52,7 +52,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.5 2004-10-31 20:21:52 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -480,6 +480,7 @@ CMD_FUNC(m_sjoin)
 #endif
 			} else {
 				add_user_to_channel(chptr, acptr, modeflags);
+				RunHook4(HOOKTYPE_REMOTE_JOIN, cptr, acptr, chptr, NULL);
 				if (chptr->mode.mode & MODE_AUDITORIUM)
 				{
 					if (modeflags & (CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER))

@@ -52,7 +52,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.4 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.5 2004-10-31 20:21:51 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -324,7 +324,7 @@ CMD_FUNC(m_protoctl)
 		 * support it.
 		 */
 #ifdef UDB
- 		else if (strcmp(s, "UDB2") == 0)
+ 		else if (strcmp(s, "UDB3") == 0)
 		{
 #ifndef PROTOCTL_MADNESS
 			if (remove)
@@ -337,13 +337,12 @@ CMD_FUNC(m_protoctl)
 			    proto, cptr->name));
 			cptr->proto |= PROTO_UDB;
 		}
-		else if (strcmp(s, "UDB") == 0)
+		else if (!strcmp(s, "UDB") || !strcmp(s, "UDB2"))
 		{
-			sendto_one(cptr, "ERROR: Versión UDB incorrecta (eres UDB pero quieres linkar a un servidor UDB2)");
-			return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta (eres UDB pero quieres linkar a un servidor UDB2)");
-			return 1;
+			sendto_one(cptr, "ERROR: Versión UDB incorrecta");
+			return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta");
 		}
-#endif		
+#endif
 	}
 
 	return 0;

@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.3 2004-07-04 13:19:22 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.4 2004-10-31 20:21:52 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -784,8 +784,12 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	}
 #ifdef UDB
 	if (IsUDB(cptr))
-		for (bdd = PRIMERA_LETRA; bdd <= ULTIMA_LETRA; bdd++)
-			sendto_one(cptr, ":%s DB %s %s J %09lu %c", me.name, cptr->name, corruptas[bdd] ? "C" : "0", series[bdd], bdd);
+	{
+		sendto_one(cptr, ":%s DB %s INF N %s", me.name, cptr->name, nicks->data_char);
+		sendto_one(cptr, ":%s DB %s INF C %s", me.name, cptr->name, canales->data_char);
+		sendto_one(cptr, ":%s DB %s INF I %s", me.name, cptr->name, ips->data_char);
+		sendto_one(cptr, ":%s DB %s INF S %s", me.name, cptr->name, set->data_char);
+	}
 #endif		
 	/* Synching nick information */
 	for (acptr = &me; acptr; acptr = acptr->prev)
@@ -935,10 +939,12 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	    IRCstats.global_max, TStime(), UnrealProtocol,
 	    CLOAK_KEYCRC,
 	    ircnetwork);
-
+#ifndef UDB
+	/* primero tenemos que saber si hay que pasar bloques o no */
 	/* Send EOS (End Of Sync) to the just linked server... */
 	sendto_one(cptr, ":%s %s", me.name,
 		(IsToken(cptr) ? TOK_EOS : MSG_EOS));
+#endif
 #ifdef DEBUGMODE
 	ircd_log(LOG_ERROR, "[EOSDBG] m_server_synch: sending to justlinked '%s' with src ME...",
 			cptr->name);

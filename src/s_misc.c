@@ -69,14 +69,14 @@ extern void exit_one_client_in_split(aClient *, aClient *, aClient *,
     char *);
 
 static char *months[] = {
-	"January", "February", "March", "April",
-	"May", "June", "July", "August",
-	"September", "October", "November", "December"
+	"Enero", "Febrero", "Marzo", "Abril",
+	"Mayo", "Junio", "Julio", "Agosto",
+	"Septiembre", "Octubre", "Noviembre", "Diciembre"
 };
 
 static char *weekdays[] = {
-	"Sunday", "Monday", "Tuesday", "Wednesday",
-	"Thursday", "Friday", "Saturday"
+	"Domingo", "Lunes", "Martes", "Miércoles",
+	"Jueves", "Viernes", "Sábado"
 };
 
 /*
@@ -987,6 +987,8 @@ int flags = 0;
 			case 'P': flags |= SPAMF_PART; break;
 			case 'q': flags |= SPAMF_QUIT; break;
 			case 'd': flags |= SPAMF_DCC; break;
+			case 'u': flags |= SPAMF_USER; break;
+			case 'a': flags |= SPAMF_AWAY; break;
 			default:
 				if (sptr)
 				{
@@ -1017,6 +1019,10 @@ int flags = 0;
 		return SPAMF_QUIT;
 	if (!strcmp(s, "dcc"))
 		return SPAMF_DCC;
+	if (!strcmp(s, "user"))
+		return SPAMF_USER;
+	if (!strcmp(s, "away"))
+		return SPAMF_AWAY;
 	return 0;
 }
 
@@ -1039,6 +1045,10 @@ char *p = buf;
 		*p++ = 'q';
 	if (v & SPAMF_DCC)
 		*p++ = 'd';
+	if (v & SPAMF_USER)
+		*p++ = 'u';
+	if (v & SPAMF_AWAY)
+		*p++ = 'a';
 	*p = '\0';
 	return buf;
 }
@@ -1060,6 +1070,10 @@ char *spamfilter_inttostring_long(int v)
 			return "QUIT";
 		case SPAMF_DCC:
 			return "DCC";
+		case SPAMF_USER:
+			return "user";
+		case SPAMF_AWAY:
+			return "AWAY";
 		default:
 			return "UNKNOWN";
 	}

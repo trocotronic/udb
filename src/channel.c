@@ -86,10 +86,6 @@ int check_channelmask(aClient *, aClient *, char *);
 int del_banid(aChannel *, char *);
 void set_mode(aChannel *, aClient *, int, char **, u_int *,
     char[MAXMODEPARAMS][MODEBUFLEN + 3], int);
-#ifdef UDB
-void set_topic(aClient *, aClient *, aChannel *, char *, int);
-extern void set_chmodes(char *, Mode *, int);
-#endif
 
 #ifdef EXTCMODE
 void make_mode_str(aChannel *, long, Cmode_t, long, int,
@@ -178,7 +174,11 @@ char cmodestring[512];
 inline int op_can_override(aClient *sptr)
 {
 #ifndef NO_OPEROVERRIDE
+#ifdef UDB
+	if (!IsHOper(sptr))
+#else
 	if (!IsOper(sptr))
+#endif
 		return 0;
 	if (MyClient(sptr) && !OPCanOverride(sptr))
 		return 0;
@@ -589,7 +589,7 @@ Ban *is_banned(aClient *sptr, aChannel *chptr, int type)
 
 	if (MyConnect(sptr)) {
 		mine = 1;
-		s = make_nick_user_host(sptr->name, sptr->user->username, sptr->sockhost);
+		s = make_nick_user_host(sptr->name, sptr->user->username, GetIP(sptr));
 		strlcpy(nuip, s, sizeof nuip);
 		ban_ip = nuip;
 	}
@@ -755,10 +755,6 @@ int  is_chan_op(aClient *cptr, aChannel *chptr)
 {
 	Membership *lp;
 /* chanop/halfop ? */
-#ifdef UDB
-	if (IsMe(cptr) || is_chanowner(cptr, chptr))
-		return 1;
-#endif
 	if (IsServer(cptr))
 		return 1;
 	if (chptr)
@@ -775,10 +771,6 @@ int  is_chan_op(aClient *cptr, aChannel *chptr)
 int  has_voice(aClient *cptr, aChannel *chptr)
 {
 	Membership *lp;
-#ifdef UDB
-	if (IsMe(cptr) || is_chanowner(cptr, chptr))
-		return 1;
-#endif
 
 	if (IsServer(cptr))
 		return 1;
@@ -791,10 +783,6 @@ int  has_voice(aClient *cptr, aChannel *chptr)
 int  is_halfop(aClient *cptr, aChannel *chptr)
 {
 	Membership *lp;
-#ifdef UDB
-	if (IsMe(cptr) || is_chanowner(cptr, chptr))
-		return 1;
-#endif
 
 	if (IsServer(cptr))
 		return 1;
@@ -808,8 +796,7 @@ int  is_halfop(aClient *cptr, aChannel *chptr)
 #ifdef UDB
 int is_chanreg(char *chname)
 {
-	udb *reg;
-	if (!(reg = busca_registro(BDD_CANALES, chname)))
+	if (!busca_registro(BDD_CHANS, chname))
 		return 0;
 	else
 		return 1;
@@ -819,29 +806,22 @@ int is_chanreg(char *chname)
 int  is_chanowner(aClient *cptr, aChannel *chptr)
 {
 	Membership *lp;
-#ifdef UDB	
-	udb *reg;
-	if (IsMe(cptr))
-		return 1;
+#ifdef UDB
+	Udb *reg, *bloq;
 #endif
 
 	if (IsServer(cptr))
 		return 1;
 #ifdef UDB
-	if (!(reg = busca_registro(BDD_CANALES, chptr->chname)) || !reg->value[0] || !IsARegNick(cptr))
-		return 0;		
-	else
+	if ((reg = busca_registro(BDD_CHANS, chptr->chname)))
 	{
-		char *owner, *valor;
-		valor = malloc(sizeof(char) * strlen(reg->value) + 1);
-		strcpy(valor, reg->value);
-		owner = strtok(valor, "\t");
-		if (!owner || strcasecmp(cptr->name, owner))
-			return 0;
-		else
-			return 1;
+		if ((bloq = busca_bloque("fundador", reg)))
+		{
+			if (IsARegNick(cptr) && !strcasecmp(bloq->data_char, cptr->name))
+				return 1;
+		}
 	}
-#endif	
+#endif
 	if (chptr)
 		if ((lp = find_membership_link(cptr->user->channel, chptr)))
 			return (lp->flags & CHFL_CHANOWNER);
@@ -851,10 +831,6 @@ int  is_chanowner(aClient *cptr, aChannel *chptr)
 
 int is_chanownprotop(aClient *cptr, aChannel *chptr) {
 	Membership *lp;
-#ifdef UDB
-	if (IsMe(cptr))
-		return 1;
-#endif			
 		
 	if (IsServer(cptr))
 		return 1;
@@ -867,10 +843,6 @@ int is_chanownprotop(aClient *cptr, aChannel *chptr) {
 
 int is_skochanop(aClient *cptr, aChannel *chptr) {
 	Membership *lp;
-#ifdef UDB
-	if (IsMe(cptr))
-		return 1;
-#endif			
 		
 	if (IsServer(cptr))
 		return 1;
@@ -884,10 +856,6 @@ int is_skochanop(aClient *cptr, aChannel *chptr) {
 int  is_chanprot(aClient *cptr, aChannel *chptr)
 {
 	Membership *lp;
-#ifdef UDB
-	if (IsMe(cptr))
-		return 1;
-#endif	
 
 	if (chptr)
 		if ((lp = find_membership_link(cptr->user->channel, chptr)))
@@ -921,12 +889,15 @@ int  can_send(aClient *cptr, aChannel *chptr, char *msgtext, int notice)
 
 			lp = find_membership_link(cptr->user->channel, chptr);
 			if ((chptr->mode.mode & MODE_MODERATED) && (chptr->mode.mode & MODE_AUDITORIUM) &&
+#ifdef UDB
+				!IsHOper(cptr) &&
+#else
 			    !IsOper(cptr) &&
+#endif
 		        (!lp || !(lp->flags & (CHFL_CHANOP|CHFL_VOICE|CHFL_CHANOWNER|CHFL_HALFOP|CHFL_CHANPROT))) &&
 		        !is_irc_banned(chptr))
 		    {
-				sendto_chanops_butone(cptr, chptr, ":IRC PRIVMSG %s :%s: %s",
-					chptr->chname, cptr->name, msgtext);
+				sendto_chmodemucrap(cptr, chptr, msgtext);
 				return (CANNOT_SEND_MODERATED);
 			}
 		}
@@ -971,7 +942,11 @@ int  can_send(aClient *cptr, aChannel *chptr, char *msgtext, int notice)
 
 
 	/* Makes opers able to talk thru bans -Stskeeps suggested by The_Cat */
+#ifdef UDB
+	if (IsHOper(cptr))
+#else
 	if (IsOper(cptr))
+#endif
 		return 0;
 
 	if ((!lp
@@ -1454,10 +1429,11 @@ CMD_FUNC(m_mode)
 
 #ifndef NO_OPEROVERRIDE
         if (IsPerson(sptr) && !IsULine(sptr) && !is_chan_op(sptr, chptr)
-            && !is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsOper(sptr) 
 #ifdef UDB
-		|| IsHelpOp(sptr) && OPCanOverride(sptr)) : (IsOper(sptr) || IsHelpOp(sptr))))
+		&& !is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsHOper(sptr) 
+	    && OPCanOverride(sptr)) : IsHOper(sptr)))
 #else
+            && !is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsOper(sptr) 
 	    && OPCanOverride(sptr)) : IsOper(sptr)))
 #endif
         {
@@ -1467,10 +1443,11 @@ CMD_FUNC(m_mode)
         }
 
         if (IsPerson(sptr) && !IsULine(sptr) && !is_chan_op(sptr, chptr)
-            && is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsOper(sptr)
 #ifdef UDB
-		|| IsHelpOp(sptr) && OPCanOverride(sptr)) : (IsOper(sptr) || IsHelpOp(sptr))))
+		&& is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsHOper(sptr)
+	    && OPCanOverride(sptr)) : IsHOper(sptr)))
 #else
+            && is_half_op(sptr, chptr) && (MyClient(sptr) ? (IsOper(sptr)
 	    && OPCanOverride(sptr)) : IsOper(sptr)))
 #endif
         {
@@ -1481,7 +1458,11 @@ CMD_FUNC(m_mode)
 
 	if (IsPerson(sptr) && !IsULine(sptr) && !is_chan_op(sptr, chptr)
 	    && !is_half_op(sptr, chptr)
+#ifdef UDB
+		&& (cptr == sptr || !IsSAdmin(sptr) || !IsHOper(sptr)))
+#else
 	    && (cptr == sptr || !IsSAdmin(sptr) || !IsOper(sptr)))
+#endif
 	{
 		if (cptr == sptr)
 		{
@@ -1919,11 +1900,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	  case MODE_AUDITORIUM:
 		  if (IsULine(cptr) || IsServer(cptr))
 			  goto auditorium_ok;
-		  if (!IsNetAdmin(cptr) && !is_chanowner(cptr, chptr)
-#ifdef UDB
-			&& !IsMe(cptr)
-#endif			  
-		  )
+		  if (!IsNetAdmin(cptr) && !is_chanowner(cptr, chptr))
 		  {
 			sendto_one(cptr, err_str(ERR_CHANOWNPRIVNEEDED), me.name, cptr->name,
 				   chptr->chname);
@@ -1942,9 +1919,6 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  goto setthephuckingmode;
 	  case MODE_ADMONLY:
 		  if (!IsSkoAdmin(cptr) && !IsServer(cptr)
-#ifdef UDB
-			&& !IsMe(cptr)
-#endif			  
 		      && !IsULine(cptr))
 		  {
 			sendto_one(cptr, err_str(ERR_NOPRIVILEGES), me.name, cptr->name);
@@ -1952,11 +1926,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  }
 		  goto setthephuckingmode;
 	  case MODE_RGSTR:
-		  if (!IsServer(cptr) && !IsULine(cptr)
-#ifdef UDB
-			&& !IsMe(cptr)
-#endif			  
-		  )
+		  if (!IsServer(cptr) && !IsULine(cptr))
 		  {
 			sendto_one(cptr, err_str(ERR_ONLYSERVERSCANCHANGE), me.name, cptr->name,
 				   chptr->chname);
@@ -1989,11 +1959,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		goto setthephuckingmode;
 	  case MODE_ONLYSECURE:
 	  	notsecure = 0;
-	  	if (what == MODE_ADD && modetype == MODE_ONLYSECURE && !(IsServer(cptr) || IsULine(cptr)
-#ifdef UDB
-			|| IsMe(cptr)
-#endif		  	
-	  	))
+	  	if (what == MODE_ADD && modetype == MODE_ONLYSECURE && !(IsServer(cptr) || IsULine(cptr)))
 		{
 		  for (member = chptr->members; member; member = member->next)
 		  {
@@ -2172,7 +2138,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				   modechar, errbuf);
 				break;
 			  } else
+#ifdef UDB
+			if (IsHOper(cptr))
+#else
 			  if (IsOper(cptr))
+#endif
 			      opermode = 1;
 		  }
 		  if (is_chanprot(member->cptr, chptr)
@@ -2188,7 +2158,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				   modechar, errbuf);
 				break;
 			  } else
+#ifdef UDB
+			if (IsHOper(cptr))
+#else
 			  if (IsOper(cptr))
+#endif
 			      opermode = 1;
 		  }
 		breaktherules:
@@ -3068,14 +3042,17 @@ void set_mode(aChannel *chptr, aClient *cptr, int parc, char *parv[], u_int *pco
 					}
 #endif
 			  }
-			  if (found == 0)
+			  if (found == 0) /* Mode char unknown */
 			  {
-				  if (!MyClient(cptr))
-					  break;
-				  /* don't flood other servers */
-				  sendto_one(cptr,
-				      err_str(ERR_UNKNOWNMODE),
-				      me.name, cptr->name, *curchr);
+			      /* temporary hack: eat parameters of certain future chanmodes.. */
+			      if (*curchr == 'I')
+				      paracount++;
+				  if ((*curchr == 'j') && (what == MODE_ADD))
+					  paracount++;
+
+				  if (MyClient(cptr))
+					  sendto_one(cptr, err_str(ERR_UNKNOWNMODE),
+					     me.name, cptr->name, *curchr);
 				  break;
 			  }
 
@@ -3414,10 +3391,24 @@ Ban *banned;
 
 #ifndef NO_OPEROVERRIDE
 #ifdef OPEROVERRIDE_VERIFY
+#ifdef UDB
+	 if (IsHOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
+#else
         if (IsOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
+#endif
             chptr->mode.mode & MODE_PRIVATE))
                 return (ERR_OPERSPVERIFY);
 #endif
+#endif
+#ifdef UDB
+	{
+		Udb *reg, *bloq;
+		if ((reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque("accesos", reg)))
+		{
+			if ((!busca_bloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
+				return (ERR_BANNEDFROMCHAN);
+		}
+	}
 #endif
 
         return 0;
@@ -3482,13 +3473,8 @@ aChannel *get_channel(aClient *cptr, char *chname, int flag)
 		return NULL;
 
 	len = strlen(chname);
-#ifdef UDB
-	if (cptr && MyClient(cptr) && len > CHANNELLEN) 
-	{
-#else			
 	if (MyClient(cptr) && len > CHANNELLEN)
 	{
-#endif	
 		len = CHANNELLEN;
 		*(chname + CHANNELLEN) = '\0';
 	}
@@ -3505,11 +3491,6 @@ aChannel *get_channel(aClient *cptr, char *chname, int flag)
 		chptr->topic_nick = NULL;
 		chptr->prevch = NULL;
 		chptr->nextch = channel;
-#ifdef UDB
-		if (cptr == NULL)		
-			chptr->creationtime = TStime();
-		else
-#endif			
 		chptr->creationtime = MyClient(cptr) ? TStime() : (TS)0;
 		channel = chptr;
 		(void)add_to_channel_hash_table(chname, chptr);
@@ -3694,30 +3675,27 @@ void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags)
 {
 	char *parv[] = { 0, 0 };
 #ifdef UDB
-	char *founder, *modos, *topic, *botname;
-	udb *reg, *breg;
-	int udbflags = 0;
-	if (!(breg = busca_registro(BDD_BOTS, BDD_CHANSERV)) || !breg->value[0])
-		botname = me.name;
-	else
-		botname = breg->value;
-	udbflags = 0L;
-	if ((reg = busca_registro(BDD_CANALES, chptr->chname)))
+	char *founder, *modos, *topic;
+	Udb *reg, *bloq;
+	int f = 0, udbflags = 0;
+	if (MyClient(sptr) && (reg = busca_registro(BDD_CHANS, chptr->chname)))
 	{
-		if (is_chanowner(sptr, chptr))
-			udbflags = (CHFL_CHANOP | CHFL_CHANOWNER);
+		bloq = busca_bloque("suspendido", reg);
+		if ((f = is_chanowner(sptr, chptr)) && !bloq)
+			udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
 		else
-			udbflags = CHFL_DEOPPED;
+			udbflags |= CHFL_DEOPPED;
 	}
 #endif		
 	/*
 	   **  Complete user entry to the new channel (if any)
 	 */
 #ifdef UDB
-		add_user_to_channel(chptr, sptr, udbflags | flags);
-#else		 
+		add_user_to_channel(chptr, sptr, flags | udbflags);
+#else
 		add_user_to_channel(chptr, sptr, flags);
-#endif	
+#endif
+
 	/*
 	   ** notify all other users on the new channel
 	 */
@@ -3841,44 +3819,24 @@ void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags)
 #ifdef UDB
 		if (reg)
 		{
-			char *botnick, *regaux, *b;
-			int p, f;
-			aClient *acptr;
-			regaux = strdup(reg->value);
-			founder = strtok(regaux,"\t");
-			modos = strtok(NULL,"\t");
-			topic = strtok(NULL,"\t");
-			b = strdup(botname);
-			if (!(botnick = strtok(b, "!")))
-				botnick = me.name;
-			f = strcasecmp(founder, sptr->name);
 			buf[0] = '\0';
-			if (chptr->users == 1)
-			{
-				if (!f && IsARegNick(sptr))
-					ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
-				else
-					ircsprintf(buf, "-o %s", sptr->name);
-			}
-			else
-			{
-				if (!f && IsARegNick(sptr))
-					ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
-			}
-			acptr = find_client(botnick, NULL);
+			if (f && !bloq)
+				ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
+			else if (chptr->users == 1)
+				ircsprintf(buf, "-o %s", sptr->name);
 			if (buf[0] != '\0')
 			{
-				sendto_serv_butone_token(&me, acptr ? botnick : me.name, MSG_MODE, TOK_MODE, "%s %s", chptr->chname, buf);
-				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", acptr ? botname : me.name, chptr->chname, buf);
+				sendto_serv_butone_token(&me, chan_nick(), MSG_MODE, TOK_MODE, "%s %s", chptr->chname, buf);
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", chan_mask(), chptr->chname, buf);
 			}
-			free(regaux);
-			free(b);
 		}
 #endif
 		parv[0] = sptr->name;
 		parv[1] = chptr->chname;
 		(void)m_names(cptr, sptr, 2, parv);
 		RunHook4(HOOKTYPE_LOCAL_JOIN, cptr, sptr,chptr,parv);
+	} else {
+		RunHook4(HOOKTYPE_REMOTE_JOIN, cptr, sptr, chptr, parv); /* (rarely used) */
 	}
 
 #ifdef NEWCHFLOODPROT
@@ -4067,6 +4025,17 @@ CMD_FUNC(do_join)
 					}
 				}
 			}
+#ifdef UDB
+			if (!IsOper(sptr) && !IsULine(sptr))
+			{
+				Udb *reg, *bloq;
+				if ((reg = busca_registro(BDD_CHANS, name)) && (bloq = busca_bloque("forbid", reg)))
+				{
+					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", chan_mask(), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
+					continue;
+				}
+			}
+#endif
 			/* ugly set::spamfilter::virus-help-channel-deny hack.. */
 			if (SPAMFILTER_VIRUSCHANDENY && SPAMFILTER_VIRUSCHAN &&
 			    !strcasecmp(name, SPAMFILTER_VIRUSCHAN) &&
@@ -4310,6 +4279,8 @@ CMD_FUNC(m_part)
 			}
 			if (MyClient(sptr))
 				RunHook4(HOOKTYPE_LOCAL_PART, cptr, sptr, chptr, comment);
+			else
+				RunHook4(HOOKTYPE_REMOTE_PART, cptr, sptr, chptr, comment);
 
 			remove_user_from_channel(sptr, chptr);
 		}
@@ -4508,6 +4479,11 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 	if ((lp2->flood.nmsg) > c_limit)
 	{
 		char comment[1024], mask[1024];
+#ifdef UDB
+		char *botname, *botnick;
+		botname = chan_mask();
+		botnick = chan_nick();
+#endif
 		ircsprintf(comment,
 		    "Flood (Límite en %i líneas cada %i segundos)",
 		    c_limit, t_limit);
@@ -4515,7 +4491,22 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 		{		/* ban. */
 			ircsprintf(mask, "*!*@%s", GetHost(sptr));
 			add_banid(&me, chptr, mask);
+#ifdef UDB
+			
 			sendto_serv_butone(&me, ":%s MODE %s +b %s 0",
+			    botnick, chptr->chname, mask);
+			sendto_channel_butserv(chptr, &me,
+			    ":%s MODE %s +b %s", botname, chptr->chname, mask);
+		}
+		sendto_channel_butserv(chptr, &me,
+		    ":%s KICK %s %s :%s", botname,
+		    chptr->chname, sptr->name, comment);
+		sendto_serv_butone_token(cptr, botnick,
+			MSG_KICK, TOK_KICK, 
+			"%s %s :%s",
+		   chptr->chname, sptr->name, comment);
+#else
+		sendto_serv_butone(&me, ":%s MODE %s +b %s 0",
 			    me.name, chptr->chname, mask);
 			sendto_channel_butserv(chptr, &me,
 			    ":%s MODE %s +b %s", me.name, chptr->chname, mask);
@@ -4527,6 +4518,7 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 			MSG_KICK, TOK_KICK, 
 			"%s %s :%s",
 		   chptr->chname, sptr->name, comment);
+#endif
 		remove_user_from_channel(sptr, chptr);
 		return 1;
 	}
@@ -4625,11 +4617,11 @@ CMD_FUNC(m_names)
 				    flags & (CHFL_CHANOP | CHFL_CHANPROT |
 				    CHFL_CHANOWNER)) && acptr != sptr)
 					continue;
-					
+
 #ifdef UDB
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
-			buf[idx++] = '.';
+			buf[idx++] = '.';	
 		if (cm->flags & CHFL_CHANPROT)
 			buf[idx++] = '&';
 #endif
@@ -4640,10 +4632,9 @@ CMD_FUNC(m_names)
 		if (cm->flags & CHFL_VOICE)
 			buf[idx++] = '+';
 #else
-
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
-			buf[idx++] = '~';
+			buf[idx++] = '~';	
 		else if (cm->flags & CHFL_CHANPROT)
 			buf[idx++] = '&';
 		else
@@ -4654,7 +4645,7 @@ CMD_FUNC(m_names)
 			buf[idx++] = '%';
 		else if (cm->flags & CHFL_VOICE)
 			buf[idx++] = '+';
-#endif
+#endif /* UDB */
 		for (s = acptr->name; *s; s++)
 			buf[idx++] = *s;
 		buf[idx++] = ' ';

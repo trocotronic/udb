@@ -54,7 +54,7 @@ DLLFUNC int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC ModuleHeader MOD_HEADER(m_away)
   = {
 	"m_away",
-	"$Id: m_away.c,v 1.1.1.2 2004-07-04 13:19:21 Trocotronic Exp $",
+	"$Id: m_away.c,v 1.1.1.3 2004-10-31 20:21:48 Trocotronic Exp $",
 	"command /away", 
 	"3.2-b8-1",
 	NULL 
@@ -97,8 +97,10 @@ DLLFUNC int MOD_UNLOAD(m_away)(int module_unload)
 **      parv[0] = sender prefix
 **      parv[1] = away message
 */
-int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
-        char *away, *awy2 = parv[1];
+int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[])
+{
+char *away, *awy2 = parv[1];
+int n;
 
 	if (IsServer(sptr))
 		return 0;
@@ -119,6 +121,10 @@ int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
                         sendto_one(sptr, rpl_str(RPL_UNAWAY), me.name, parv[0]);
                 return 0;
         }
+
+    n = dospamfilter(sptr, parv[1], SPAMF_AWAY, NULL);
+    if (n < 0)
+        return n;
 
 #ifdef NO_FLOOD_AWAY
 	if (MyClient(sptr) && AWAY_PERIOD && !IsAnOper(sptr))
