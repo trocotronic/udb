@@ -18,7 +18,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: msg.h,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
+ *   $Id: msg.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
  */
 
 #ifndef	__msg_include__
@@ -310,28 +310,20 @@
 #define MAXPARA    	15
 
 extern int m_join(), m_part(), m_mode();
-extern int m_wallops();
 extern int m_nick(), m_error();
-extern int m_chatops(), m_dns();
-extern int m_gnotice(), m_goper(), m_globops(), m_locops();
+extern int m_dns();
 extern int m_tkl();
 extern int m_motd(), m_user();
-extern int m_server(), m_info(), m_links(), m_summon(), m_stats();
-extern int m_users(), m_version(), m_help();
-extern int m_connect();
-extern int m_trace();
-extern int m_names(), m_admin();
-extern int m_lusers(), m_umode(), m_close();
-extern int m_motd(), m_whowas();
+extern int m_info(), m_summon();
+extern int m_users(), m_version();
+extern int m_names();
+extern int m_lusers(), m_umode();
+extern int m_motd();
 extern int m_service(), m_watch();
-extern int m_map(), m_dalinfo();
-extern int m_addline(), m_rules();
+extern int m_dalinfo();
 extern int m_credits();
 extern int m_license();
-extern int m_netinfo(), m_addmotd(), m_addomotd();
-extern int m_svsfline();
 extern int m_botmotd();
-extern int m_dccdeny(), m_undccdeny();
 extern int m_opermotd();
 extern int m_module(), m_alias(), m_tkl(), m_opermotd();
 extern int m_rehash(), m_die(), m_restart();

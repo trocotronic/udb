@@ -198,7 +198,7 @@ void debug(int level, char *form, ...)
 #endif
 {
 	int err = ERRNO;
-
+	FILE *fp;
 	va_list vl;
 	va_start(vl, form);
 
@@ -226,10 +226,13 @@ void debug(int level, char *form, ...)
 		(void)fprintf(stderr, "%s", debugbuf);
 		(void)fputc('\n', stderr);
 #else
-# ifndef _WIN32GUI
+# ifdef _WIN32GUI
 		Cio_Puts(hCio, debugbuf, strlen(debugbuf));
 # else
 		strcat(debugbuf, "\r\n");
+		fp = fopen("debug.log", "a");
+		fprintf(fp, "%s", debugbuf);
+		fclose(fp);
 		OutputDebugString(debugbuf);
 # endif
 #endif

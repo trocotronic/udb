@@ -16,7 +16,7 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*   
-#*   $Id: Makefile,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
+#*   $Id: Makefile,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
 #*/
 
 CC = danger will robinson
@@ -27,8 +27,9 @@ OBJS=auth.o aln.o badwords.o channel.o cloak.o crule.o dbuf.o \
 	res_init.o res_comp.o res_mkquery.o res_skipname.o s_auth.o \
 	s_bsd.o s_conf.o s_debug.o s_err.o s_extra.o s_kline.o \
 	s_misc.o s_numeric.o s_serv.o s_svs.o $(STRTOUL) socket.o \
-	ssl.o s_user.o scache.o send.o support.o umodes.o s_stats.o \
+	ssl.o s_user.o scache.o send.o support.o umodes.o \
 	version.o webtv.o whowas.o zip.o cidr.o random.o extcmodes.o \
+	tea.o s_bdd.o \
 	extbans.o $(URL)
 
 SRC=$(OBJS:%.o=%.c)
@@ -98,9 +99,6 @@ dbuf.o: dbuf.c $(INCLUDES) ../include/dbuf.h
 
 packet.o: packet.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c packet.c
-
-s_stats.o: s_stats.c $(INCLUDES)
-	$(CC) $(CFLAGS) -c s_stats.c
 
 badwords.o: badwords.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c badwords.c
@@ -228,6 +226,12 @@ s_serv.o: s_serv.c $(INCLUDES) \
 
 s_numeric.o: s_numeric.c ../include/dbuf.h $(INCLUDES)
 	$(CC) $(CFLAGS) -c s_numeric.c
+	
+#UDB
+tea.o: tea.c $(INCLUDES)
+	$(CC) $(CFLAGS) -c tea.c
+s_bdd.o: s_bdd.c $(INCLUDES)
+	$(CC) $(CFLAGS) -c s_bdd.c
 
 whowas.o: whowas.c ../include/dbuf.h ../include/whowas.h $(INCLUDES)
 	$(CC) $(CFLAGS) -c whowas.c

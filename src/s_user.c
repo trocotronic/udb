@@ -962,7 +962,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 			    cptr->name, bconf->reason ? bconf->reason : "");
 
 			return exit_client(cptr, sptr, &me,
-			    "TuGECOS (real name) está baneado de este servidor.");
+			    "Tu GECOS (real name) está baneado de este servidor.");
 		}
 		tkl_check_expire(NULL);
 		/* Check G/Z lines before shuns -- kill before quite -- codemastr */
@@ -983,7 +983,8 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 	if (sptr->srvptr && sptr->srvptr->serv)
 		sptr->srvptr->serv->users++;
 #ifdef UDB
-    	make_virtualhost(sptr, 1); 
+	if (IsHidden(sptr))
+    		make_virtualhost(sptr, 1); 
 #else
 	user->virthost =
 	    (char *)make_virthost(user->realhost, user->virthost, 1);
@@ -1024,7 +1025,6 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 #endif
 		(void)m_lusers(sptr, sptr, 1, parv);
 		short_motd(sptr);
-//		(void)m_motd(sptr, sptr, 1, parv);
 #ifdef EXPERIMENTAL
 		sendto_one(sptr,
 		    ":%s NOTICE %s :*** \2NOTE:\2 Este servidor (%s) está bajo desarrollo experimental. Si aprecias algún error, comunícalo a la Adminsitración.",
@@ -1189,7 +1189,8 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 */
 CMD_FUNC(m_nick)
 {
-	ConfigItem_ban *aconf;
+	aTKline *tklban;
+	int ishold;
 	aClient *acptr, *serv = NULL;
 	aClient *acptrs;
 	char nick[NICKLEN + 2], *s;
@@ -1344,9 +1345,9 @@ CMD_FUNC(m_nick)
 		    "Reservado para propósitos internos");
 		return 0;
 	}
-	if (!IsULine(sptr) && ((aconf = Find_ban(nick, CONF_BAN_NICK))))
+	if (!IsULine(sptr) && (tklban = find_qline(sptr, nick, &ishold)))
 	{
-		if (IsServer(sptr))
+		if (IsServer(sptr) && !ishold)
 		{
 			acptrs =
 			    (aClient *)find_server_b64_or_real(sptr->user ==
@@ -1359,7 +1360,7 @@ CMD_FUNC(m_nick)
 				    && !IsServer(sptr) ? sptr->name : "(sin registrar)"),
 				    acptrs ? acptrs->name : "desconocido");
 		}
-		else
+		else if (!ishold)
 		{
 			sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s",
 			    nick,
@@ -1367,18 +1368,24 @@ CMD_FUNC(m_nick)
 			    me.name);
 		}
 
-		if ((!IsServer(cptr)) && (!IsOper(cptr)))
+		if (!IsServer(cptr))
 		{
-
-			if (aconf)
+			if (ishold)
+			{
 				sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME),
 				    me.name, BadPtr(parv[0]) ? "*" : parv[0],
-				    nick,
-				    BadPtr(aconf->reason) ? "sin razón"
-				    : aconf->reason);
-			sendto_snomask(SNO_QLINE, "Prohibiendo Q-line nick %s desde %s.",
-			    nick, get_client_name(cptr, FALSE));
-			return 0;	/* NICK message ignored */
+				    nick, tklban->reason);
+				return 0;
+			}
+			if (!IsOper(cptr))
+			{
+				sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME),
+				    me.name, BadPtr(parv[0]) ? "*" : parv[0],
+				    nick, tklban->reason);
+				sendto_snomask(SNO_QLINE, "Forbidding Q-lined nick %s from %s.",
+				    nick, get_client_name(cptr, FALSE));
+				return 0;	/* NICK message ignored */
+			}
 		}
 	}
 	/*
@@ -1829,7 +1836,7 @@ CMD_FUNC(m_nick)
 #ifdef UDB
 		if (!mismonick)
 		{
-			sptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY;
+			sptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY & ~UMODE_SERVICES;
 			if (!IsAnOper(sptr))
 				sptr->umodes &= ~UMODE_KIX;
 			if (MyClient(sptr) && IsPerson(sptr))
@@ -1972,6 +1979,7 @@ CMD_FUNC(m_nick)
 	if (!mismonick)
 	{
 		udb *reg;
+		ConfigItem_oper *aconf;
 		long old_umodes = sptr->umodes;
 		if (clave_ok) {
 			if (!suspend) {
@@ -1981,6 +1989,8 @@ CMD_FUNC(m_nick)
 					sptr->umodes |= UMODE_HELPOP;
 				if (level & BDD_ADMIN || level & BDD_ROOT)
 					sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
+				if ((aconf = Find_oper(sptr->name)))
+					sptr->oflag = aconf->oflags;
 			}
 			else 
 				sptr->umodes |= UMODE_SUSPEND;
@@ -2589,12 +2599,8 @@ CMD_FUNC(m_umode)
 		}
 		if (sptr->user->virthost)
 		{
-#ifdef UDB
-			sptr->user->virthost[0] = '\0';
-#else
 			MyFree(sptr->user->virthost);
 			sptr->user->virthost = NULL;
-#endif
 		}
 		/* (Re)create the cloaked virthost, because it will be used
 		 * for ban-checking... free+recreate here because it could have
@@ -2821,101 +2827,3 @@ int add_silence(aClient *sptr, char *mask, int senderr)
 	sptr->user->silence = lp;
 	return 0;
 }
-
-#ifdef UDB
-
-/* 
- * get_visiblehost
- * Devuelve el host del usuario según los permisos del solicitante
- * (Código del fuente de iRC-Hispano)
- */
-char *get_visiblehost(aClient *acptr, aClient *sptr)
-{
-  if (!IsHidden(acptr) || (sptr && IsShowIp(sptr)) || sptr == acptr)
-    return acptr->user->realhost;
-  else
-  {
-    if (BadPtr(acptr->user->virthost))
-      make_virtualhost(acptr, 0);
-    return acptr->user->virthost;
-  }
-}
-/*
- * make_virtualhost
- * Setea el host virtual del usuario, conforme a la BDD.
- *                                                                
- */
-int make_virtualhost(aClient *acptr, int mostrar)
-{
-	char clave[12 + 1], *botname, *sufix;
-	udb *reg, *vh, *vip2;
-	unsigned int v[2], k[2], x[2];
-	int ts = 0;
-	acptr->user->virthost = malloc(HOSTLEN + 1);
-	if (!(reg = busca_registro(BDD_BOTS, BDD_VHOSTSERV)))
-		botname = me.name;
-	else
-		botname = reg->value;
-		
-	strcpy(acptr->user->virthost, acptr->user->realhost);
-	if (!(reg = busca_registro(BDD_VHOSTS, "..")))
-		sufix = "virtual";
-	else
-		sufix = reg->value;
-	if ((vh = busca_registro(BDD_VHOSTS, acptr->name))) 
-	{
-		if (vh->value && (acptr->umodes & UMODE_REGNICK))
-			strncpy(acptr->user->virthost,vh->value,HOSTLEN);
-	}
-	else if (!clave_cifrado)
-		strcpy(acptr->user->virthost,"no.hay.clave.de.cifrado");
-	else
-	{
-		*(sufix+12) = '\0';
-		strncpy(clave,clave_cifrado,12);
-		clave[12] = '\0';
-		while (1)
-  		{
-			char tmp;
-			x[0] = x[1] = 0;
-			tmp = clave[6];
-			clave[6] = '\0';
-			k[0] = base64toint(clave);
-			clave[6] = tmp;
-			k[1] = base64toint(clave + 6);
-			v[0] = (k[0] & 0xffff0000) + ts;
-			v[1] = ntohl((unsigned long)acptr->ip.S_ADDR);
-			tea(v, k, x);
-			inttobase64(acptr->user->virthost, x[0], 6);
-			acptr->user->virthost[6] = '.';
-			inttobase64(acptr->user->virthost + 7, x[1], 6);
-			acptr->user->virthost[13] = '.';
-			strcpy(acptr->user->virthost + 14, sufix);
-			if (strchr(acptr->user->virthost, '[') == NULL && strchr(acptr->user->virthost, ']') == NULL)
-				break;
-    			else
-			{
-				if (++ts == 65536)
-				{
-					strcpy(acptr->user->virthost, acptr->user->realhost);
-					break;
-				}
-			}
-		}
-		if ((vip2 = busca_registro(BDD_VHOSTS2, acptr->name)) && (acptr->umodes & UMODE_REGNICK) && vip2->value) 
-		{	if ((vh = busca_registro(BDD_VHOSTS2, ".")) && vh->value && *(vh->value) == '1')
-				snprintf(acptr->user->virthost,HOSTLEN,"%s.%s",vip2->value,sufix);
-			else 
-			{
-				strcpy(acptr->user->virthost + 14,vip2->value);
-				strcat(acptr->user->virthost,".");
-				strcat(acptr->user->virthost,sufix);
-			}
-		}
-	}
-	if (MyClient(acptr) && mostrar)
-		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
-			botname, acptr->name, acptr->user->virthost);
-	return 0;
-}
-#endif

@@ -52,9 +52,9 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.1 2004-02-18 18:24:15 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
 	"command /protoctl", 
-	NULL,
+	"3.2-b8-1",
 	NULL 
     };
 
@@ -304,6 +304,11 @@ CMD_FUNC(m_protoctl)
 				"Chose protocol %s for link %s",
 				proto, cptr->name));
 			cptr->proto |= PROTO_ZIP;
+		}
+		else if (strcmp(s, "TKLEXT") == 0)
+		{
+			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
+			SetTKLEXT(cptr);
 		}
 		/*
 		 * Add other protocol extensions here, with proto

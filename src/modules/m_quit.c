@@ -52,7 +52,7 @@ DLLFUNC int m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_quit)
   = {
 	"quit",	/* Name of module */
-	"$Id: m_quit.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $", /* Version */
+	"$Id: m_quit.c,v 1.1.1.3 2004-03-08 18:07:07 Trocotronic Exp $", /* Version */
 	"command /quit", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -64,7 +64,7 @@ DLLFUNC int MOD_INIT(m_quit)(ModuleInfo *modinfo)
 	/*
 	 * We call our add_Command crap here
 	*/
-	add_CommandX(MSG_QUIT, TOK_QUIT, m_quit, 1, M_UNREGISTERED|M_USER);
+	add_CommandX(MSG_QUIT, TOK_QUIT, m_quit, 1, M_UNREGISTERED|M_USER|M_VIRUS);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -107,6 +107,8 @@ DLLFUNC int  m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		Hook *tmphook;
 		if (STATIC_QUIT)
 			return exit_client(cptr, sptr, sptr, STATIC_QUIT);
+		if (IsVirus(sptr))
+			return exit_client(cptr, sptr, sptr, "Cliente cierra");
 
 		if (!prefix_quit || strcmp(prefix_quit, "no"))
 			s = ircsprintf(comment, "%s ",

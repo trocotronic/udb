@@ -2175,10 +2175,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  goto breaktherules;
 		
 		  /* Services are special! */
-		  if (IsServices(member->cptr) && MyClient(cptr) && !IsNetAdmin(cptr))
+		  if (IsServices(member->cptr) && MyClient(cptr) && !IsNetAdmin(cptr) && (what == MODE_DEL))
 		  {
 			sendto_one(cptr,
-				":%s %s %s :*** You cannot %s %s in %s, it is a network service",
+				":%s %s %s :*** No puedes hacer %s a %s en %s, es un servicio de red",
 				me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE",
 				cptr->name, xxx, member->cptr->name, chptr->chname);
 			break;
@@ -4074,35 +4074,36 @@ CMD_FUNC(do_join)
 		if (chptr && (lp = find_membership_link(sptr->user->channel, chptr)))
 			continue;
 
+		if (!chptr)
+			continue;
+
+		i = HOOK_CONTINUE;
 		if (!MyConnect(sptr))
 			flags = CHFL_DEOPPED;
-
-		i = -1;
-		if (!chptr ||
-		    (MyConnect(sptr)
-		    && (i = can_join(cptr, sptr, chptr, key, link, parv))))
+		else
 		{
-
-			if (i != -1)
-				sendto_one(sptr, err_str(i),
-				    me.name, parv[0], name);
-			continue;
-		}
-
-		if (MyConnect(sptr)) {
-			int breakit = 0;
 			Hook *h;
-			for (h = Hooks[HOOKTYPE_PRE_LOCAL_JOIN]; h; h = h->next) {
-				if((*(h->func.intfunc))(sptr,chptr,parv) > 0) {
-					breakit = 1;
+			for (h = Hooks[HOOKTYPE_PRE_LOCAL_JOIN]; h; h = h->next) 
+			{
+				i = (*(h->func.intfunc))(sptr,chptr,parv);
+				if (i == HOOK_DENY || i == HOOK_ALLOW)
 					break;
-				}
 			}
-			if (breakit)
+			/* Denied, get out now! */
+			if (i == HOOK_DENY)
 			{
 				/* Rejected... if we just created a new chan we should destroy it too. -- Syzop */
 				if (!chptr->users)
 					sub1_from_channel(chptr);
+				continue;
+			}
+			/* If they are allowed, don't check can_join */
+			if (i != HOOK_ALLOW && 
+			   (i = can_join(cptr, sptr, chptr, key, link, parv)))
+			{
+				if (i != -1)
+					sendto_one(sptr, err_str(i),
+					    me.name, parv[0], name);
 				continue;
 			}
 		}

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.3 2004-02-19 15:33:28 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.4 2004-03-08 18:07:04 Trocotronic Exp $
  */
 
 /*
@@ -548,6 +548,7 @@ extern char *collapse(char *pattern);
 extern void send_list(aClient *cptr, int numsend);
 extern int  find_tkline_match_zap(aClient *cptr);
 extern int  find_shun(aClient *cptr);
+extern aTKline *find_qline(aClient *cptr, char *nick, int *ishold);
 extern void tkl_synch(aClient *sptr);
 extern void dcc_sync(aClient *sptr);
 extern void report_flines(aClient *sptr);
@@ -614,7 +615,6 @@ extern void make_extcmodestr();
 extern CmodeParam *extcmode_duplicate_paramlist(CmodeParam *);
 extern void extcmode_free_paramlist(CmodeParam *);
 #endif
-extern CMD_FUNC(m_eos);
 extern int do_chanflood(ChanFloodProt *, int);
 extern void do_chanflood_action(aChannel *, int, char *);
 extern char *channel_modef_string(ChanFloodProt *);
@@ -639,6 +639,8 @@ extern int count_oper_sessions(char *);
 extern char *unreal_mktemp(char *dir, char *suffix);
 extern char *unreal_getfilename(char *path);
 extern int unreal_copyfile(char *src, char *dest);
+extern time_t unreal_getfilemodtime(char *filename);
+extern void unreal_setfilemodtime(char *filename, time_t mtime);
 extern void DeleteTempModules(void);
 extern Extban *extbaninfo;
 extern Extban *findmod_by_bantype(char c);
@@ -648,7 +650,7 @@ extern void extban_init(void);
 extern char *trim_str(char *str, int len);
 extern char *ban_realhost, *ban_virthost, *ban_ip;
 extern void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags);
-extern char *unreal_checkregex(char *s, int fastsupport);
+extern char *unreal_checkregex(char *s, int fastsupport, int check_broadness);
 extern int banact_stringtoval(char *s);
 extern char *banact_valtostring(int val);
 extern int banact_chartoval(char c);
@@ -681,3 +683,11 @@ extern aCtab cFlagTab[];
 #ifdef UDB
 extern void set_topic(aClient *, aClient *, aChannel *, char *, int);
 #endif
+extern char *unreal_encodespace(char *s);
+extern char *unreal_decodespace(char *s);
+extern Link *helpign;
+extern aMotd *rules;
+extern fdlist default_fdlist, busycli_fdlist, serv_fdlist, oper_fdlist;
+extern void DCCdeny_add(char *filename, char *reason, int type);
+extern void DCCdeny_del(ConfigItem_deny_dcc *deny);
+extern void dcc_wipe_services(void);

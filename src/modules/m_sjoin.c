@@ -52,9 +52,9 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.1 2004-02-18 18:24:16 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
 	"command /sjoin", 
-	NULL,
+	"3.2-b8-1",
 	NULL 
     };
 
@@ -105,6 +105,21 @@ aParv *mp2parv(char *xmbuf, char *parmbuf)
 	pparv.parv[c] = NULL;
 	pparv.parc = c;
 	return (&pparv);
+}
+
+/* Checks if 2 ChanFloodProt modes (chmode +f) are different.
+ * This is a bit more complicated than 1 simple memcmp(a,b,..) because
+ * counters are also stored in this struct so we have to do
+ * it manually :( -- Syzop.
+ */
+static int compare_floodprot_modes(ChanFloodProt *a, ChanFloodProt *b)
+{
+	if (memcmp(a->l, b->l, sizeof(a->l)) ||
+	    memcmp(a->a, b->a, sizeof(a->a)) ||
+	    memcmp(a->r, b->r, sizeof(a->r)))
+		return 1;
+	else
+		return 0;
 }
 
 /*
@@ -761,7 +776,7 @@ CMD_FUNC(m_sjoin)
 			char *x;
 			int i;
 
-			if (memcmp(chptr->mode.floodprot, oldmode.floodprot, sizeof(ChanFloodProt)))
+			if (compare_floodprot_modes(chptr->mode.floodprot, oldmode.floodprot))
 			{
 				chptr->mode.floodprot->per = MAX(chptr->mode.floodprot->per, oldmode.floodprot->per);
 				for (i=0; i < NUMFLD; i++)

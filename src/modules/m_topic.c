@@ -43,6 +43,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -52,9 +55,9 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.1 2004-02-18 18:24:17 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
 	"command /topic", 
-	NULL,
+	"3.2-b8-1",
 	NULL 
     };
 
@@ -79,47 +82,6 @@ DLLFUNC int MOD_UNLOAD(m_topic)(int module_unload)
 	}
 	return MOD_SUCCESS;
 }
-
-#ifdef UDB
-void set_topic(aClient *cptr, aClient *sptr, aChannel *chptr, char *topic, int send)
-{
-	char *name, *tnick;
-	TS   ttime = 0;
-	int  topiclen = strlen(topic);
-	int  nicklen = 0;
-#ifndef TOPIC_NICK_IS_NUHOST
-	nicklen = strlen(sptr->name);
-#else
-	tnick = make_nick_user_host(sptr->name, sptr->user->username, GetHost(sptr));
-	nicklen = strlen(tnick);
-#endif
-	if (chptr->topic)
-		MyFree(chptr->topic);
-
-	if (topiclen > (TOPICLEN))
-		topiclen = TOPICLEN;
-	if (nicklen > (NICKLEN+USERLEN+HOSTLEN+5))
-		nicklen = NICKLEN+USERLEN+HOSTLEN+5;
-	chptr->topic = MyMalloc(topiclen + 1);
-	strncpyzt(chptr->topic, topic, topiclen + 1);
-
-	if (chptr->topic_nick)
-		MyFree(chptr->topic_nick);
-
-	chptr->topic_nick = MyMalloc(nicklen + 1);
-#ifndef TOPIC_NICK_IS_NUHOST
-	strncpyzt(chptr->topic_nick, sptr->name, nicklen + 1);
-#else
-	strncpyzt(chptr->topic_nick, tnick, nicklen + 1);
-#endif
-	chptr->topic_time = TStime();
-	if (send)
-	{
-		sendto_serv_butone_token(cptr, sptr->name, MSG_TOPIC, TOK_TOPIC, "%s %s %lu :%s", chptr->chname, chptr->topic_nick, chptr->topic_time, chptr->topic);
-		sendto_channel_butserv(chptr, sptr, ":%s TOPIC %s :%s", sptr->name, chptr->chname, chptr->topic);
-	}
-}
-#endif
 
 /*
 ** m_topic
