@@ -177,7 +177,7 @@ void ban_flooder(aClient *cptr)
 inline void parse_addlag(aClient *cptr, int cmdbytes)
 {
 	if (!IsServer(cptr) && 
-#ifdef FAKE_LAG_FOR_LOCOPS	
+#ifdef NO_FAKE_LAG_FOR_LOCOPS	
 	!IsAnOper(cptr))
 #else
 	!IsOper(cptr))
@@ -365,7 +365,7 @@ int  parse(aClient *cptr, char *buffer, char *bufend)
 			{
 				if (IsPerson(from))
 					sendto_one(from,
-					    ":%s %d %s %s :Comando desconocido",
+					    ":%s %d %s %s :Unknown command",
 					    me.name, ERR_UNKNOWNCOMMAND,
 					    from->name, ch);
 				Debug((DEBUG_ERROR, "Unknown (%s) from %s",

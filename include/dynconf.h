@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.1 2003-11-28 22:55:48 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
  */
 
 
@@ -101,6 +101,7 @@ struct zConfiguration {
 	int  anti_spam_quit_message_time;
 	char *egd_path;
 	char *static_quit;
+	char *static_part;
 #ifdef USE_SSL
 	char *x_server_cert_pem;
 	char *x_server_key_pem;
@@ -124,11 +125,14 @@ struct zConfiguration {
 	int ident_read_timeout;
 	long default_bantime;
 	int who_limit;
+	int silence_limit;
 #ifdef NEWCHFLOODPROT
 	unsigned char modef_default_unsettime;
 	unsigned char modef_max_unsettime;
 #endif
 	long ban_version_tkl_time;
+	long spamfilter_ban_time;
+	char *spamfilter_ban_reason;
 	aNetwork network;
 };
 
@@ -185,6 +189,7 @@ extern aConfiguration iConf;
 #define CLOAK_KEY3			iConf.network.key3
 #define CLOAK_KEYCRC			iConf.network.keycrc
 #define STATIC_QUIT			iConf.static_quit
+#define STATIC_PART			iConf.static_part
 #define UHOST_ALLOWED			iConf.userhost_allowed
 #define RESTRICT_USERMODES		iConf.restrict_usermodes
 #define RESTRICT_CHANNELMODES		iConf.restrict_channelmodes
@@ -221,3 +226,7 @@ extern aConfiguration iConf;
 #define ALLOW_PART_IF_SHUNNED	iConf.allow_part_if_shunned
 
 #define BAN_VERSION_TKL_TIME	iConf.ban_version_tkl_time
+#define SILENCE_LIMIT (iConf.silence_limit ? iConf.silence_limit : 15)
+
+#define SPAMFILTER_BAN_TIME		iConf.spamfilter_ban_time
+#define SPAMFILTER_BAN_REASON	iConf.spamfilter_ban_reason

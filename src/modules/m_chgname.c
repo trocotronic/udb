@@ -17,6 +17,11 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+/**
+ * 2003-01-06
+ * - Added ability to log command usage to ircd.log
+ * XeRXeS
+ */
 
 #include "config.h"
 #include "struct.h"
@@ -53,7 +58,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgname)
   = {
 	"chgname",	/* Name of module */
-	"$Id: m_chgname.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_chgname.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $", /* Version */
 	"command /chgname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -172,6 +177,13 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    sptr->name, acptr->name, acptr->user->username,
 			    GetHost(acptr), parv[2]);
 		}
+
+		/* Logging ability added by XeRXeS */
+		ircd_log(LOG_CHGCMDS,
+		"CHGNAME: %s changed the GECOS of %s (%s@%s) to be %s", 
+		sptr->name, acptr->name, acptr->user->username,
+		GetHost(acptr), parv[2]);
+
 		sendto_serv_butone_token(cptr, sptr->name,
 		    MSG_CHGNAME, TOK_CHGNAME, "%s :%s", acptr->name, parv[2]);
 		return 0;

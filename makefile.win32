@@ -4,20 +4,117 @@
 CC=cl
 LINK=link
 RC=rc
-# Here you put your settings
+
+############################ USER CONFIGURATION ############################
+
+##### REMOTE INCLUDES ####
+#To enable remote include support you must have libcurl installed on your
+#system and it must have ares support enabled.
+#
+#
+#To enable remote includes uncomment the next line:
+#USE_REMOTEINC=1
+#
+#If your libcurl library and include files are not in your compiler's
+#default locations, specify the locations here:
+#LIBCURL_INC_DIR="c:\dev\curl\include"
+#LIBCURL_LIB_DIR="c:\dev\curl\lib"
+#
+#
+### END REMOTE INCLUDES ##
+
+#### ZIPLINKS SUPPORT ####
+#To enable ziplinks support you must have zlib installed on your system
+#you can get a pre-built zlib library from http://www.winimage.com/zLibDll/
+#
+#
+#To enable ziplinks uncomment the next line:
+#USE_ZIPLINKS=1
+#
+#If your zlib library and include files are not in your compiler's
+#default locations, specify the locations here:
+#ZLIB_INC_DIR="c:\dev\zlib"
+#ZLIB_LIB_DIR="c:\dev\zlib\dll32"
+#
+#
+###### END ZIPLINKS ######
+
+####### SSL SUPPORT ######
+#To enable SSL support you must have OpenSSL installed on your system
+#
+#
+#To enable SSL uncomment the next line:
+#USE_SSL=1
+#
+#If your OpenSSL library and include files are not in your compiler's
+#default locations, specify the locations here:
+#OPENSSL_INC_DIR="c:\openssl\include"
+#OPENSSL_LIB_DIR="c:\openssl\lib"
+#
+#
+######### END SSL ########
+
+###### RELEASE BUILD #####
+#To make a release build comment out the next line a release build
+#does not contain debugging symbols and can not be used to locate
+#the source of a crash or bug
 DEBUG=1
-FD_SETSIZE=/D FD_SETSIZE=16384
-!IFNDEF DEBUG 
-CFLAGS=/MT /J /O2 /G5 /I ./INCLUDE /Fosrc/ /nologo $(FD_SETSIZE) $(NS_ADDRESS) /D STATIC_LINKING /D _WIN32GUI /D NOSPOOF=1 /c
-LFLAGS=kernel32.lib user32.lib gdi32.lib shell32.lib ws2_32.lib advapi32.lib dbghelp.lib \
- oldnames.lib libcmt.lib comctl32.lib comdlg32.lib /nodefaultlib /nologo /out:WIRCD.EXE
-!ELSE
-CFLAGS=/MTd /J /Zi /I ./INCLUDE /Fosrc/ /nologo $(FD_SETSIZE) $(NS_ADDRESS) /D STATIC_LINKING /D _WIN32GUI /D NOSPOOF=1 /c
-LFLAGS=kernel32.lib user32.lib gdi32.lib shell32.lib wsock32.lib dbghelp.lib\
- oldnames.lib libcmt.lib comctl32.lib comdlg32.lib \
- advapi32.lib /nodefaultlib /nologo /debug /debugtype:BOTH /OUT:WIRCD.EXE 
+#
+#
+#### END RELEASE BUILD ###
+
+############################# END CONFIGURATION ############################
+
+!IFDEF USE_REMOTEINC
+CURLCFLAGS=/D USE_LIBCURL
+CURLOBJ=SRC/URL.OBJ
+CURLLIB=libcurl.lib
+!IFDEF LIBCURL_INC_DIR
+LIBCURL_INC=/I "$(LIBCURL_INC_DIR)"
+!ENDIF
+!IFDEF LIBCURL_LIB_DIR
+LIBCURL_LIB=/LIBPATH:"$(LIBCURL_LIB_DIR)"
+!ENDIF
 !ENDIF
 
+!IFDEF USE_ZIPLINKS
+ZIPCFLAGS=/D ZIP_LINKS /D ZLIB_DLL
+ZIPOBJ=SRC/ZIP.OBJ
+ZIPLIB=zlib.lib
+!IFDEF ZLIB_INC_DIR
+ZLIB_INC=/I "$(ZLIB_INC_DIR)"
+!ENDIF
+!IFDEF ZLIB_LIB_DIR
+ZLIB_LIB=/LIBPATH:"$(ZLIB_LIB_DIR)"
+!ENDIF
+!ENDIF
+
+!IFDEF USE_SSL
+SSLCFLAGS=/D USE_SSL
+SSLLIBS=ssleay32.lib libeay32.lib
+!IFDEF OPENSSL_INC_DIR
+OPENSSL_INC=/I "$(OPENSSL_INC_DIR)"
+!ENDIF
+!IFDEF OPENSSL_LIB_DIR
+OPENSSL_LIB=/LIBPATH:"$(OPENSSL_LIB_DIR)"
+!ENDIF
+!ENDIF
+
+!IFDEF DEBUG
+DBGCFLAG=/MTd /Zi
+DBGLFLAG=/debug /debugtype:BOTH
+!ELSE
+DBGCFLAG=/MT /O2 /G5
+!ENDIF 
+
+FD_SETSIZE=/D FD_SETSIZE=16384
+CFLAGS=$(DBGCFLAG) $(LIBCURL_INC)  $(ZLIB_INC) $(OPENSSL_INC) /I ./INCLUDE /Fosrc/ /nologo \
+ $(ZIPCFLAGS) $(CURLCFLAGS) $(FD_SETSIZE) $(SSLCFLAGS) $(NS_ADDRESS) /D STATIC_LINKING \
+ /D NOSPOOF=1 /c 
+LFLAGS=kernel32.lib user32.lib gdi32.lib shell32.lib ws2_32.lib advapi32.lib \
+ dbghelp.lib oldnames.lib libcmt.lib comctl32.lib comdlg32.lib $(ZLIB_LIB) $(ZIPLIB) \
+ $(OPENSSL_LIB) $(SSLLIBS) $(LIBCURL_LIB) $(CURLLIB) /nodefaultlib /nologo $(DBGLFLAG) \
+ /out:WIRCD.EXE
 
 INCLUDES=./include/struct.h ./include/config.h ./include/sys.h \
  ./include/common.h ./include/version.h ./include/h.h ./include/numeric.h \
@@ -36,8 +133,9 @@ OBJ_FILES=SRC/CHANNEL.OBJ SRC/SEND.OBJ SRC/SOCKET.OBJ \
  SRC/SCACHE.OBJ SRC/ALN.OBJ SRC/BADWORDS.OBJ SRC/WEBTV.OBJ SRC/RES.OBJ SRC/MODULES.OBJ \
  SRC/S_SVS.OBJ SRC/EVENTS.OBJ SRC/UMODES.OBJ SRC/AUTH.OBJ SRC/CIDR.OBJ SRC/SSL.OBJ \
  SRC/SERVICE.OBJ SRC/DEBUG.OBJ SRC/RANDOM.OBJ SRC/EXTCMODES.OBJ SRC/S_STATS.OBJ \
-# UDB
- SRC/S_BDD.OBJ SRC/TEA.OBJ 
+#UDB
+ SRC/S_BDD.OBJ SRC/TEA.OBJ \
+ SRC/EXTBANS.OBJ $(ZIPOBJ) $(CURLOBJ)
 
 MOD_FILES=SRC/L_COMMANDS.OBJ SRC/M_CHGHOST.OBJ SRC/M_SDESC.OBJ SRC/M_SETIDENT.OBJ \
  SRC/M_SETNAME.OBJ SRC/M_SETHOST.OBJ SRC/M_CHGIDENT.OBJ SRC/M_SVSMOTD.OBJ \
@@ -50,9 +148,13 @@ MOD_FILES=SRC/L_COMMANDS.OBJ SRC/M_CHGHOST.OBJ SRC/M_SDESC.OBJ SRC/M_SETIDENT.OB
  SRC/M_UNSQLINE.OBJ SRC/M_UNZLINE.OBJ SRC/M_WHOIS.OBJ \
  SRC/M_TKL.OBJ SRC/M_VHOST.OBJ \
  SRC/M_CYCLE.OBJ SRC/M_SVSJOIN.OBJ SRC/M_SVSPART.OBJ SRC/M_SVSLUSERS.OBJ \
- SRC/M_SVSWATCH.OBJ SRC/M_SVSSILENCE.OBJ \
-# UDB
- SRC/M_GETINFO.OBJ SRC/M_PRIVDEAF.OBJ   
+ SRC/M_SVSWATCH.OBJ SRC/M_SVSSILENCE.OBJ SRC/M_SENDSNO.OBJ SRC/M_SVSSNO.OBJ \
+ SRC/M_SAJOIN.OBJ SRC/M_SAPART.OBJ SRC/M_SAMODE.OBJ SRC/M_KICK.OBJ SRC/M_TOPIC.OBJ \
+#UDB
+ SRC/M_PRIVDEAF.OBJ SRC/M_GETINFO.OBJ \
+ SRC/M_INVITE.OBJ SRC/M_LIST.OBJ SRC/M_TIME.OBJ SRC/M_SVSKILL.OBJ SRC/M_KNOCK.OBJ \
+ SRC/M_UMODE2.OBJ SRC/M_SQUIT.OBJ SRC/M_PROTOCTL.OBJ SRC/M_SJOIN.OBJ SRC/M_PASS.OBJ \
+ SRC/M_USERHOST.OBJ SRC/M_ISON.OBJ SRC/M_SILENCE.OBJ
 
 ALL: CONF UNREAL.EXE WIRCD.EXE
 
@@ -247,8 +349,24 @@ src/random.obj: src/random.c $(INCLUDES)
 src/extcmodes.obj: src/extcmodes.c $(INCLUDES)
 	$(CC) $(CFLAGS) src/extcmodes.c
 
+src/url.obj: src/url.c $(INCLUDES) ./include/url.h
+	$(CC) $(CFLAGS) src/url.c
+
+src/extbans.obj: src/extbans.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/extbans.c
+
+src/zip.obj: src/zip.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/zip.c
+
 src/ssl.obj: src/ssl.c $(INCLUDES)
 	$(CC) $(CFLAGS) src/ssl.c
+
+#UDB	
+src/s_bdd.obj: src/s_bdd.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/s_bdd.c
+	
+src/tea.obj: src/tea.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/tea.c	
 
 src/l_commands.obj: src/modules/l_commands.c $(INCLUDES)
         $(CC) $(CFLAGS) src/modules/l_commands.c
@@ -387,19 +505,73 @@ src/m_svswatch.obj: src/modules/m_svswatch.c $(INCLUDES)
 
 src/m_svssilence.obj: src/modules/m_svssilence.c $(INCLUDES)
 	$(CC) $(CFLAGS) src/modules/m_svssilence.c
+
+src/m_sendsno.obj: src/modules/m_sendsno.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_sendsno.c
+
+src/m_svssno.obj: src/modules/m_svssno.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_svssno.c
+
+src/m_sajoin.obj: src/modules/m_sajoin.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_sajoin.c
+
+src/m_sapart.obj: src/modules/m_sapart.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_sapart.c
+
+src/m_samode.obj: src/modules/m_samode.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_samode.c
+
+src/m_kick.obj: src/modules/m_kick.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_kick.c
+
+src/m_topic.obj: src/modules/m_topic.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_topic.c
+
+src/m_invite.obj: src/modules/m_invite.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_invite.c
+
+src/m_list.obj: src/modules/m_list.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_list.c
+
+src/m_time.obj: src/modules/m_time.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_time.c
+
+src/m_svskill.obj: src/modules/m_svskill.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_svskill.c
+
+src/m_sjoin.obj: src/modules/m_sjoin.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_sjoin.c
+
+src/m_pass.obj: src/modules/m_pass.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_pass.c
+
+src/m_userhost.obj: src/modules/m_userhost.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_userhost.c
+
+src/m_ison.obj: src/modules/m_ison.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_ison.c
+
+src/m_silence.obj: src/modules/m_silence.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_silence.c
+
+src/m_knock.obj: src/modules/m_knock.c $(INCLUDES)
+        $(CC) $(CFLAGS) src/modules/m_knock.c
+
+src/m_umode2.obj: src/modules/m_umode2.c $(INCLUDES)
+        $(CC) $(CFLAGS) src/modules/m_umode2.c
+
+src/m_squit.obj: src/modules/m_squit.c $(INCLUDES)
+        $(CC) $(CFLAGS) src/modules/m_squit.c
+
+src/m_protoctl.obj: src/modules/m_protoctl.c $(INCLUDES)
+        $(CC) $(CFLAGS) src/modules/m_protoctl.c
 	
-# UDB
-src/s_bdd.obj: src/s_bdd.c $(INCLUDES)
-        $(CC) $(CFLAGS) src/s_bdd.c
-        
-src/tea.obj: src/tea.c $(INCLUDES)
-	$(CC) $(CFLAGS) src/tea.c        
-
-src/m_getinfo.obj: src/modules/m_getinfo.c $(INCLUDES)
-	$(CC) $(CFLAGS) src/modules/m_getinfo.c
-
+#UDB
 src/m_privdeaf.obj: src/modules/m_privdeaf.c $(INCLUDES)
-	$(CC) $(CFLAGS) src/modules/m_privdeaf.c   	
+	$(CC) $(CFLAGS) src/modules/m_privdeaf.c
+	
+src/m_getinfo.obj: src/modules/m_getinfo.c $(INCLUDES)
+	$(CC) $(CFLAGS) src/modules/m_getinfo.c	
 
 src/win32/win32.res: src/win32/win32gui.rc
         $(RC) /l 0x409 /fosrc/win32/win32.res /i ./include /i ./src \

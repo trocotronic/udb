@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.1 2003-11-28 22:55:48 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -170,7 +170,7 @@
 /*
  * Enables locops to override the RFC1459 flood control too
 */
-#undef FAKE_LAG_FOR_LOCOPS
+#define NO_FAKE_LAG_FOR_LOCOPS
 
 /*
  * HOSTILENAME - Define this if you want the hostile username patch included,

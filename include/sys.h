@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
@@ -127,12 +127,16 @@ typedef unsigned int u_int;
 #ifdef _WIN32
 #define MYOSNAME OSName
 extern char OSName[256];
+#define PATH_MAX MAX_PATH
 #endif
 #ifdef DEBUGMODE
 // #define ircsprintf sprintf
 //#define ircvsprintf vsprintf
 #endif
 
+#ifdef _WIN32
+typedef unsigned short u_int16_t;
+#endif
 
 /*
  *  IPv4 or IPv6 structures?

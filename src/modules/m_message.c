@@ -58,7 +58,7 @@ DLLFUNC int  m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.2 2004-02-18 18:24:15 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -70,8 +70,8 @@ DLLFUNC int MOD_INIT(m_message)(ModuleInfo *modinfo)
 	/*
 	 * We call our add_Command crap here
 	*/
-	add_CommandX(MSG_PRIVATE, TOK_PRIVATE, m_private, MAXPARA, M_USER|M_SERVER|M_RESETIDLE);
-	add_Command(MSG_NOTICE, TOK_NOTICE, m_notice, MAXPARA);
+	add_CommandX(MSG_PRIVATE, TOK_PRIVATE, m_private, 2, M_USER|M_SERVER|M_RESETIDLE);
+	add_Command(MSG_NOTICE, TOK_NOTICE, m_notice, 2);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 	
@@ -122,6 +122,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 	int  cansend = 0;
 	int  prefix = 0;
 	char pfixchan[CHANNELLEN + 32];
+	int n;
 
 	/*
 	 * Reasons why someone can't send to a channel
@@ -134,6 +135,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 		"No se permiten CTCPs",
 		"Necesitas tener +r para hablar",
 		"No se permiten palabrotas",
+		"No se permiten notices",
 		NULL
 	};
 
@@ -246,6 +248,9 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					strncpy(file, ctcp, size_string);
 					file[size_string] = '\0';
 
+					if ((n = dospamfilter(sptr, file, SPAMF_DCC, acptr->name)) < 0)
+						return n;
+
 					if ((fl =
 					    (ConfigItem_deny_dcc *)
 					    dcc_isforbidden(cptr, sptr, acptr,
@@ -265,6 +270,8 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 						    "%s intenta enviar %s (%s) a %s",
 						    sptr->name, file,
 						    fl->reason, acptr->name);
+						sendto_serv_butone(NULL, ":%s SMO v :%s tried to send forbidden file %s (%s) to %s (is blocked now)",
+							me.name, sptr->name, file, fl->reason, acptr->name);
 						sptr->flags |= FLAGS_DCCBLOCK;
 						continue;
 					}
@@ -309,6 +316,13 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 #endif
 					text = parv[2];
 
+				if (MyClient(sptr))
+				{
+					n = dospamfilter(sptr, text, newcmd == MSG_NOTICE ? SPAMF_USERNOTICE : SPAMF_USERMSG, acptr->name);
+					if (n < 0)
+						return FLUSH_BUFFER;
+				}
+
 				for (tmphook = Hooks[HOOKTYPE_USERMSG]; tmphook; tmphook = tmphook->next) {
 					text = (*(tmphook->func.pcharfunc))(cptr, sptr, acptr, text, (int)(newcmd == MSG_NOTICE ? 1 : 0) );
 					if (!text)
@@ -316,7 +330,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				}
 				if (!text)
 					continue;
-					
+				
 				sendto_message_one(acptr,
 				    sptr, parv[0], newcmd, nick, text);
 			}
@@ -377,8 +391,9 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				strlcat(pfixchan, p2, sizeof(pfixchan));
 				nick = pfixchan;
 			}
+			
 			cansend =
-			    !IsULine(sptr) ? can_send(sptr, chptr, parv[2]) : 0;
+			    !IsULine(sptr) ? can_send(sptr, chptr, parv[2], notice) : 0;
 			if (!cansend)
 			{
 #ifdef STRIPBADWORDS
@@ -409,7 +424,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					{
 						if (!notice)
 							sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
-							    me.name, parv[0], parv[0],
+							    me.name, parv[0], chptr->chname,
 							    err_cantsend[6], p2);
 						continue;
 					}
@@ -421,7 +436,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 						{
 							if (!notice)
 								sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
-								    me.name, parv[0], parv[0],
+								    me.name, parv[0], chptr->chname,
 								    err_cantsend[6], p2);
 							continue;
 						}
@@ -429,6 +444,14 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
  #endif
 				}
 #endif
+
+				if (MyClient(sptr))
+				{
+					n = dospamfilter(sptr, text, notice ? SPAMF_CHANNOTICE : SPAMF_CHANMSG, chptr->chname);
+					if (n < 0)
+						return n;
+				}
+
 				for (tmphook = Hooks[HOOKTYPE_CHANMSG]; tmphook; tmphook = tmphook->next) {
 					text = (*(tmphook->func.pcharfunc))(cptr, sptr, chptr, text, notice);
 					if (!text)
@@ -464,11 +487,12 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 				continue;
 			}
 			else
-			if (!notice && MyClient(sptr))
+			if (MyClient(sptr))
 			{
-				sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
-				    me.name, parv[0], parv[0],
-				    err_cantsend[cansend - 1], p2);
+				if (!notice || (cansend == 8)) /* privmsg or 'cannot send notice'... */
+					sendto_one(sptr, err_str(ERR_CANNOTSENDTOCHAN),
+					    me.name, parv[0], chptr->chname,
+					    err_cantsend[cansend - 1], p2);
 			}
 			continue;
 		}

@@ -84,7 +84,7 @@ static oper_oflag_t oper_oflags[] = {
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.2 2004-02-18 18:24:15 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -152,7 +152,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 		return 0;
 	}
 
-	if (IsOper(sptr)) {
+	if (IsAnOper(sptr)) {
 		sendto_one(sptr, rpl_str(RPL_YOUREOPER),
 		    me.name, parv[0]);
 		return 0;
@@ -318,7 +318,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			};
 			(void)m_join(cptr, sptr, 3, chans);
 		}
-		ircd_log(LOG_OPER, "OPER (%s) por (%s!%s@%s)", name, parv[0], sptr->user->username,
+		ircd_log(LOG_OPER, "OPER (%s) by (%s!%s@%s)", name, parv[0], sptr->user->username,
 			sptr->sockhost);
 
 	}

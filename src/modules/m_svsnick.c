@@ -54,7 +54,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -91,6 +91,9 @@ DLLFUNC int MOD_UNLOAD(m_svsnick)(int module_unload)
 int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
         aClient *acptr;
+#ifdef UDB
+	long old_umodes;
+#endif
 
         if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
 		return -1;        /* This looks like an error anyway -Studded */
@@ -105,7 +108,16 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
                                     "nickname change, your nick was overruled");
                         if (do_nick_name(parv[2]) == 0)
                                 return 0;
+#ifdef UDB                                
+			old_umodes = acptr->umodes;
+			acptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY;
+			if (!IsAnOper(acptr))
+				acptr->umodes &= ~UMODE_KIX;
+			if (MyClient(acptr) && IsPerson(acptr))
+				send_umode_out(acptr, acptr, old_umodes);
+#else
                         acptr->umodes &= ~UMODE_REGNICK;
+#endif
                         acptr->lastnick = TS2ts(parv[3]);
                         sendto_common_channels(acptr, ":%s NICK :%s", parv[1],
                             parv[2]);

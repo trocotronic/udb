@@ -281,14 +281,12 @@ int addchan(char *index, char *valor)
 	strncpyzt(acptr->name, me.name, strlen(me.name) + 1);
 	if (modos)
 	{
-		//set_chmodes(modos, &chptr->mode, 0);
 		int pcount, p = 0;
 		char pvar[MAXMODEPARAMS][MODEBUFLEN + 3], *parms[7], *modaux;
 		modaux = malloc(sizeof(char) * strlen(modos) + 1);
 		strcpy(modaux, modos);
 		parms[p++] = strtok(modaux, " ");
-		while ((parms[p] = strtok(NULL, " ")))
-			p++;
+		while ((parms[p++] = strtok(NULL, " ")));
 		set_mode(chptr, acptr, p, parms, &pcount, pvar, 0);
 	}
 	if (topic)
@@ -371,6 +369,27 @@ int delbdd(char bdd, unsigned long serie)
 	actualiza_hash(bdd);
 	return 0;
 }
+int addreg_especial(char bdd, char *index, char *valor)
+{
+	if (valor)
+	{
+		if (bdd == BDD_BADWORDS)
+			addword(index, valor);
+		if (bdd == BDD_CANALES)
+			addchan(index, valor);
+		if (bdd == BDD_PRIV)
+			addpriv(index, valor);
+		if (bdd == BDD_VHOSTS && !strcmp(index, "."))
+		{
+			if (clave_cifrado)
+				clave_cifrado = (char *)realloc(clave_cifrado, sizeof(char) * strlen(valor) + 1);
+			else
+				clave_cifrado = (char *)malloc(sizeof(char) * strlen(valor) + 1);
+			strcpy(clave_cifrado, valor);
+		}
+	}
+	return 0;
+}
 int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 {
 	udb *db;
@@ -395,11 +414,7 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 		db->value = (char *)realloc(db->value, sizeof(char) * strlen(valor) + 1);
 		db->serie = serie;
 		strcpy(db->value, valor);
-		if (bdd == BDD_BADWORDS)
-		{
-			if (valor)
-				addword(index, valor);
-		}	
+		addreg_especial(bdd, index, valor);
 		if (add)
 			addreg_file(bdd, serie, index, valor);
 		return 0;
@@ -429,20 +444,7 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 #ifdef HASH_UDB
 	add_to_udb_hash_table(index, bdd, db);
 #endif	
-	if (bdd == BDD_BADWORDS)
-		addword(index, valor);
-	if (bdd == BDD_CANALES)
-		addchan(index, valor);
-	if (bdd == BDD_PRIV)
-		addpriv(index, valor);
-	if (bdd == BDD_VHOSTS && !strcmp(index, "."))
-	{
-		if (clave_cifrado)
-			clave_cifrado = (char *)realloc(clave_cifrado, sizeof(char) * strlen(valor) + 1);
-		else
-			clave_cifrado = (char *)malloc(sizeof(char) * strlen(valor) + 1);
-		strcpy(clave_cifrado, valor);
-	}
+	addreg_especial(bdd, index, valor);
 	if (add)
 		addreg_file(bdd, serie, index, valor);
 	return 0;
@@ -461,46 +463,38 @@ int addreg_file(char bdd, unsigned long serie, char *index, char *valor)
 }
 unsigned long obtiene_hash(char bdd)
 {
-	FILE *fp;
-	char bddf[128], hashstr[512];
+	int fp;
+	char *par, bddf[128];
 	unsigned long hash = 0L;
+	struct stat inode;
 	sprintf(bddf, DB_DIR "\\%c.bdd", bdd);
-	if (!(fp = fopen(bddf, "r")))
-		return 0L;
-	while (!feof(fp))
+	if ((fp = open(bddf, O_RDONLY|O_BINARY)) == -1)
+		return 0;
+	if (fstat(fp, &inode) == -1)
+		return 0;
+	if (!inode.st_size)
 	{
-		if (!(fgets(hashstr, 512, fp)))
-			break;
-		hash ^= our_crc32(hashstr, strlen(hashstr));
+		close(fp);
+		return 0;
 	}
-	fclose(fp);
+	par = (char *)malloc(inode.st_size + 1);
+	par[inode.st_size] = '\0';
+	if (read(fp, par, inode.st_size) == inode.st_size)
+		hash = our_crc32(par, strlen(par));
 	return hash;
 }
 unsigned long lee_hash(char bdd)
 {
 	FILE *fp;
-	char archivo[128], hashstr[512], data[512], linea = PRIMERA_LETRA;
-	int i, j;
+	char archivo[128], *lee;
 	sprintf(archivo, DB_DIR "\\hash");
 	if (!(fp = fopen(archivo, "r")))
 		return 0L;
-	while (!feof(fp))
-	{
-		bzero(data, 512);
-		bzero(hashstr, 512);
-		fgets(data, 512, fp);
-		for (i = j = 0; i < strlen(data); i++)
-		{
-			if (data[i] == '\n' || data[i] == '\r')
-				continue;
-			hashstr[j++] = data[i];
-		}
-		if (linea == bdd)
-			return atol(hashstr);
-		linea++;
-	}
+	fseek(fp, 32 * (bdd - PRIMERA_LETRA), SEEK_SET);
+	lee = (char *)malloc(sizeof(char) * 32 + 1);
+	fread(lee, 1, 32, fp);
 	fclose(fp);
-	return 0L;
+	return atol(lee);
 }
 int actualiza_hash(char bdd)
 {
@@ -511,15 +505,18 @@ int actualiza_hash(char bdd)
 		return 0;
 	registros[HASH][bdd] = obtiene_hash(bdd);
 	for (c = PRIMERA_LETRA; c <= ULTIMA_LETRA; c++)
-		fprintf(fh, "%lu\n", registros[HASH][c]);
+		fprintf(fh, "%032lu", registros[HASH][c]);
 	fclose(fh);
 	return 0;
 }
 int comprueba_hash(char bdd)
 {
-	if (lee_hash(bdd) != obtiene_hash(bdd))
+	u_long lee, obtiene;
+	lee = lee_hash(bdd);
+	obtiene = obtiene_hash(bdd);
+	if (lee != obtiene)
 	{
-		sendto_ops("La tabla '%c' está corrupta.",bdd);
+		sendto_ops("La tabla '%c' está corrupta. (%lu != %lu)",bdd,lee,obtiene);
 		delbdd(bdd, 0);
 		sendto_serv_butone(NULL,":%s DB * C J 0 %c", me.name, bdd);
 		registros[CORR][bdd] = 1;
@@ -583,6 +580,8 @@ int loadbdd(char bdd)
 	char archivo[128], data[512], *regs[3], buf[BUFSIZE];
 	int i, g, h;
 	udb *dbaux, *dbtmp;
+	if (comprueba_hash(bdd))
+		return 0;	
 	registros[REGS][bdd] = registros[SERS][bdd] = registros[HASH][bdd] = 0L;
 #ifdef HASH_UDB
 	clear_udb_hash_table();
@@ -623,11 +622,10 @@ int loadbdd(char bdd)
 		strcpy(regs[h], buf);
 		addreg(bdd, atol(regs[0]), regs[1], !regs[2][0] ? "" : regs[2] + 1, 0);
 	}
+	fclose(fp);
 	registros[HASH][bdd] = lee_hash(bdd);
-	comprueba_hash(bdd);
 	if (registros[REGS][bdd])
 		sendto_ops("Tabla '%c' R=%09lu", bdd, registros[REGS][bdd]);
-	fclose(fp);
 	return 0;
 }
 
@@ -669,8 +667,7 @@ CMD_FUNC(m_db)
 			{
 				for (db = busca_serie(bdd, ultimo + 1); db; db = db->next)
 					sendto_one(cptr,":%s DB %s %s I %09lu %c %s :%s", me.name, cptr->name, parv[2], db->serie, bdd, db->index, db->value ? db->value : "");
-				if (ultimo == 0)
-					sendto_one(cptr,":%s DB %s 0 A %09lu %c", me.name, cptr->name, registros[SERS][bdd], bdd);
+				sendto_one(cptr,":%s DB %s %s A %09lu %c", me.name, cptr->name, parv[2], registros[SERS][bdd], bdd);
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s J %09lu %c",parv[0],parv[1],parv[2],parv[4],*parv[5]);
 			break;
@@ -694,7 +691,7 @@ CMD_FUNC(m_db)
 				delbdd(bdd, serie);
 				sendto_ops("%s ha borrado la tabla '%c' (R=%09lu)%s",cptr->name, bdd, serie,
 					(!strcmp(parv[2],"BDD_DESYNCH") ? " (BDD_DESYNCH)" : ""));
-				sendto_one(cptr, ":%s DB %s 0 J %09lu %c", me.name, cptr->name, serie, bdd);
+				sendto_one(cptr, ":%s DB %s %s J %09lu %c", me.name, cptr->name, parv[2], serie, bdd);
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s D %09lu %c",parv[0],parv[1],parv[2],parv[4],*parv[5]);
 			break;
@@ -735,6 +732,8 @@ CMD_FUNC(m_db)
 				bdd = *parv[5];
 				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
 					return 0;
+				if (!strcmp(parv[2],"C"))
+					registros[CORR][bdd] = 0;
 				registros[SERS][bdd] = atol(parv[4]);
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s A %09lu %c",parv[0],parv[1],parv[2],parv[4],bdd);

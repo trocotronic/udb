@@ -90,7 +90,7 @@ extern ircstats IRCstats;
 ModuleHeader MOD_HEADER(m_svso)
   = {
 	"m_svso",
-	"$Id: m_svso.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_svso.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $",
 	"command /svso", 
 	"3.2-b8-1",
 	NULL 
@@ -178,7 +178,7 @@ int m_svso(aClient *cptr, aClient *sptr, int parc, char *parv[])
                 acptr->umodes &=
                     ~(UMODE_KIX | UMODE_DEAF | UMODE_HIDEOPER);
                 acptr->oflag = 0;
-		acptr->user->snomask &= ~(SNO_CLIENT|SNO_FLOOD|SNO_FCLIENT|SNO_JUNK|SNO_EYES|SNO_VHOST|SNO_NICKCHANGE|SNO_QLINE|SNO_TKL);
+		remove_oper_snomasks(acptr);
 		RunHook2(HOOKTYPE_LOCAL_OPER, acptr, 0);
                 send_umode_out(acptr, acptr, fLag);
         }
