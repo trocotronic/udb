@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.4 2004-07-04 13:19:21 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.5 2005-03-21 10:36:39 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -40,7 +40,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.4 2004-07-04 13:19:21 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.5 2005-03-21 10:36:39 Trocotronic Exp $
  */
 
 /*
@@ -70,13 +70,13 @@ char *unrealcredits[] =
 	"not forgotten.",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"The UnrealIRCd Team would like to thank:",
-	" "
+	" ",
 	"Nutcais - Phil Hawkins",
 	"- the original shell for Unreal development, useful comments,",
 	"  and supporting the project all through its life. Thanks for",
 	"  helping to get this project to take off.",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=[Donations]=-=-=-=-=-=-=-=-=-=-=-=-=-=",
-	"BlueFlame^, [Real] - ChatFIRST.com, Jameno123 - ByteHosting ",
+	"BlueFlame^, [Real] - ChatFIRST.com, Jameno123 - ByteHosting",
 	"Internet Services, Interlink Access Corp, Jan Knutar, ThePlayer,",
 	"Headband, noriko, powerstorm.net, RedMaxima, IronHelix, xnet.org,",
 	"Pierce - irc.AAcNet.org, Franky75 - Betas-Online.com, irc.vco.se,",
@@ -97,7 +97,11 @@ char *unrealcredits[] =
 	"Devin Reams, Cleggo - irc.ugcentral.net, Tillo - irc.OSirc.net,",
 	"Matthew Burdine - irc.owns.us, Philip Veale - flame.tiefighter.org,",
 	"Latinus - irc.lokanova.com, Vincent Guesnard - irc.rs2i.net,",
-	"Windfyre IRC Network - irc.windfyre.net, SetNine - www.setnine.com",
+	"Windfyre IRC Network - irc.windfyre.net, SetNine - www.setnine.com,",
+	"|S| - irc.chatuniverse.net, CommTech Inc. - www.commtechusa.com,",
+	"CatNet IRC - irc.catslair.org, IcE-IRC - irc.ice-irc.de,",
+	"Kevin Devaux, Jackal - www.fyrebird.net, Lax - insiderZ.DE,",
+	"The_devil - chat.snyggast.se", 
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",
@@ -108,7 +112,9 @@ char *unrealcredits[] =
 	"KIREnet.com - http://www.kirenet.com",
 	"- Donating hosting for the above box on their line :)",
 	"Digital Intensity Webhosting - http://www.digital-intensity.net",
-	"- Donating hosting for the Unreal forums",
+	"- Creating and donating hosting for the first UnrealIRCd forums",
+	"HawkSites Webhosting - http://www.hawksites.com",
+	"- Donating hosting for the new forums",
 	" ",
 	"Thanks go to all current mirror & DNS hosters. We really value",
 	"your donations.",

@@ -55,7 +55,7 @@
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)res_mkquery.c	8.1 (Berkeley) 6/4/93";
-static char rcsid[] = "$Id: res_mkquery.c,v 1.1.1.2 2004-05-17 15:46:29 Trocotronic Exp $";
+static char rcsid[] = "$Id: res_mkquery.c,v 1.1.1.3 2005-03-21 10:36:32 Trocotronic Exp $";
 #endif /* LIBC_SCCS and not lint */
 
 #include "struct.h"

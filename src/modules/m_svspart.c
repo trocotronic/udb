@@ -52,7 +52,7 @@ DLLFUNC int m_svspart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svspart)
   = {
 	"svspart",	/* Name of module */
-	"$Id: m_svspart.c,v 1.1.1.2 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
+	"$Id: m_svspart.c,v 1.1.1.3 2005-03-21 10:37:07 Trocotronic Exp $", /* Version */
 	"command /svspart", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -64,7 +64,7 @@ DLLFUNC int MOD_INIT(m_svspart)(ModuleInfo *modinfo)
 	/*
 	 * We call our add_Command crap here
 	*/
-	add_Command(MSG_SVSPART, TOK_SVSPART, m_svspart, MAXPARA);
+	add_Command(MSG_SVSPART, TOK_SVSPART, m_svspart, 3);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -101,14 +101,16 @@ CMD_FUNC(m_svspart)
 	if (!IsULine(sptr))
 		return 0;
 
-	if (parc != 3 || !(acptr = find_person(parv[1], NULL))) return 0;
+	if (parc < 3 || !(acptr = find_person(parv[1], NULL))) 
+		return 0;
 
 	if (MyClient(acptr))
 	{
 		parv[0] = parv[1];
 		parv[1] = parv[2];
 		parv[2] = comment;
-		(void)m_part(acptr, acptr, comment ? 3 : 2, parv);
+		parv[3] = NULL;
+		do_cmd(acptr, acptr, "PART", comment ? 3 : 2, parv);
 	}
 	else
 	{

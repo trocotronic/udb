@@ -54,7 +54,7 @@ DLLFUNC int m_sqline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sqline)
   = {
 	"sqline",	/* Name of module */
-	"$Id: m_sqline.c,v 1.1.1.2 2004-03-08 18:07:07 Trocotronic Exp $", /* Version */
+	"$Id: m_sqline.c,v 1.1.1.3 2005-03-21 10:37:02 Trocotronic Exp $", /* Version */
 	"command /sqline", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
