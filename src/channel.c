@@ -1894,7 +1894,8 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	{
 		/* Ugly halfop hack --sts 
 		   - this allows halfops to do +b +e +v and so on */
-		if (Halfop_mode(modetype) == FALSE)
+		/* (Syzop/20040413: Allow remote halfop modes */
+		if ((Halfop_mode(modetype) == FALSE) && MyClient(cptr))
 		{
 			int eaten = 0;
 			while (tab->mode != 0x0)
@@ -2096,7 +2097,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				if (!is_halfop(cptr, chptr)) /* htrig will take care of halfop override notices */
 				   opermode = 1;
 			  }
-			  else
+			  else if (MyClient(cptr))
 			  {
 				  sendto_one(cptr, err_str(ERR_ONLYSERVERSCANCHANGE),
 				      me.name, cptr->name, chptr->chname);
@@ -2112,7 +2113,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				if (!is_halfop(cptr, chptr)) /* htrig will take care of halfop override notices */
 				   opermode = 1;
 			  }
-			  else
+			  else if (MyClient(cptr))
 			  {
 				  sendto_one(cptr,
 				      ":%s %s %s :*** El modo admin de canal (+a) sólo puede darlo el founder.",
@@ -2195,8 +2196,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				      ":%s %s %s :*** No puedes %s a %s en %s, es founder del canal (+q).",
 				      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name, xxx,
 				      member->cptr->name, chptr->chname);
-			  }
-			  break;
+				  break;
+			  } else
+			  if (IsOper(cptr))
+			      opermode = 1;
 		  }
 		  if (is_chanprot(member->cptr, chptr)
 		      && member->cptr != cptr
@@ -2209,8 +2212,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 				      ":%s %s %s :*** No puedes %s a %s en %s, es un administrador de canal (+a).",
 				      me.name, IsWebTV(cptr) ? "PRIVMSG" : "NOTICE", cptr->name, xxx,
 				      member->cptr->name, chptr->chname);
-			  }
-			  break;
+				  break;
+			  } else
+			  if (IsOper(cptr))
+			      opermode = 1;
 		  }
 		breaktherules:
 		  tmp = member->flags;
@@ -2853,7 +2858,6 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 						break;
 					
 				} /* if param[0] == '[' */ 
-
 				if (chptr->mode.floodprot &&
 				    !memcmp(chptr->mode.floodprot, &newf, sizeof(ChanFloodProt)))
 					break; /* They are identical */
@@ -3164,13 +3168,13 @@ void set_mode(aChannel *chptr, aClient *cptr, int parc, char *parv[], u_int *pco
 			  paracount +=
 			      do_mode_char(chptr, modetype, *curchr,
 			      parv[paracount], what, cptr, pcount, pvar,
-			      bounce);
+			      (char) bounce);
 			}
 #ifdef EXTCMODE
 			else if (found == 2)
 			{
 				paracount += do_extmode_char(chptr, extm, parv[paracount],
-				                             what, cptr, pcount, pvar, bounce);
+				                             what, cptr, pcount, pvar, (char) bounce);
 			}
 #endif /* EXTCMODE */
 			  break;
@@ -3178,9 +3182,9 @@ void set_mode(aChannel *chptr, aClient *cptr, int parc, char *parv[], u_int *pco
 	}
 
 #ifdef EXTCMODE
-	make_mode_str(chptr, oldm, oldem, oldl, *pcount, pvar, modebuf, parabuf, bounce);
+	make_mode_str(chptr, oldm, oldem, oldl, *pcount, pvar, modebuf, parabuf, (char) bounce);
 #else
-	make_mode_str(chptr, oldm, oldl, *pcount, pvar, modebuf, parabuf, bounce);
+	make_mode_str(chptr, oldm, oldl, *pcount, pvar, modebuf, parabuf, (char) bounce);
 #endif
 
 #ifndef NO_OPEROVERRIDE
@@ -3811,12 +3815,32 @@ void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags)
 			    sptr->name, chptr->chname, chptr->topic_nick,
 			    chptr->topic_time);
 		}
-		if (chptr->users == 1 && MODES_ON_JOIN)
+		if (chptr->users == 1 && (MODES_ON_JOIN
+#ifdef EXTCMODE
+		    || iConf.modes_on_join.extmodes)
+#endif
+		)
 		{
+#ifdef EXTCMODE
+			int i;
+			chptr->mode.extmode =  iConf.modes_on_join.extmodes;
+			/* Param fun */
+			for (i = 0; i <= Channelmode_highest; i++)
+			{
+				if (!Channelmode_Table[i].flag || !Channelmode_Table[i].paracount)
+					continue;
+				if (chptr->mode.extmode & Channelmode_Table[i].mode)
+				{
+					CmodeParam *p;
+					p = Channelmode_Table[i].put_param(NULL, iConf.modes_on_join.extparams[i]);
+					AddListItem(p, chptr->mode.extmodeparam);
+				}
+			}
+#endif
 #ifdef UDB
-				chptr->mode.mode |= MODES_ON_JOIN;
+			chptr->mode.mode |= MODES_ON_JOIN;
 #else								
-				chptr->mode.mode = MODES_ON_JOIN;
+			chptr->mode.mode = MODES_ON_JOIN;
 #endif	
 #ifdef NEWCHFLOODPROT
 			if (iConf.modes_on_join.floodprot.per)
@@ -3840,47 +3864,47 @@ void join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int flags)
 #endif		
 		}
 #ifdef UDB
-			if (reg && reg->value)
+		if (reg)
+		{
+			char *botnick, *regaux, *b;
+			int p, f;
+			aClient *acptr;
+			regaux = strdup(reg->value);
+			founder = strtok(regaux,"\t");
+			modos = strtok(NULL,"\t");
+			topic = strtok(NULL,"\t");
+			b = strdup(botname);
+			if (!(botnick = strtok(b, "!")))
+				botnick = me.name;
+			f = strcasecmp(founder, sptr->name);
+			buf[0] = '\0';
+			if (chptr->users == 1)
 			{
-				char *botnick, *regaux;
-				int p, f;
-				aClient *acptr;
-				regaux = strdup(reg->value);
-				founder = strtok(regaux,"\t");
-				modos = strtok(NULL,"\t");
-				topic = strtok(NULL,"\t");
-				botnick = strdup(botname);
-				if (!(botnick = strtok(botnick, "!")))
-					botnick = me.name;
-				f = strcasecmp(founder, sptr->name);
-				buf[0] = '\0';
-				if (chptr->users == 1)
-				{
-					if (!f && IsARegNick(sptr))
-						ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
-					else
-						ircsprintf(buf, "-o %s", sptr->name);
-				}
+				if (!f && IsARegNick(sptr))
+					ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
 				else
-				{
-					if (!f && IsARegNick(sptr))
-						ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
-				}
-				acptr = find_client(botnick, NULL);
-				if (buf[0] != '\0')
-				{		
-					sendto_serv_butone_token(cptr, acptr ? botnick : me.name, MSG_MODE, TOK_MODE, "%s %s", chptr->chname, buf);
-					sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", acptr ? botname : me.name, chptr->chname, buf);
-				}
-				free(regaux);
-				free(botnick);
+					ircsprintf(buf, "-o %s", sptr->name);
 			}
-#endif		
+			else
+			{
+				if (!f && IsARegNick(sptr))
+					ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
+			}
+			acptr = find_client(botnick, NULL);
+			if (buf[0] != '\0')
+			{
+				sendto_serv_butone_token(&me, acptr ? botnick : me.name, MSG_MODE, TOK_MODE, "%s %s", chptr->chname, buf);
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", acptr ? botname : me.name, chptr->chname, buf);
+			}
+			free(regaux);
+			free(b);
+		}
+#endif
 		parv[0] = sptr->name;
 		parv[1] = chptr->chname;
 		(void)m_names(cptr, sptr, 2, parv);
 		RunHook4(HOOKTYPE_LOCAL_JOIN, cptr, sptr,chptr,parv);
-	}
+	}			
 
 #ifdef NEWCHFLOODPROT
 	/* I'll explain this only once:
@@ -4606,14 +4630,24 @@ CMD_FUNC(m_names)
 				    flags & (CHFL_CHANOP | CHFL_CHANPROT |
 				    CHFL_CHANOWNER)) && acptr != sptr)
 					continue;
-
+					
+#ifdef UDB
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
-#ifdef UDB
 			buf[idx++] = '.';
-#else		
+		if (cm->flags & CHFL_CHANPROT)
+			buf[idx++] = '&';
+#endif
+		if (cm->flags & CHFL_CHANOP)
+			buf[idx++] = '@';
+		if (cm->flags & CHFL_HALFOP)
+			buf[idx++] = '%';
+		if (cm->flags & CHFL_VOICE)
+			buf[idx++] = '+';
+#else
+#ifdef PREFIX_AQ
+		if (cm->flags & CHFL_CHANOWNER)
 			buf[idx++] = '~';
-#endif	
 		else if (cm->flags & CHFL_CHANPROT)
 			buf[idx++] = '&';
 		else
@@ -4624,6 +4658,7 @@ CMD_FUNC(m_names)
 			buf[idx++] = '%';
 		else if (cm->flags & CHFL_VOICE)
 			buf[idx++] = '+';
+#endif
 		for (s = acptr->name; *s; s++)
 			buf[idx++] = *s;
 		buf[idx++] = ' ';
@@ -4798,7 +4833,9 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 	char *bufptr;
 
 	int  n = 0;
-
+#ifdef UDB
+	n = 1;
+#endif
 	if (*chptr->chname != '#')
 		return;
 
@@ -4839,7 +4876,11 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_CHANOWNER)
 			*bufptr++ = '*';
 		if (lp->flags & MODE_CHANPROT)
+#ifdef UDB
+			*bufptr++ = '$';
+#else
 			*bufptr++ = '~';
+#endif
 
 
 
@@ -4902,7 +4943,7 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 	char *bufptr;
 	short nomode, nopara;
 	char bbuf[1024];
-	int  n = 0;
+	int  n = 1;
 
 	if (*chptr->chname != '#')
 		return;
@@ -4962,7 +5003,11 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_CHANOWNER)
 			*bufptr++ = '*';
 		if (lp->flags & MODE_CHANPROT)
+#ifdef UDB
+			*bufptr++ = '$';
+#else		
 			*bufptr++ = '~';
+#endif			
 
 		name = lp->cptr->name;
 

@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.4 2004-05-17 15:46:28 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -783,7 +783,7 @@ struct Server {
 struct _spamfilter {
 	unsigned short action; /* see BAN_ACT* */
 	regex_t expr;
-	char *tkl_reason;
+	char *tkl_reason; /* spamfilter reason field [escaped by unreal_encodespace()!] */
 	TS tkl_duration;
 };
 
@@ -1574,7 +1574,7 @@ struct liststruct {
 
 #define	BadPtr(x) (!(x) || (*(x) == '\0'))
 
-#define	isvalid(c) (((c) >= 'A' && (c) <= '~') || isdigit(c) || (c) == '-')
+#define	isvalid(c) (((c) >= 'A' && (c) <= '~') || isdigit(c) || (c) == '-' || (c) == 'Ñ' || (c) == 'ñ')
 
 /* remote fds are set to -256, else its a local fd (a local fd
  * can get -1 or -2 in case it has been closed). -- Syzop

@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 
@@ -97,7 +97,7 @@ DLLFUNC CMD_FUNC(m_sapart)
 		return 0;
 	}
 
-	if (parc != 3)
+	if (parc < 3)
 	{
 		sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "SAPART");
 		return 0;

@@ -19,11 +19,14 @@
  *
  * "s_zip.h". - Headers file.
  *
- * $Id: zip.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ * $Id: zip.h,v 1.1.1.2 2004-05-17 15:46:29 Trocotronic Exp $
  *
  */
 #ifndef INCLUDED_s_zip_h
 #define INCLUDED_s_zip_h
+#ifdef _WIN32
+ #define ZLIB_WINAPI
+#endif
 #include <zlib.h>		/* z_stream */
 #endif
 

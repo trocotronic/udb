@@ -48,17 +48,24 @@
 
 DLLFUNC int m_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC int m_svs2mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+#ifdef UDB
+DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+#endif
 
 extern ircstats IRCstats;
 #define MSG_SVSMODE 	"SVSMODE"	
 #define TOK_SVSMODE 	"n"	
 #define MSG_SVS2MODE    "SVS2MODE"
 #define TOK_SVS2MODE	"v"
+#ifdef UDB
+#define MSG_SVS3MODE	"SVS3MODE"
+#define TOK_SVS3MODE	"vv"
+#endif
 
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 
@@ -68,6 +75,9 @@ DLLFUNC int MOD_INIT(m_svsmode)(ModuleInfo *modinfo)
 {
 	add_Command(MSG_SVSMODE, TOK_SVSMODE, m_svsmode, MAXPARA);
 	add_Command(MSG_SVS2MODE, TOK_SVS2MODE, m_svs2mode, MAXPARA);
+#ifdef UDB
+	add_Command(MSG_SVS3MODE, TOK_SVS3MODE, m_svs3mode, MAXPARA);
+#endif
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -79,7 +89,11 @@ DLLFUNC int MOD_LOAD(m_svsmode)(int module_load)
 
 DLLFUNC int MOD_UNLOAD(m_svsmode)(int module_unload)
 {
-	if (del_Command(MSG_SVSMODE, TOK_SVSMODE, m_svsmode) < 0 || del_Command(MSG_SVS2MODE, TOK_SVS2MODE, m_svs2mode) < 0)
+	if (del_Command(MSG_SVSMODE, TOK_SVSMODE, m_svsmode) < 0 || del_Command(MSG_SVS2MODE, TOK_SVS2MODE, m_svs2mode) < 0
+#ifdef UDB
+	|| del_Command(MSG_SVS3MODE, TOK_SVS3MODE, m_svs3mode) < 0
+#endif
+	)
 	{
 		sendto_realops("Failed to delete commands when unloading %s",
 				MOD_HEADER(m_svsmode).name);
@@ -123,8 +137,13 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				Member *cm;
 				for (cm = chptr->members; cm; cm = cm->next) {
 					if (cm->flags & CHFL_CHANOWNER) {
+						Membership *mb;
+						mb = find_membership_link(cm->cptr->user->channel,
+							chptr);
 						add_send_mode_param(chptr, sptr, '-', 'q', cm->cptr->name);
 						cm->flags &= ~CHFL_CHANOWNER;
+						if (mb)
+							mb->flags = cm->flags;
 					}
 				}
 			}
@@ -133,8 +152,13 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				Member *cm;
 				for (cm = chptr->members; cm; cm = cm->next) {
 					if (cm->flags & CHFL_CHANPROT) {
+						Membership *mb;
+						mb = find_membership_link(cm->cptr->user->channel,
+							chptr);
 						add_send_mode_param(chptr, sptr, '-', 'a', cm->cptr->name);
 						cm->flags &= ~CHFL_CHANPROT;
+						if (mb)
+							mb->flags = cm->flags;
 					}
 				}
 			}
@@ -143,8 +167,13 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				Member *cm;
 				for (cm = chptr->members; cm; cm = cm->next) {
 					if (cm->flags & CHFL_CHANOP) {
+						Membership *mb;
+						mb = find_membership_link(cm->cptr->user->channel,
+							chptr);
 						add_send_mode_param(chptr, sptr, '-', 'o', cm->cptr->name);
 						cm->flags &= ~CHFL_CHANOP;
+						if (mb)
+							mb->flags = cm->flags;
 					}
 				}
 			}
@@ -153,8 +182,13 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				Member *cm;
 				for (cm = chptr->members; cm; cm = cm->next) {
 					if (cm->flags & CHFL_HALFOP) {
+						Membership *mb;
+						mb = find_membership_link(cm->cptr->user->channel,
+							chptr);
 						add_send_mode_param(chptr, sptr, '-', 'h', cm->cptr->name);
 						cm->flags &= ~CHFL_HALFOP;
+						if (mb)
+							mb->flags = cm->flags;
 					}
 				}
 			}
@@ -163,8 +197,13 @@ int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				Member *cm;
 				for (cm = chptr->members; cm; cm = cm->next) {
 					if (cm->flags & CHFL_VOICE) {
+						Membership *mb;
+						mb = find_membership_link(cm->cptr->user->channel,
+							chptr);
 						add_send_mode_param(chptr, sptr, '-', 'v', cm->cptr->name);
 						cm->flags &= ~CHFL_VOICE;
+						if (mb)
+							mb->flags = cm->flags;
 					}
 				}
 			}
@@ -279,8 +318,27 @@ int i;
 char **p, *m;
 aClient *acptr;
 int  what, setflags;
+#ifdef UDB
+char *xmsg, *xtok;
+	if (show_change == 2)
+	{
+		xmsg = MSG_SVS3MODE;
+		xtok = TOK_SVS3MODE;
+	}
+	else if (show_change == 1)
+	{
+		xmsg = MSG_SVS2MODE;
+		xtok = TOK_SVS2MODE;
+	}
+	else
+	{
+		xmsg = MSG_SVSMODE;
+		xtok = TOK_SVSMODE;
+	}
+#else
 char *xmsg = show_change ? MSG_SVS2MODE : MSG_SVSMODE;
 char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
+#endif
 
 	if (!IsULine(sptr))
 		return 0;
@@ -420,7 +478,7 @@ char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
 		char buf[BUFSIZE];
 		send_umode(NULL, acptr, setflags, ALL_UMODES, buf);
 		if (MyClient(acptr) && buf[0] && buf[1])
-			sendto_one(acptr, ":%s MODE %s :%s", parv[0], parv[1], buf);
+			sendto_one(acptr, ":%s MODE %s :%s", show_change == 2 ? parv[1] : parv[0], parv[1], buf);
 	}
 
 	VERIFY_OPERCOUNT(acptr, "svsmodeX");
@@ -450,3 +508,16 @@ int  m_svs2mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 	return do_svsmode(cptr, sptr, parc, parv, 1);
 }
+#ifdef UDB
+/*
+ * m_svs3mode() añadido por Trocotronic
+ * parv[0] - sender
+ * parv[1] - usuario a cambiar
+ * parv[2] - modos a cambiar
+ * parv[3] - Service Stamp (si modo == d)
+ */
+int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
+{
+	return do_svsmode(cptr, sptr, parc, parv, 2);
+}
+#endif

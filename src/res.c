@@ -35,7 +35,7 @@
 #include "threads.h"
 #include <string.h>
 #ifndef CLEAN_COMPILE
-static char rcsid[] = "@(#)$Id: res.c,v 1.1.1.2 2004-02-18 18:24:12 Trocotronic Exp $";
+static char rcsid[] = "@(#)$Id: res.c,v 1.1.1.3 2004-05-17 15:46:29 Trocotronic Exp $";
 #endif
 #if 0
 #undef	DEBUG	/* because there is a lot of debug code in here :-) */
@@ -134,7 +134,7 @@ int init_resolver(int op)
 #else
 		ret = resfd = socket(AF_INET, SOCK_DGRAM, 0);
 #endif
-		(void)setsockopt(ret, SOL_SOCKET, SO_BROADCAST, &on, on);
+		(void)setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (const void *)&on, on);
 	}
 #ifdef DEBUGMODE
 	if (op & RES_INITDEBG)
@@ -557,10 +557,10 @@ static int query_name(char *name, int class, int type, ResRQ *rptr)
 	do
 	{
 		hptr->id = htons(getrandom16());
-	} while (find_id(ntohs(hptr->id)));
+	} while (find_id(ntohs((u_int16_t)hptr->id)));
 	/* The above loop takes care of preventing requests with duplicate id's. -- Syzop */
 
-	rptr->id = ntohs(hptr->id);
+	rptr->id = ntohs((u_int16_t)hptr->id);
 	rptr->sends++;
 	s = send_res_msg(buf, r, rptr->sends);
 	if (s == -1)
@@ -807,11 +807,11 @@ struct hostent *get_res(char *lp)
 	 * convert DNS reply reader from Network byte order to CPU byte order.
 	 */
 	hptr = (HEADER *) buf;
-	hptr->id = ntohs(hptr->id);
-	hptr->ancount = ntohs(hptr->ancount);
-	hptr->qdcount = ntohs(hptr->qdcount);
-	hptr->nscount = ntohs(hptr->nscount);
-	hptr->arcount = ntohs(hptr->arcount);
+	hptr->id = ntohs((u_int16_t)hptr->id);
+	hptr->ancount = ntohs((u_int16_t)hptr->ancount);
+	hptr->qdcount = ntohs((u_int16_t)hptr->qdcount);
+	hptr->nscount = ntohs((u_int16_t)hptr->nscount);
+	hptr->arcount = ntohs((u_int16_t)hptr->arcount);
 #ifdef	DEBUGMODE
 	Debug((DEBUG_NOTICE, "get_res:id = %d rcode = %d ancount = %d",
 	    hptr->id, hptr->rcode, hptr->ancount));

@@ -163,7 +163,7 @@ void free_client(aClient *cptr)
 			zip_free(cptr);
 #endif
 	}
-	MyFree((char *)cptr);
+	MyFree(cptr);
 }
 
 /*

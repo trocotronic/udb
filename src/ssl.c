@@ -56,7 +56,7 @@ typedef struct {
 #ifdef _WIN32
 static StreamIO *streamp;
 LRESULT SSLPassDLG(HWND hDlg, UINT Message, WPARAM wParam, LPARAM lParam) {
-	StreamIO *stream;
+	StreamIO *stream = NULL;
 	switch (Message) {
 		case WM_INITDIALOG:
 			return TRUE;

@@ -274,7 +274,10 @@ int  parse(aClient *cptr, char *buffer, char *bufend)
 				Debug((DEBUG_ERROR,
 				    "Message (%s) coming from (%s)",
 				    buffer, cptr->name));
+#ifndef UDB /* La explicación es sencilla: se puede producir que los bots en la BDD propaguen mensajes por la red
+ 	     * con lo cual no debe importar dónde estan linkados realmente. La cuestión es que llegue. */
 				return cancel_clients(cptr, from, ch);
+#endif				
 			}
 		}
 		while (*ch == ' ')
@@ -321,7 +324,7 @@ int  parse(aClient *cptr, char *buffer, char *bufend)
 			flags |= M_SERVER;
 		if (IsShunned(from))
 			flags |= M_SHUN;
-		cmptr = find_Command(ch, IsServer(cptr) ? 1 : 0, flags);
+		cmptr = find_Command(ch, (short)(IsServer(cptr) ? 1 : 0), flags);
 		if (!cmptr)
 		{
 			/*

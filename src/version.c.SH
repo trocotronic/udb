@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -40,7 +40,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $
  */
 
 /*
@@ -78,28 +78,36 @@ char *unrealcredits[] =
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=[Donations]=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"BlueFlame^, [Real] - ChatFIRST.com, Jameno123 - ByteHosting ",
 	"Internet Services, Interlink Access Corp, Jan Knutar, ThePlayer,",
-	"Headband, noriko, powerstorm.net, RedMaxima, IronHelix,",
+	"Headband, noriko, powerstorm.net, RedMaxima, IronHelix, xnet.org,",
 	"Pierce - irc.AAcNet.org, Franky75 - Betas-Online.com, irc.vco.se,",
-	"Bedlock - irc.coldfront.net, Kusau - chat.tochat.org, Japsclan,",
+	"Beldock - irc.coldfront.net, Kusau - chat.tochat.org, Japsclan,",
 	"WolfLord - UplinkCorp, Isaiah - irc.frogstar.us, Kedrin Milborn,",
 	"Dionisios Koutsikos, Tank - irc.scifi-fans.net, irc.P2Pchat.net",
 	"Leo Zhadanovsky - irc.leozh.net, Lyote - ZodiaCIrC/DecayOnline,",
 	"Jesse Lanning - Secure Technology Networks, HERZ - insiderZ.DE,",
-	"James Yerge - Kronical Internet Solutions, irc.FireWirez.Net,",
-	"FrostByghte - irc.coldfront.net, MagicalTux - irc.FF.st,",
-	"mnslinky - http://www.secure-computing.net, Devin Reams,",
+	"James Yerge - Kronical Internet Solutions, djw - irc.perldev.org,",
 	"MichaelJE2 - irc.xcelor8.com, AfterShock - irc.liquidvoltage.net,",
-	"^White_Magic^ - irc.chatuniverse.net, Justin Furnas,",
+	"recycled-irc - www.recycled-irc.org, Alpha - irc.FireWirez.net,",
+	"FrostByghte - irc.coldfront.net, SdgNem - irc.RealmOfGaming.net,",
+	"MagicalTux - irc.FF.st, irc.P2Pchat.net, Ganja51 - irc.lcirc.net,",
+	"^White_Magic^ - irc.chatuniverse.net, Nick - irc.plasmachat.net,",
 	"Matridom - www.WinDrivers.com, anaconda - irc.lightmoon.org,", 
-	"Cleggo - irc.ugcentral.net, Nick - irc.plasmachat.net,",
-	"Ganja51 - irc.lcirc.net, Andy Hansis irc.technerd.net,",
+	"mnslinky - http://www.secure-computing.net, Justin Furnas,",
+	"Andy Hansis - irc.technerd.net, Crimson - www.n00bstories.com",
+	"Devin Reams, Cleggo - irc.ugcentral.net, Tillo - irc.OSirc.net,",
+	"Matthew Burdine - irc.owns.us, Philip Veale - flame.tiefighter.org,",
+	"Windfyre IRC Network - irc.windfyre.net",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",
+	"Alcatraz Media - http://www.alcatrazmedia.com",
+	"- Donating more webhosting for the project",
 	"cknight^",
 	"- Donating a FreeBSD box to the Unreal project to host some stuff",
 	"KIREnet.com - http://www.kirenet.com",
 	"- Donating hosting for the above box on their line :)",
+	"Digital Intensity Webhosting - http://www.digital-intensity.net"
+	"- Donating hosting for the Unreal forums",
 	" ",
 	"Thanks go to all current mirror & DNS hosters. We really value",
 	"your donations.",
@@ -114,7 +122,7 @@ char *unrealcredits[] =
 	"list of all the coders' credits. ",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-",
 	"This IRCd is dedicated to those who have kept us rocking and", 
-	"in good mood all through the years we've struggled with this"
+	"in good mood all through the years we've struggled with this",
 	"project. Unreal3.0 and up is dedicated to Morrigan.",
 	0
 }; 

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: common.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
+ *   $Id: common.h,v 1.1.1.4 2004-05-17 15:46:28 Trocotronic Exp $
  */
 
 #ifndef	__common_include__
@@ -37,7 +37,6 @@
 #include <io.h>
 #endif
 //#include "dynconf.h"
-#include "ircsprintf.h"
 #include "config.h"
 #ifdef	PARAMH
 #include <sys/param.h>
@@ -46,6 +45,9 @@
 #if !defined(IN_ADDR)
 #include "sys.h"
 #endif
+
+#include "ircsprintf.h"
+
 
 #ifdef DEVELOP_CVS
 #define ID_Copyright(x) static char id_copyright[] = x
@@ -319,7 +321,7 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
 			" SJB64" \
 			" VHP" \
 			" TKLEXT" \
-			" UDB" 
+			" UDB2" 
 #else
 #define PROTOCTL_SERVER "NOQUIT" \
                         " TOKEN" \

@@ -53,7 +53,7 @@ DLLFUNC int m_spamfilter(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.3 2004-03-08 18:07:07 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -402,6 +402,7 @@ DLLFUNC int  m_tkl_line(aClient *cptr, aClient *sptr, int parc, char *parv[], ch
 				i++;
 			p++;
 		}
+#ifndef UDB
 		if (i < 4)
 		{
 			sendto_one(sptr,
@@ -409,6 +410,7 @@ DLLFUNC int  m_tkl_line(aClient *cptr, aClient *sptr, int parc, char *parv[], ch
 			    me.name, sptr->name);
 			return 0;
 		}
+#endif
 	}
 
 	tkl_check_expire(NULL);
@@ -505,6 +507,7 @@ char *tkllayer[11] = {
 struct tm *t;
 int targets = 0, action = 0;
 char targetbuf[64], actionbuf[2];
+char reason[512]; 
 
 	if (IsServer(sptr))
 		return 0;
@@ -583,10 +586,13 @@ char targetbuf[64], actionbuf[2];
 	}
 	else
 		tkllayer[8] = parv[4];
+
 	if (parv[5][0] == '-')
-		tkllayer[9] = SPAMFILTER_BAN_REASON;
+		strlcpy(reason, unreal_encodespace(SPAMFILTER_BAN_REASON), sizeof(reason));
 	else
-		tkllayer[9] = parv[5];
+		strlcpy(reason, parv[5], sizeof(reason));
+
+	tkllayer[9] = reason;
 	tkllayer[10] = parv[6];
 	
 	if (whattodo == 0)

@@ -68,7 +68,6 @@ extern char *me_hash;
 extern char backupbuf[];
 static char buf[BUFSIZE];
 #ifdef UDB
-int make_virtualhost(aClient *acptr, int mostrar);
 char *cifranick(char *nickname, char *pass);
 #endif
 
@@ -984,7 +983,8 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 		sptr->srvptr->serv->users++;
 #ifdef UDB
 	if (IsHidden(sptr))
-    		make_virtualhost(sptr, 1); 
+    		user->virthost = make_virtualhost(sptr, user->realhost, user->virthost, 1); 
+    	sube_oper(sptr);
 #else
 	user->virthost =
 	    (char *)make_virthost(user->realhost, user->virthost, 1);
@@ -1112,7 +1112,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 	    (!buf || *buf == '\0' ? "+" : buf),
 /*	    ((IsHidden(sptr)
 	    && (sptr->umodes & UMODE_SETHOST)) ? sptr->user->virthost : "*"));*/
-	    sptr->user->virthost);
+	    user->virthost);
 
 	/* Send password from sptr->passwd to NickServ for identification,
 	 * if passwd given and if NickServ is online.
@@ -1197,12 +1197,13 @@ CMD_FUNC(m_nick)
 	Membership *mp;
 	time_t lastnick = (time_t) 0;
 	int  differ = 1, update_watch = 1;
-	unsigned char newusr = 0;
 #ifdef UDB
-	short mismonick = 0, suspend = 0, nick_used = 0, clave_ok = 0;
+	char mismonick = 0, nick_used = 0;
+	int val = 0;
 	long old_umodes;
 	char *pass;
 #endif		
+	unsigned char newusr = 0, removemoder = 1;
 	/*
 	 * If the user didn't specify a nickname, complain
 	 */
@@ -1270,10 +1271,16 @@ CMD_FUNC(m_nick)
 		return 0;
 	}
 #ifdef UDB
-	if (strlen(nick) == (strlen(parv[1])+1) || strlen(nick) == strlen(parv[1]))
-		pass = NULL;
+	if (parc > 2)
+		pass = parv[2];
 	else
-		pass = parv[1]+strlen(nick)+1;
+	{
+		if (!(pass = strchr(parv[1], '!')))
+			pass = strchr(parv[1], ':');
+		if (pass)
+			pass++;
+	}
+	val = tipo_de_pass(nick, pass);
 #endif
 
 	/*
@@ -1454,6 +1461,32 @@ CMD_FUNC(m_nick)
 		exit_client(NULL, acptr, &me, "Lost user field");
 		goto nickkilldone;
 	}
+#ifdef UDB
+	if (strchr(parv[1],'!') && acptr != sptr && val > 1) 
+	{
+		char quitbuf[40+NICKLEN], who[NICKLEN + 2], *botname;
+		udb *breg;
+		if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
+			botname = me.name;
+		else
+			botname = breg->value;
+		if (!IsRegistered(sptr))
+			ircsprintf(who, "%s!", nick);
+		else
+			strcpy(who, sptr->name);
+		sendto_serv_butone_token(cptr,me.name,MSG_KILL,TOK_KILL,"%s :Sesión fantasma liberada por %s.",acptr->name, who);
+		if (MyClient(acptr))
+			sendto_one(acptr, ":%s KILL %s :Sesión fantasma liberada por %s.",
+				me.name, acptr->name, who);
+		sendto_one(cptr, ":%s NOTICE %s :*** Sesión fantasma del nick %s liberada.",
+			botname, sptr->name, nick);
+		acptr->flags |= FLAGS_KILLED;
+		ircsprintf(quitbuf, "Killed (Sesión fantasma liberada por %s)", who);
+		exit_client(NULL, acptr, &me, quitbuf);
+		nick_used = 0; 
+		goto nickkilldone;
+	}
+#endif
 	/*
 	   ** If acptr == sptr, then we have a client doing a nick
 	   ** change between *equivalent* nicknames as far as server
@@ -1462,26 +1495,21 @@ CMD_FUNC(m_nick)
 	 */
 	if (acptr == sptr) {
 		if (strcmp(acptr->name, nick) != 0)
-#ifdef UDB
 		{
-#endif
-			/*
-			   ** Allows change of case in his/her nick
-			 */
 #ifdef UDB
             		mismonick = 1;
+#else
+			/* Allows change of case in his/her nick */
+			removemoder = 0; /* don't set the user -r */
 #endif
 			goto nickkilldone;	/* -- go and process change */
-#ifdef UDB
-		}
-#endif
-		else
+		} else
 			/*
-			   ** This is just ':old NICK old' type thing.
-			   ** Just forget the whole thing here. There is
-			   ** no point forwarding it to anywhere,
-			   ** especially since servers prior to this
-			   ** version would treat it as nick collision.
+			 ** This is just ':old NICK old' type thing.
+			 ** Just forget the whole thing here. There is
+			 ** no point forwarding it to anywhere,
+			 ** especially since servers prior to this
+			 ** version would treat it as nick collision.
 			 */
 			return 0;	/* NICK Message ignored */
 	}
@@ -1493,73 +1521,7 @@ CMD_FUNC(m_nick)
 	   ** Decide, we really have a nick collision and deal with it
 	 */
 	if (!IsServer(cptr))
-	{
-#ifdef UDB
-		char *d = strchr(parv[1],'!');
-		if (d != NULL) {
-			udb *breg, *reg;
-			char who[NICKLEN + 2];
-			char *botname, *cifrado, *realpass;
-			if (!(reg = busca_registro(BDD_NICKS, nick)) || !reg->value[0]) 
-				goto escape;
-			if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
-				botname = me.name;
-			else
-				botname = breg->value;
-			if (reg->value[strlen(reg->value)-1] == '*') 
-			{
-				sendto_one(cptr,
-					":%s NOTICE %s :*** El nick \002%s\002 está prohibido, no puede ser utilizado.",
-					botname, sptr->name, nick);
-				sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
-					BadPtr(parv[0]) ? "*" : parv[0], nick);
-				return 0;
-			}
-			if (reg->value[strlen(reg->value)-1] == '+') 
-			{
-				realpass = (char *)malloc(sizeof(char)*strlen(reg->value));
-				memset(realpass, 0, sizeof(char)*strlen(reg->value));
-				strncpy(realpass, reg->value, strlen(reg->value)-1);
-				suspend = 1;
-			}
-			else 
-				realpass = reg->value;
-			cifrado = cifranick(nick, pass);
-			if (strcmp(cifrado, realpass)) 
-			{
-				if (!nick_used) 
-				{
-					sendto_one(cptr,
-						":%s NOTICE %s :*** Contraseña Incorrecta para el nick %s.",
-						botname, sptr->name, nick);
-					sendto_one(cptr,
-						":%s NOTICE %s :*** Utiliza \002/NICK %s!clave\002 para identificarte.",
-						botname, sptr->name, nick);
-				}
-				sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
-					BadPtr(parv[0]) ? "*" : parv[0], nick);
-				return 0;
-			}
-			if (acptr) 
-			{
-				char quitbuf[40+NICKLEN];
-				if (!IsRegistered(sptr))
-					ircsprintf(who, "%s!", nick);
-				else
-					strcpy(who, sptr->name);
-				sendto_serv_butone_token(cptr,me.name,MSG_KILL,TOK_KILL,"%s :Sesión fantasma liberada por %s.",acptr->name, who);
-				if (MyClient(acptr))
-					sendto_one(acptr, ":%s KILL %s :Sesión fantasma liberada por %s.",
-						me.name, acptr->name, who);
-				sendto_one(cptr, ":%s NOTICE %s :*** Sesión fantasma del nick %s liberada.",
-					botname, sptr->name, nick);
-				ircsprintf(quitbuf, "Killed (Sesión fantasma liberada por %s)", who);
-				exit_client(cptr, acptr, &me, quitbuf);
-				goto nickkilldone;
-			}
-		}
-		escape:
-#endif			
+	{		
 		/*
 		   ** NICK is coming from local client connection. Just
 		   ** send error reply and ignore the command.
@@ -1815,10 +1777,10 @@ CMD_FUNC(m_nick)
 			}
 #ifdef UDB		
 			bdd:
-			if (!puede_cambiar_nick_en_bdd(cptr, sptr, parv, nick, pass, mismonick, nick_used, &suspend, &clave_ok, &old_umodes))
+			old_umodes = sptr->umodes;
+			if (puede_cambiar_nick_en_bdd(cptr, sptr, acptr, parv, nick, pass, nick_used) < 0)
 				return 0;
 #endif				
-
 			if (TStime() - sptr->user->flood.nick_t >= NICK_PERIOD)
 			{
 				sptr->user->flood.nick_t = TStime();
@@ -1832,17 +1794,17 @@ CMD_FUNC(m_nick)
 		} else {
 			sendto_snomask(SNO_FNICKCHANGE, "*** Notice -- %s (%s@%s) has changed his/her nickname to %s", sptr->name, sptr->user->username, sptr->user->realhost, nick);
 			RunHook3(HOOKTYPE_REMOTE_NICKCHANGE, cptr, sptr, nick);
-		}
+		}			
 #ifdef UDB
 		if (!mismonick)
 		{
-			sptr->umodes &= ~UMODE_SUSPEND & ~UMODE_REGNICK & ~UMODE_HELPOP & ~UMODE_SHOWIP & ~UMODE_RGSTRONLY & ~UMODE_SERVICES;
-			if (!IsAnOper(sptr))
-				sptr->umodes &= ~UMODE_KIX;
+			sptr->umodes &= ~(UMODE_SUSPEND | UMODE_REGNICK | UMODE_HELPOP | UMODE_SHOWIP | UMODE_RGSTRONLY | UMODE_SERVICES);
+			if (level_oper_bdd(sptr->name))
+				sptr->oflag = 0;
 			if (MyClient(sptr) && IsPerson(sptr))
 				send_umode_out(cptr, sptr, old_umodes);
 		}
-#endif			
+#endif
 		/*
 		 * Client just changing his/her nick. If he/she is
 		 * on a channel, send note of change to all clients
@@ -1863,14 +1825,14 @@ CMD_FUNC(m_nick)
 		sendto_common_channels(sptr, ":%s NICK :%s", parv[0], nick);
 		sendto_serv_butone_token(cptr, parv[0], MSG_NICK, TOK_NICK,
 		    "%s %ld", nick, sptr->lastnick);
-#ifndef UDB		    
-		sptr->umodes &= ~UMODE_REGNICK;
-#endif
+		if (removemoder)
+			sptr->umodes &= ~UMODE_REGNICK;
 	}
 	else if (!sptr->name[0])
-	{
+	{		
 #ifdef UDB
-		if (!puede_cambiar_nick_en_bdd(cptr, sptr, parv, nick, pass, mismonick, nick_used, &suspend, &clave_ok, &old_umodes))
+		old_umodes = sptr->umodes;
+		if (puede_cambiar_nick_en_bdd(cptr, sptr, acptr, parv, nick, pass, nick_used) < 0)
 			return 0;
 #endif		
 #ifdef NOSPOOF
@@ -1978,28 +1940,22 @@ CMD_FUNC(m_nick)
 #ifdef UDB
 	if (!mismonick)
 	{
-		udb *reg;
-		ConfigItem_oper *aconf;
-		long old_umodes = sptr->umodes;
-		if (clave_ok) {
-			if (!suspend) {
-				int level = level_oper_bdd(nick);
+		if (val > 0)
+		{
+			old_umodes = sptr->umodes;
+			if (val == 2)
+			{
 				sptr->umodes |= UMODE_REGNICK;
-				if (level & BDD_OPER)
-					sptr->umodes |= UMODE_HELPOP;
-				if (level & BDD_ADMIN || level & BDD_ROOT)
-					sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
-				if ((aconf = Find_oper(sptr->name)))
-					sptr->oflag = aconf->oflags;
+				sube_oper(sptr);
 			}
-			else 
+			else if (val == 1)
 				sptr->umodes |= UMODE_SUSPEND;
+			if (MyClient(sptr) && IsPerson(sptr))
+				send_umode_out(cptr, sptr, old_umodes);
 		}
-		if (MyClient(sptr) && IsPerson(sptr))
-			send_umode_out(cptr, sptr, old_umodes);
 	}
     	if (IsHidden(sptr))
-		make_virtualhost(sptr,1); 
+		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #endif	
 	if (newusr && !MyClient(sptr) && IsPerson(sptr))
 	{
@@ -2277,7 +2233,6 @@ void create_snomask(aClient *sptr, anUser *user, char *snomask) {
 		}
 	}
 }
-
 /*
  * m_umode() added 15/10/91 By Darren Reed.
  * parv[0] - sender
@@ -2565,7 +2520,7 @@ CMD_FUNC(m_umode)
 			sptr->user->virthost = NULL;
 		}
 #ifdef UDB
-		make_virtualhost(sptr,1);
+		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #else
 		sptr->user->virthost = (char *)make_virthost(sptr->user->realhost,
 		    sptr->user->virthost, 1);

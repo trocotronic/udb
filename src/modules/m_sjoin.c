@@ -52,7 +52,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.2 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.3 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -153,39 +153,25 @@ static int compare_floodprot_modes(ChanFloodProt *a, ChanFloodProt *b)
  */
 
 /* Some ugly macros, but useful */
-#define Addit(mode,param) if (strlen(parabuf) + strlen(param) + 11 < MODEBUFLEN) { \
+#define Addit(mode,param) if ((strlen(parabuf) + strlen(param) + 11 < MODEBUFLEN) && (b <= MAXMODEPARAMS)) { \
 	if (*parabuf) \
 		strcat(parabuf, " ");\
 	strcat(parabuf, param);\
 	modebuf[b++] = mode;\
 	modebuf[b] = 0;\
 }\
-else if (*parabuf) {\
+else {\
 	sendto_serv_butone_sjoin(cptr, ":%s MODE %s %s %s %lu", sptr->name, chptr->chname,\
 		modebuf, parabuf, chptr->creationtime); \
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", sptr->name, chptr->chname,\
-        	modebuf, parabuf);\
+	sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", sptr->name, chptr->chname,\
+		modebuf, parabuf);\
 	strcpy(parabuf,param);\
+	modebuf[0] = '+';\
 	modebuf[1] = mode;\
-	modebuf[2] = 0;\
-	sendto_serv_butone_sjoin(cptr, ":%s MODE %s %s %s %lu", sptr->name, chptr->chname,\
-		modebuf, parabuf, chptr->creationtime); \
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", sptr->name, chptr->chname,\
-        	modebuf, parabuf); \
-	modebuf[1] = 0;\
-	parabuf[0] = 0;\
-	b = 1;\
-}\
-else if (b == MAXMODEPARAMS) {\
-	sendto_serv_butone_sjoin(cptr, ":%s MODE %s %s %s %lu", sptr->name, chptr->chname,\
-		modebuf, parabuf, chptr->creationtime); \
-        sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s", sptr->name, chptr->chname,\
-        	modebuf, parabuf);\
-	parabuf[0] = 0;\
-	modebuf[1] = 0;\
-	b = 1;\
+	modebuf[2] = '\0';\
+	b = 2;\
 }
-#define Addsingle(x) modebuf[b] = x; b++
+#define Addsingle(x) modebuf[b] = x; b++; modebuf[b] = '\0'
 #define CheckStatus(x,y) if (modeflags & (y)) { Addit((x), nick); }
 #define AddBan(x) strlcat(banbuf, x, sizeof banbuf); strlcat(banbuf, " ", sizeof banbuf);
 #define AddEx(x) strlcat(exbuf, x, sizeof exbuf); strlcat(exbuf, " ", sizeof banbuf);
@@ -218,6 +204,7 @@ CMD_FUNC(m_sjoin)
 	 char *s0 = NULL;
 	long modeflags;
 	Ban *ban=NULL;
+
 	if (IsClient(sptr) || parc < 3 || !IsServer(sptr))
 		return 0;
 
@@ -392,7 +379,11 @@ CMD_FUNC(m_sjoin)
 		tp = s;
 		while (
 		    (*tp == '@') || (*tp == '+') || (*tp == '%')
+#ifdef UDB		    
+		    || (*tp == '*') || (*tp == '$') || (*tp == '&')
+#else		    
 		    || (*tp == '*') || (*tp == '~') || (*tp == '&')
+#endif		    
 		    || (*tp == '"'))
 		{
 			switch (*(tp++))
@@ -409,7 +400,11 @@ CMD_FUNC(m_sjoin)
 			  case '*':
 				  modeflags |= CHFL_CHANOWNER;
 				  break;
+#ifdef UDB
+			  case '$':
+#else			  					  
 			  case '~':
+#endif			  	
 				  modeflags |= CHFL_CHANPROT;
 				  break;
 			  case '&':

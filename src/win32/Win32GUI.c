@@ -924,8 +924,7 @@ static HMENU hRehash, hAbout, hConfig, hTray, hLogs;
 						MessageBox(NULL, "Refrescando todos los archivos", "Refrescando", MB_OK);
 						sendto_realops("Refrescando todos los archivos vía consola");
 						rehash(&me,&me,0);
-						opermotd = (aMotd *) read_file(OPATH, &opermotd);
-						botmotd = (aMotd *) read_file(BPATH, &botmotd);
+						reread_motdsandrules();
 						break;
 					case IDM_RHCONF:
 						MessageBox(NULL, "Refrescando archivo de configuración", "Refrescando", MB_OK);

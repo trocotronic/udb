@@ -112,7 +112,7 @@ DLLFUNC int m_getinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_getinfo)
   = {
 	"getinfo",
-	"$Id: m_getinfo.c,v 1.1.1.3 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_getinfo.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /getinfo",
 	"3.2-b8-1",
 	NULL 
@@ -215,7 +215,7 @@ static ShortNumStruct _ProtoctlTable[] = {
     { PROTO_VHP,	"VHP"		},
     { PROTO_SJB64,	"SJB64"		},
 #ifdef UDB
-    { PROTO_UDB,	"UDB"		},
+    { PROTO_UDB,	"UDB2"		},
 #endif    
 };
 

@@ -1019,7 +1019,14 @@ char *unreal_decodespace(char *s)
 static char buf[512], *i, *o;
 	for (i = s, o = buf; (*i) && (o < buf+510); i++)
 		if (*i == '_')
-			*o++ = ' ';
+		{
+			if (i[1] != '_')
+				*o++ = ' ';
+			else {
+				*o++ = '_';
+				i++;
+			}
+		}
 		else
 			*o++ = *i;
 	*o = '\0';
@@ -1029,11 +1036,18 @@ static char buf[512], *i, *o;
 char *unreal_encodespace(char *s)
 {
 static char buf[512], *i, *o;
-	for (i = s, o = buf; (*i) && (o < buf+510); i++)
+	for (i = s, o = buf; (*i) && (o < buf+509); i++)
+	{
 		if (*i == ' ')
 			*o++ = '_';
+		else if (*i == '_')
+		{
+			*o++ = '_';
+			*o++ = '_';
+		}
 		else
 			*o++ = *i;
+	}
 	*o = '\0';
 	return buf;
 }

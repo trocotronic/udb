@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.1 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.2 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -827,7 +827,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    acptr->lastnick,
 						    acptr->user->username,
 						    acptr->user->realhost,
-						    acptr->srvptr->serv->numeric,
+						    (long)(acptr->srvptr->serv->numeric),
 						    (unsigned long)acptr->user->servicestamp,
 						    (!buf || *buf == '\0' ? "+" : buf),
 						    ((IsHidden(acptr) && (acptr->umodes & UMODE_SETHOST)) ? acptr->user->virthost : "*"),

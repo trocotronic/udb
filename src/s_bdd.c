@@ -49,6 +49,7 @@
 #include "s_bdd.h"
 #define ircstrdup(x,y) if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y)
 #define ircfree(x) if (x) MyFree(x); x = NULL
+#define atoul(x) strtoul(x, NULL, 10)
 
 unsigned long hashes[DB_SIZE];
 unsigned long series[DB_SIZE];
@@ -66,7 +67,7 @@ udb *primeradb[DB_SIZE], *ultimadb[DB_SIZE];
 #ifdef HASH_UDB
 udb **udbTable[DB_SIZE];
 
-void clear_hash_udb(int bdd)
+void clear_hash_udb(char bdd)
 {
 	int i;
 	for (i = 0; i < dblen(bdd); i++)
@@ -78,11 +79,11 @@ int  add_to_udb_hash_table(char *name, char bdd, udb *registro)
 	hashv = hash_nick_name(name) % dblen(bdd);
 	if (!udbTable[bdd])
 	{
-		udbTable[bdd] = (udb **)malloc(sizeof(udb *) * 256); /* no es residente, pues por defecto es 256 */
+		udbTable[bdd] = (udb **)malloc(sizeof(udb *) * dblen(bdd));
 		clear_hash_udb(bdd);
 	}
-	registro->hnext = (udb *)udbTable[bdd][hashv];
-	udbTable[bdd][hashv] = (void *)registro;
+	registro->hnext = udbTable[bdd][hashv];
+	udbTable[bdd][hashv] = registro;
 	return 0;
 }
 int  del_from_udb_hash_table(char *name, char bdd, udb *registro)
@@ -97,8 +98,7 @@ int  del_from_udb_hash_table(char *name, char bdd, udb *registro)
 			if (prev)
 				prev->hnext = tmp->hnext;
 			else
-				udbTable[bdd][hashv] = (void *)tmp->hnext;
-			tmp->hnext = NULL;
+				udbTable[bdd][hashv] = tmp->hnext;
 			return 1;
 		}
 		prev = tmp;
@@ -109,10 +109,12 @@ udb *hash_find_udb(char *name, char bdd, udb *registro)
 {
 	udb *tmp;
 	unsigned int hashv;
+	if (!udbTable[bdd])
+		return registro;
 	hashv = hash_nick_name(name) % dblen(bdd);
 	for (tmp = udbTable[bdd][hashv]; tmp; tmp = tmp->hnext)
 	{
-		if (!strcmp(name, tmp->index))
+		if (!strcasecmp(name, tmp->index))
 			return tmp;
 	}
 	return registro;
@@ -248,8 +250,7 @@ int addword(char *index, char *valor)
 {
 	int bits = 0;
 	char *valaux, *reemp;
-	valaux = (char *)malloc(sizeof(char) * strlen(valor) + 1);
-	strcpy(valaux,valor);
+	valaux = strdup(valor);
 	bits = atoi(strtok(valaux,"\t"));
 	reemp = strtok(NULL,"\t");
 	delword(index);
@@ -272,56 +273,56 @@ int addchan(char *index, char *valor)
 {
 	char *valaux, *founder, *modos, *topic;
 	aChannel *chptr;
-	aClient *acptr;
 	valaux = strdup(valor);
 	founder = strtok(valaux,"\t");
 	modos = strtok(NULL,"\t");
 	topic = strtok(NULL,"\t");
 	chptr = get_channel(NULL, index, CREATE);
 	chptr->mode.mode |= MODE_RGSTR;
-	acptr = (aClient *)malloc(sizeof(aClient) + 1);
-	SetMe(acptr);
-	strncpyzt(acptr->name, me.name, strlen(me.name) + 1);
-	if (modos)
+	if (!BadPtr(modos))
 	{
 		int pcount, p = 0;
 		char pvar[MAXMODEPARAMS][MODEBUFLEN + 3], *parms[7], *modaux;
-		modaux = malloc(sizeof(char) * strlen(modos) + 1);
-		strcpy(modaux, modos);
+		modaux = strdup(modos);
 		parms[p++] = strtok(modaux, " ");
+		if (BadPtr(parms[p-1]))
+			goto topic;
 		while ((parms[p++] = strtok(NULL, " ")));
-		set_mode(chptr, acptr, p, parms, &pcount, pvar, 0);
+		if (!chptr)
+			goto topic;
+		set_mode(chptr, &me, p, parms, &pcount, pvar, 0);
 	}
+	topic:
 	if (topic)
-		set_topic(acptr, acptr, chptr, topic, 0);
+		set_topic(&me, &me, chptr, topic, 0);
 	return 0;
 }
 int delchan(char *index)
 {
 	aChannel *chptr;
-	aClient *acptr;
-	acptr = find_server(me.name, NULL);
-	SetMe(acptr);
 	chptr = get_channel(NULL, index, !CREATE);
 	chptr->mode.mode &= ~MODE_RGSTR;
-	sendto_channel_butserv(chptr, acptr, ":%s MODE %s -r", me.name, chptr->chname);
-	chptr->users++;
-	sub1_from_channel(chptr);
+	if (!loop.ircd_rehashing)
+		sendto_channel_butserv(chptr, &me, ":%s MODE %s -r", me.name, chptr->chname);
+	if (chptr->users == 0)
+		sub1_from_channel(chptr);
 	return 0;
 }	
 int addpriv(char *index, char *valor)
 {
 	char *id;
 	aChannel *chptr;
-	aClient *acptr;
-	acptr = (aClient *)malloc(sizeof(aClient) + 1);
-	SetMe(acptr);
-	strncpyzt(acptr->name, me.name, strlen(me.name) + 1);
 	chptr = get_channel(NULL, index, CREATE);
 	delpriv(index);
-	add_banid(acptr, chptr, "*!*@*");
+	add_banid(&me, chptr, "*!*@*");
+	if (!loop.ircd_rehashing)
+		sendto_channel_butserv(chptr, &me, ":%s MODE %s +b *!*@*", me.name, chptr->chname);
 	for (id = strtok(valor, " "); id; id = strtok(NULL, " "))
-		add_exbanid(acptr, chptr, id);
+	{
+		if (!loop.ircd_rehashing)
+			sendto_channel_butserv(chptr, &me, ":%s MODE %s +e %s", me.name, chptr->chname, id);
+		add_exbanid(&me, chptr, id);
+	}
 	return 0;
 }
 int delpriv(char *index)
@@ -330,10 +331,14 @@ int delpriv(char *index)
 	Ban *ban;
 	chptr = get_channel(NULL, index, !CREATE);
 	del_banid(chptr, "*!*@*");
+	if (!loop.ircd_rehashing)
+		sendto_channel_butserv(chptr, &me, ":%s MODE %s -b *!*@*", me.name, chptr->chname);
 	while (chptr->exlist)
 	{
 		ban = chptr->exlist;
 		chptr->exlist = ban->next;
+		if (!loop.ircd_rehashing)
+			sendto_channel_butserv(chptr, &me, ":%s MODE %s -e %s", me.name, chptr->chname, ban->banstr);
 		MyFree(ban->banstr);
 		MyFree(ban->who);
 		free_ban(ban);
@@ -350,7 +355,7 @@ int level_oper_bdd(char *oper)
 }
 int delbdd(char bdd, unsigned long serie)
 {
-	udb *db;
+	udb *db, *aux;
 	FILE *fp;
 	char archivo[128];
 #ifdef _WIN32
@@ -361,8 +366,9 @@ int delbdd(char bdd, unsigned long serie)
 	if (!(fp = fopen(archivo, "w")))
 		return 0;
 	series[bdd] = 0L;
-	for (db = primeradb[bdd]; db; db = db->next)
+	for (db = primeradb[bdd]; db; db = aux)
 	{
+		aux = db->next;
 		if (db->serie < serie)
 		{
 			series[bdd] = db->serie;
@@ -387,7 +393,7 @@ void regenera_claves()
 			if (IsHidden(acptr))
 			{
 				Debug((DEBUG_ERROR, "Regeneramos ip de %s (%i)", acptr->name, IsHidden(acptr)));
-				make_virtualhost(acptr, 0);
+				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 0);
 			}
 			else
 				BorraIpVirtual(acptr);
@@ -396,6 +402,7 @@ void regenera_claves()
 }
 int addreg_especial(char bdd, char *index, char *valor)
 {
+	aClient *acptr;
 	if (valor)
 	{
 		if (bdd == BDD_BADWORDS)
@@ -404,12 +411,23 @@ int addreg_especial(char bdd, char *index, char *valor)
 			addchan(index, valor);
 		else if (bdd == BDD_PRIV)
 			addpriv(index, valor);
-		else if (bdd == BDD_VHOSTS && !strcmp(index, "."))
+		else if (bdd == BDD_VHOSTS || bdd == BDD_VHOSTS2)
 		{
-			if (clave_cifrado)
-				MyFree(clave_cifrado);
-			clave_cifrado = strdup(valor);
-			regenera_claves();
+			if (bdd == BDD_VHOSTS && !strcmp(index, "."))
+			{
+				if (clave_cifrado)
+					MyFree(clave_cifrado);
+				clave_cifrado = strdup(valor);
+				regenera_claves();
+			}
+			else if ((acptr = find_client(index, NULL)))
+				if (!loop.ircd_rehashing)
+					acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
+		}
+		else if (bdd == BDD_OPERS)
+		{
+			if ((acptr = find_client(index, NULL)))
+				sube_oper(acptr);
 		}
 	}
 	return 0;
@@ -421,6 +439,7 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 		return 0;
 	if (corruptas[bdd])
 		return 0;
+	series[bdd] = serie;
 	if ((db = busca_registro(bdd, index)))
 	{
 		if (BadPtr(valor))
@@ -431,12 +450,31 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 			if (bdd == BDD_CANALES)
 				delchan(index);
 			if (bdd == BDD_PRIV)
-				delpriv(index);				
+				delpriv(index);
 			return 0;
 		}
-		MyFree(db->value);
-		db->value = strdup(valor);
-		db->serie = series[bdd] = serie;
+		if (!db->next)
+			ultimadb[bdd] = db->prev;
+		else
+			db->next->prev = db->prev;
+		if (!db->prev)
+			primeradb[bdd] = db->next;
+		else
+			db->prev->next = db->next;
+		ircstrdup(db->value, valor);
+		db->serie = serie;
+		db->next = NULL;
+		if (!primeradb[bdd])
+		{
+			db->prev = NULL;
+			primeradb[bdd] = db;
+		}
+		else
+		{
+			db->prev = ultimadb[bdd];
+			ultimadb[bdd]->next = db;
+		}
+		ultimadb[bdd] = db;
 		addreg_especial(bdd, index, valor);
 		if (add)
 			addreg_file(bdd, serie, index, valor);
@@ -444,11 +482,11 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 	}
 	if (BadPtr(valor))
 		return 0;
-	db = (udb *)malloc(sizeof(udb) + 1);
+	db = (udb *)malloc(sizeof(udb));
 	db->index = strdup(index);
 	db->value = strdup(valor);
 	db->bdd = bdd;
-	db->serie = series[bdd] = serie;
+	db->serie = serie;
 	db->next = NULL;
 	if (!primeradb[bdd])
 	{
@@ -530,7 +568,7 @@ unsigned long lee_hash(char bdd)
 	bzero(lee, 17);
 	fread(lee, 1, 16, fp);
 	fclose(fp);
-	return strtoul(lee, NULL, 10);
+	return atoul(lee);
 }
 int actualiza_hash(char bdd)
 {
@@ -565,6 +603,13 @@ int comprueba_hash(char bdd)
 	}
 	return 0;
 }
+void libera_memoria_udb(udb *db)
+{
+	if (db->value)
+		MyFree(db->value);
+	MyFree(db->index);
+	MyFree(db);
+}
 int delreg(udb *db, int add)
 {
 	char bdd = db->bdd;
@@ -579,28 +624,41 @@ int delreg(udb *db, int add)
 	if (add)
 		addreg_file(bdd, series[bdd], db->index, "");
 	registros[bdd]--;
-	MyFree(busca_registro(bdd, db->index));
 #ifdef HASH_UDB
 	del_from_udb_hash_table(db->index, bdd, db);
 #endif
+	libera_memoria_udb(db);
 	return 0;
 }
-int savebdd(char bdd)
+unsigned long savebdd(char bdd)
 {
 	udb *db;
 	FILE *fp;
-	char archivo[128];
+	char archivo[128], buf[BUFSIZE];
+	unsigned long ini, orig;
 #ifdef _WIN32
 	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
 #else
 	ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
 #endif
+	if (!(fp = fopen(archivo, "r")))
+		return 0;
+	ini = ftell(fp);
+	fseek(fp, 0L, SEEK_END);
+	orig = ftell(fp) - ini;
+	fclose(fp);
 	if (!(fp = fopen(archivo, "w")))
 		return 0;
 	for (db = primeradb[bdd]; db; db = db->next)
-		fprintf(fp, "%09lu %s :%s\n", db->serie, db->index, db->value);
+	{
+		buf[0] = '\0';
+		ircsprintf(buf, "%09lu %s :%s\n", db->serie, db->index, db->value);
+		orig -= strlen(buf);
+		fputs(buf, fp);
+	}
 	fclose(fp);
-	return 0;
+	actualiza_hash(bdd);
+	return orig ? orig - 1 : 0;
 }
 int loadbdd(char bdd)
 {
@@ -612,21 +670,17 @@ int loadbdd(char bdd)
 		return 0;
 	series[bdd] = 0L;
 	registros[bdd] = 0;
-	for (dbaux = primeradb[bdd]; dbaux; dbaux = dbtmp)
-	{
-		dbtmp = dbaux->next;
-		MyFree(dbaux);
-	}
-	primeradb[bdd] = ultimadb[bdd] = NULL;
 #ifdef HASH_UDB
 	if (udbTable[bdd])
 		MyFree(udbTable[bdd]);
-	if (residentes[bdd])
-	{
-		udbTable[bdd] = (udb **)malloc(sizeof(udb *) * lens[bdd]);
-		clear_hash_udb(bdd);
-	}
+	udbTable[bdd] = NULL;
 #endif
+	for (dbaux = primeradb[bdd]; dbaux; dbaux = dbtmp)
+	{
+		dbtmp = dbaux->next;
+		libera_memoria_udb(dbaux);
+	}
+	primeradb[bdd] = ultimadb[bdd] = NULL;
 #ifdef _WIN32
 	ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
 	if ((fp = open(archivo, O_RDONLY|O_BINARY|O_CREAT, 0644)) == -1)
@@ -647,6 +701,7 @@ int loadbdd(char bdd)
 	if (read(fp, cont, inode.st_size) != inode.st_size)
 		return 0;
 	close(fp);
+	MyFree(archivo);
 	while (!BadPtr(cont))
 	{
 		char *pos;
@@ -666,7 +721,7 @@ int loadbdd(char bdd)
 		bzero(valor, pos - cont + 1);
 		strncpy(valor, cont, pos - cont);
 		cont = *(pos + 1) == '\n' ? pos + 2 : pos + 1;
-		addreg(bdd, atol(no), item, BadPtr(valor) ? "" : valor + 1, 0);
+		addreg(bdd, atoul(no), item, BadPtr(valor) ? "" : valor + 1, 0);
 		MyFree(no);
 		MyFree(item);
 		MyFree(valor);
@@ -691,8 +746,9 @@ int loadbdds()
 }
 void bdd_init()
 {
-	int i;
+	char i;
 	memset(lens, 0, sizeof(unsigned int) * DB_SIZE);
+	memset(residentes, 0, sizeof(unsigned int) * DB_SIZE);
 	residentes[BDD_NICKS] = 1;
 	residentes[BDD_OPERS] = 1;
 	residentes[BDD_VHOSTS] = 1;
@@ -718,11 +774,7 @@ void bdd_init()
 		series[i] = hashes[i] = 0L;
 		registros[i] = corruptas[i] = 0;
 #ifdef HASH_UDB
-		if (residentes[i])
-		{
-			udbTable[i] = (udb **)malloc(sizeof(udb *) * lens[i]);
-			clear_hash_udb(i);
-		}
+		udbTable[i] = NULL;
 #endif
 	}
 	loadbdds();
@@ -731,13 +783,11 @@ CMD_FUNC(m_db)
 {
 	ConfigItem_link *aconf;
 	char hub = 0;
-	if (!IsServer(sptr))
+	if (!IsServer(cptr))
 		return 0;
-	if (!IsUDB(sptr))
+	if (!IsUDB(cptr))
 		return 0;
 	if (parc < 5)
-		return 0;
-	if (match(parv[1], me.name))
 		return 0;
 	aconf = cptr->serv->conf;
 	if (aconf->hubmask)
@@ -751,22 +801,54 @@ CMD_FUNC(m_db)
 		{
 			char bdd;
 			udb *db;
-			unsigned long ultimo;
-			if (parc < 6)
-				return 0;
-			bdd = *parv[5];
-			if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-				return 0;
-			ultimo = atol(parv[4]);
-			if (ultimo > series[bdd] && !hub)
-				sendto_one(cptr,":%s DB %s BDD_DESYNCH D %09lu %c", me.name, cptr->name, series[bdd], bdd);
-			else if (ultimo < series[bdd])
+			unsigned long ultimo, cur;
+			if (!match(parv[1], me.name))
 			{
-				for (db = busca_serie(bdd, ultimo + 1); db; db = db->next)
-					sendto_one(cptr,":%s DB * %s I %09lu %c %s :%s", me.name, parv[2], db->serie, bdd, db->index, db->value ? db->value : "");
-				sendto_one(cptr,":%s DB * %s A %09lu %c", me.name, parv[2], series[bdd], bdd);
+				if (parc < 6)
+					return 0;
+				bdd = *parv[5];
+				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+					return 0;
+				ultimo = atoul(parv[4]);
+				if (ultimo > series[bdd] && !hub)
+					sendto_one(cptr,":%s DB %s BDD_DESYNCH D %09lu %c", me.name, cptr->name, series[bdd], bdd);
+				else if (ultimo < series[bdd])
+				{
+					/* hay desynch, vamos a mandar el archivo .bdd, resumiéndolo claro */
+					FILE *fp;
+					char archivo[128], cont1[BUFSIZE], item[BUFSIZE], cont2[BUFSIZE], cont3[BUFSIZE];
+					u_long registro;
+#ifdef _WIN32
+					ircsprintf(archivo, DB_DIR "\\%c.bdd", bdd);
+#else
+					ircsprintf(archivo, DB_DIR "/%c.bdd", bdd);
+#endif
+					if ((fp = fopen(archivo, "r")))
+					{
+						int le;
+						while (!feof(fp))
+						{
+							char *buf, *cur;
+							u_long serie;
+							buf = malloc(BUFSIZE);
+							bzero(buf, BUFSIZE);
+							if (!fgets(buf, BUFSIZE, fp))
+								break;
+							cur = strchr(buf, ' ');
+							*cur = '\0';
+							serie = atoul(buf);
+							cur++;
+							if (serie > ultimo)
+								sendto_one(cptr,":%s DB %s %s I %09lu %c %s", me.name, parv[0], parv[2], serie, bdd, cur);
+							free(buf);
+						}
+						fclose(fp);
+					}
+				}
 			}
-			sendto_serv_butone(cptr,":%s DB %s %s J %s %c",me.name,parv[1],parv[2],parv[4],*parv[5]);
+			sendto_serv_butone(cptr,":%s DB %s %s J %s %c",parv[0],parv[1],parv[2],parv[4],*parv[5]);
+			/* el comando J es el único que lo propaga el nodo que lo emite
+			   todos los demás, los propagan el nodo que lo recibe */
 			break;
 		}
 		
@@ -777,18 +859,21 @@ CMD_FUNC(m_db)
 		{
 			char bdd;
 			unsigned long serie;
-			if (parc < 6)
-				return 0;
-			if (hub)
+			if (!match(parv[1], me.name))
 			{
-				bdd = *parv[5];
-				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+				if (parc < 6)
 					return 0;
-				serie = atol(parv[4]);
-				delbdd(bdd, serie);
-				sendto_ops("%s ha borrado la tabla '%c' (R=%09lu)%s",cptr->name, bdd, serie,
-					(!strcmp(parv[2],"BDD_DESYNCH") ? " (BDD_DESYNCH)" : ""));
-				sendto_one(cptr, ":%s DB %s %s J %09lu %c", me.name, cptr->name, parv[2], serie, bdd);
+				if (hub)
+				{
+					bdd = *parv[5];
+					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+						return 0;
+					serie = atoul(parv[4]);
+					delbdd(bdd, serie);
+					sendto_ops("%s ha borrado la tabla '%c' (R=%09lu)%s",cptr->name, bdd, serie,
+						(!strcmp(parv[2],"BDD_DESYNCH") ? " (BDD_DESYNCH)" : ""));
+					sendto_one(cptr, ":%s DB %s %s J %09lu %c", me.name, cptr->name, parv[2], serie, bdd);
+				}
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s D %s %c",me.name,parv[1],parv[2],parv[4],*parv[5]);
 			break;
@@ -797,41 +882,60 @@ CMD_FUNC(m_db)
 		/*
 		 * DB * 0 O 0 bdd
 		 */
-		 case 'O':
+		 /*
+		  * 14/05/04 Quito este comando por un motivo muy en concreto:
+		  * Cuando se aplica O el archivo se borra y se regenera de nuevo, *SÓLO* con los registros.
+		  * Entonces, un archivo .bdd también contiene órdenes de borrar un registro (si no hay campo).
+		  * Así pues, cuando se linka, se mandan los registros en si y además las órdenes de borrarlos.
+		  * 
+		  * Si un nodo estuviera en split y se mandara un O en toda la red, los archivos de la red sólo guardarían
+		  * sus registros y NO sus órdenes de borrar. Así, cuando conectara el nodo spliteado continuaría con estos registros
+		  * "fantasma" puesto que no recibiría las órdenes de borrado.
+		  *
+		  * Por ahora no se me ocurre ninguna otra alternativa, puesto que tal y como está planteado el protocolo,
+		  * este comando resulta inconsistente. Si alguien se le ocurre alguna otra sugerencia, dejadla en el foro de http://www.rallados.net
+		  */
+		/* case 'O':
 		 {
 		 	char bdd;
 		 	unsigned long serie, bytes = 0L;
 			udb *db;
-			if (parc < 6)
-				return 0;
-			if (hub)
+			if (!match(parv[1], me.name))
 			{
-				bdd = *parv[5];
-				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+				if (parc < 6)
 					return 0;
-				savebdd(bdd);
-				sendto_ops("%s ha optimizado la tabla '%c'. R=%09lu Bytes ahorrados: %lu", cptr->name, bdd, series[bdd], bytes);
+				if (hub)
+				{
+					bdd = *parv[5];
+					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+						return 0;
+					bytes = savebdd(bdd);
+					sendto_ops("%s ha optimizado la tabla '%c'. R=%09lu Bytes ahorrados: %lu", cptr->name, bdd, series[bdd], bytes);
+				}
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s O %s %c",me.name,parv[1],parv[2],parv[4],*parv[5]);
 			break;
 		}
-		
+		*/
 		/*
 		 * DB * 0 A serie bdd
 		 */
 		 case 'A':
 		 {
 		 	char bdd;
-			if (parc < 6)
-				return 0;
-			if (hub)
+		 	if (!match(parv[1], me.name))
 			{
-				bdd = *parv[5];
-				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+				if (parc < 6)
 					return 0;
-				if (!strcmp(parv[2],"C"))
-					corruptas[bdd] = 0;
-				series[bdd] = atol(parv[4]);
+				if (hub)
+				{
+					bdd = *parv[5];
+					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+						return 0;
+					if (!strcmp(parv[2],"C"))
+						corruptas[bdd] = 0;
+					series[bdd] = atoul(parv[4]);
+				}
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s A %s %c",me.name,parv[1],parv[2],parv[4],bdd);
 			break;
@@ -844,17 +948,29 @@ CMD_FUNC(m_db)
 		{
 			char bdd;
 		 	unsigned long serie;
-		 	if (parc < 7)
-		 		return 0;
-			if (hub)
+		 	if (!match(parv[1], me.name))
 			{
-				bdd = *parv[5];
-				if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
-					return 0;
-				serie = atol(parv[4]);
-				if (!strcmp(parv[2],"C"))
-					corruptas[bdd] = 0;
-				addreg(bdd, serie, parv[6], parv[7] ? parv[7] : "", 1);
+		 		if (parc < 7)
+		 			return 0;
+				if (hub)
+				{
+					bdd = *parv[5];
+					if (bdd < PRIMERA_LETRA || bdd > ULTIMA_LETRA)
+						return 0;
+					serie = atoul(parv[4]);
+					if (!strcmp(parv[2],"C"))
+						corruptas[bdd] = 0;
+					else if (!strcmp(parv[2], "E"))
+					{
+						udb *reg;
+						if ((reg = busca_serie(bdd, serie)))
+							delreg(reg, 1);
+						else
+							Debug((DEBUG_ERROR, "no encuentra la serie %lu", serie));
+					}
+					else
+						addreg(bdd, serie, parv[6], parv[7] ? parv[7] : "", 1);
+				}
 			}
 			sendto_serv_butone(cptr,":%s DB %s %s I %s %c %s :%s",me.name,parv[1],parv[2],parv[4],*parv[5],parv[6],parv[7] ? parv[7] : "");
 			break;
@@ -868,7 +984,6 @@ CMD_FUNC(m_ghost)
 	aClient *acptr;
 	udb *reg, *breg;
 	char *botname, who[NICKLEN + 2], nick[NICKLEN + 2], quitbuf[TOPICLEN + 1], *cifrado;
-	int comp = 1;
    	if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
 		botname = me.name;
 	else
@@ -886,16 +1001,14 @@ CMD_FUNC(m_ghost)
 	acptr = find_client(nick, NULL);
 	reg = busca_registro(BDD_NICKS, nick);
 	if (!IsRegistered(sptr))
-	ircsprintf(who, "%s!", nick);
+		ircsprintf(who, "%s!", nick);
 	else
 		strcpy(who, sptr->name);
-	if (!reg || !reg->value[0]) 
+	if (!reg) 
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** El nick %s no está registrado en la base de datos.", botname, sptr->name, nick);
 		return 0;
 	}
-	if (cifrado)
-		comp = strcmp(reg->value, cifrado);
 	if (!acptr) 
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** El nick %s no se encuentra conectado actualmente.", botname, sptr->name, nick);
@@ -906,7 +1019,7 @@ CMD_FUNC(m_ghost)
 		sendto_one(cptr, ":%s NOTICE %s :*** No puedes hacer ghost a ti mismo.", botname, sptr->name);
 		return 0;
 	}
-	if (!IsAnOper(sptr) && !IsHelpOp(sptr) && comp) 
+	if (!IsAnOper(sptr) && !IsHelpOp(sptr) && (!cifrado || strcmp(reg->value, cifrado))) 
 	{
 		sendto_one(cptr, ":%s NOTICE %s :*** Contraseña incorrecta.", botname, sptr->name);
 		return 0;
@@ -982,53 +1095,70 @@ CMD_FUNC(m_dbq)
     	sendto_one(cptr, ":%s NOTICE %s :DBQ OK Tabla='%c' Clave='%s' Valor='%s'", me.name, parv[0], bdd, cmp->index, cmp->value);
 	return 0;
 }
-int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, char *parv[], char *nick, char *pass, short mismonick, short nick_used, short *suspend, short *clave_ok, long *old_umodes)
+/* 2 ok
+ * 1 suspendido
+ * 0 no reg
+ * -1 forbid
+ * -2 incorrecto
+ * -3 no ha dado pass
+ */
+int tipo_de_pass(char *nick, char *pass)
 {
-	*old_umodes = sptr->umodes;
+	udb *reg;
+	static char realpass[BUFSIZE];
+	int sus = 0;
+	if (!(reg = busca_registro(BDD_NICKS, nick)))
+		return 0; /* no existe */
+	if (reg->value[strlen(reg->value)-1] == '*')
+		return -1; /* tiene el nick en forbid, no importa la pass */
+	if (!pass)
+		return -3;
+	bzero(realpass, BUFSIZE);
+	if (reg->value[strlen(reg->value)-1] == '+') 
+	{
+		sus = 1;
+		strncpy(realpass, reg->value, strlen(reg->value)-1);
+	}
+	else
+		strcpy(realpass, reg->value);
+	if (!strcmp(cifranick(nick, pass), realpass))
+	{
+		if (sus)
+			return 1;  /* suspendido */
+		return 2; /* todo ok */
+	}
+	return -2; /* pass incorrecto */
+}
+int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, aClient *acptr, char *parv[], char *nick, char *pass, char nick_used)
+{
+	int tipo = 1;
 	if (!MyConnect(sptr))
 		return 1;
 	do
 	{
-		udb *reg, *breg;
-		char *botname, *cifrado, *realpass;
-		if (mismonick)
-			break;
-		if (!(reg = busca_registro(BDD_NICKS, nick)) || !reg->value[0]) 
+		udb *breg;
+		char *botname;
+		if (sptr == acptr)
 			break;
 		if (!(breg = busca_registro(BDD_BOTS, BDD_NICKSERV)))
 			botname = me.name;
 		else
 			botname = breg->value;
-		if (reg->value[strlen(reg->value)-1] == '*') 
+		if (!(tipo = tipo_de_pass(nick, pass)))
+			break;
+		if (tipo < 0)
 		{
-			sendto_one(cptr,
-				":%s NOTICE %s :*** El nick \002%s\002 está prohibido, no puede ser utilizado.",
-				botname, sptr->name, nick);
-			sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
-				BadPtr(parv[0]) ? "*" : parv[0], nick);
-			return 0;
-		}
-		if (reg->value[strlen(reg->value)-1] == '+') 
-		{
-			realpass = (char *)malloc(sizeof(char)*strlen(reg->value)+1);
-			memset(realpass, 0, sizeof(char)*strlen(reg->value));
-			strncpy(realpass, reg->value, strlen(reg->value)-1);
-			*suspend = 1;
-		}
-		else
-			realpass = reg->value;
-		if (sptr->passwd && sptr->passwd[0])
-			pass = sptr->passwd;
-		cifrado = cifranick(nick, pass);
-		if (strcmp(cifrado, realpass))
-		{
-			if (!nick_used) 
+			if (tipo == -1)
+				sendto_one(cptr,
+					":%s NOTICE %s :*** El nick \002%s\002 está prohibido, no puede ser utilizado.",
+					botname, sptr->name, nick);	
+			else if (!nick_used)
 			{
-				if (!pass)
+				if (tipo == -3)
 					sendto_one(cptr,
 						":%s NOTICE %s :*** El nick %s está Registrado, necesitas contraseña.",
 						botname, sptr->name, nick);
-				else
+				else if (tipo == -2)
 					sendto_one(cptr,
 						":%s NOTICE %s :*** Contraseña Incorrecta para el nick %s.",
 						botname, sptr->name, nick);
@@ -1038,27 +1168,27 @@ int puede_cambiar_nick_en_bdd(aClient *cptr, aClient *sptr, char *parv[], char *
 			}
 			sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
 				BadPtr(parv[0]) ? "*" : parv[0], nick);
-			return 0;
+			return -1;
 		}
 		if (nick_used) 
 		{
 			sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
 				BadPtr(parv[0]) ? "*" : parv[0], nick);
-			return 0;
-     		}	
-		if (!*suspend)
+			return -1;
+	     	}
+		escape:
+		if (tipo == 2)
 			sendto_one(cptr, ":%s NOTICE %s :*** Contraseña aceptada. Bienvenid@ a casa ;)", botname, sptr->name);
-		else
+		else if (tipo == 1)
 			sendto_one(cptr, ":%s NOTICE %s :*** Este nick está SUSPENDido", botname, sptr->name);
-		*clave_ok = 1;
 	} while(0);
 	if (nick_used) 
 	{
 		sendto_one(sptr, err_str(ERR_NICKNAMEINUSE), me.name,
 			BadPtr(parv[0]) ? "*" : parv[0], nick);
-		return 0;
+		return -1;
 	}
-	return 1;
+	return tipo;
 }
 void set_topic(aClient *cptr, aClient *sptr, aChannel *chptr, char *topic, int send)
 {
@@ -1111,7 +1241,7 @@ char *get_visiblehost(aClient *acptr, aClient *sptr)
   else
   {
     if (BadPtr(acptr->user->virthost))
-      make_virtualhost(acptr, 0);
+      acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 0);
     return acptr->user->virthost;
   }
 }
@@ -1120,78 +1250,124 @@ char *get_visiblehost(aClient *acptr, aClient *sptr)
  * Setea el host virtual del usuario, conforme a la BDD.
  *                                                                
  */
-int make_virtualhost(aClient *acptr, int mostrar)
+char *cifra_ip(char *ipreal)
 {
-	char clave[12 + 1], *botname, *sufix;
-	udb *reg, *vh, *vip2;
-	unsigned int v[2], k[2], x[2];
+	static char cifrada[512], clave[13];
+	char *p;
+	udb *reg;
 	int ts = 0;
-	if (acptr->user->virthost)
-		MyFree(acptr->user->virthost);
-	acptr->user->virthost = malloc(HOSTLEN + 1);
-	if (!(reg = busca_registro(BDD_BOTS, BDD_VHOSTSERV)))
-		botname = me.name;
-	else
-		botname = reg->value;
-	strncpy(acptr->user->virthost, acptr->user->realhost, HOSTLEN);
-	if (!(reg = busca_registro(BDD_VHOSTS, "..")))
+	unsigned int ourcrc, v[2], k[2], x[2];
+	if (!clave_cifrado)
+		return "no.hay.clave.de.cifrado";
+	ourcrc = our_crc32(ipreal, strlen(ipreal));
+	strncpy(clave, clave_cifrado, 12);
+	clave[12] = '\0';
+	p = cifrada;
+	while (1)
+  	{
+		x[0] = x[1] = 0;
+		k[0] = base64toint(clave);
+		k[1] = base64toint(clave + 6);
+    		v[0] = (k[0] & 0xffff0000) + ts;
+    		v[1] = ourcrc;
+    		tea(v, k, x);
+    		inttobase64(p, x[0], 6);
+    		p[6] = '.';
+    		inttobase64(p + 7, x[1], 6);
+		if (strchr(p, '[') == NULL && strchr(p, ']') == NULL)
+			break;
+    		else
+		{
+			if (++ts == 65536)
+			{
+				strcpy(p, ipreal);
+				break;
+			}
+		}
+	}
+	return cifrada;
+}	
+char *make_virtualhost(aClient *acptr, char *viejo, char *nuevo, int mostrar)
+{
+	char *cifrada, buf[512], *sufix, *x;
+	udb *vip, *vh;
+	if (!viejo)
+		return NULL;
+	cifrada = cifra_ip(viejo);
+	if (!(vh = busca_registro(BDD_VHOSTS, "..")))
 		sufix = "virtual";
 	else
-		sufix = reg->value;
-	if ((vh = busca_registro(BDD_VHOSTS, acptr->name))) 
+		sufix = vh->value;
+	if (busca_registro(BDD_NICKS, acptr->name)) /* si acptr está migrado, lleva puesto el +r */
 	{
-		if (vh->value && (acptr->umodes & UMODE_REGNICK))
-			strncpy(acptr->user->virthost,vh->value,HOSTLEN);
+		if ((vip = busca_registro(BDD_VHOSTS, acptr->name))) 
+				cifrada = vip->value;
+		else if ((vip = busca_registro(BDD_VHOSTS2, acptr->name))) 
+		{
+			buf[0] = '\0';
+			if (!(vh = busca_registro(BDD_VHOSTS2, ".")) || *(vh->value) == '0')
+				snprintf(buf, HOSTLEN, "%s.%s", vip->value, sufix);
+			else 
+				snprintf(buf, HOSTLEN, "%s.%s.%s", cifrada, vip->value, sufix);
+			cifrada = buf;
+		}
+		else
+		{
+			buf[0] = '\0';
+			snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
+			cifrada = buf;
+		}
 	}
-	else if (!clave_cifrado)
-		strcpy(acptr->user->virthost,"no.hay.clave.de.cifrado");
 	else
 	{
-		unsigned int ourcrc;
-		ourcrc = our_crc32(acptr->user->realhost, strlen(acptr->user->realhost));
-		strcat(sufix, "\0\0");
-		strncpy(clave,clave_cifrado,12);
-		clave[12] = '\0';
-		while (1)
-  		{
-			x[0] = x[1] = 0;
-			k[0] = base64toint(clave);
-			k[1] = base64toint(clave + 6);
-    			v[0] = (k[0] & 0xffff0000) + ts;
-    			//v[1] = ntohl((unsigned long)acptr->ip.S_ADDR); Cambiamos esto que da muuuuuchos problemas
-    			v[1] = ourcrc;
-    			tea(v, k, x);
-    			/* formato direccion virtual: qWeRty.AsDfGh.virtual */
-    			inttobase64(acptr->user->virthost, x[0], 6);
-    			acptr->user->virthost[6] = '.';
-    			inttobase64(acptr->user->virthost + 7, x[1], 6);
-    			acptr->user->virthost[13] = '.';
-			strcpy(acptr->user->virthost + 14, sufix);
-			if (strchr(acptr->user->virthost, '[') == NULL && strchr(acptr->user->virthost, ']') == NULL)
-				break;
-    			else
+		buf[0] = '\0';
+		snprintf(buf, HOSTLEN, "%s.%s", cifrada, sufix);
+		cifrada = buf;
+	}
+	if (nuevo)
+		MyFree(nuevo);
+	x = strdup(cifrada);
+	if (MyClient(acptr) && mostrar)
+	{
+		char *botname;
+		udb *reg;
+		if (!(reg = busca_registro(BDD_BOTS, BDD_VHOSTSERV)))
+			botname = me.name;
+		else
+			botname = reg->value;
+		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
+			botname, acptr->name, cifrada);
+	}
+	return x;
+}
+void sube_oper(aClient *sptr)
+{
+	int level = level_oper_bdd(sptr->name);
+	ConfigItem_oper *aconf;
+	if (!level || !IsARegNick(sptr))
+		return;
+	if (level & BDD_OPER)
+		sptr->umodes |= UMODE_HELPOP;
+	if (level & BDD_ADMIN || level & BDD_ROOT)
+		sptr->umodes |= (UMODE_NETADMIN | UMODE_OPER);
+	if (MyClient(sptr) && IsRegisteredUser(sptr))
+	{
+		for (aconf = conf_oper; aconf; aconf = (ConfigItem_oper *) aconf->next)
+		{
+			if (!strcasecmp(sptr->name, aconf->name))
 			{
-				if (++ts == 65536)
+				sptr->oflag |= aconf->oflags;
+				if (aconf->snomask)
+					set_snomask(sptr, aconf->snomask);
+				else
+					set_snomask(sptr, OPER_SNOMASK);
+				if (sptr->user->snomask)
 				{
-					strcpy(acptr->user->virthost, acptr->user->realhost);
-					break;
+					sptr->user->snomask |= SNO_SNOTICE; /* set +s if needed */
+					sptr->umodes |= UMODE_SERVNOTICE;
 				}
 			}
 		}
-		if ((vip2 = busca_registro(BDD_VHOSTS2, acptr->name)) && (acptr->umodes & UMODE_REGNICK) && vip2->value) 
-		{	if ((vh = busca_registro(BDD_VHOSTS2, ".")) && vh->value && *(vh->value) == '1')
-				snprintf(acptr->user->virthost,HOSTLEN,"%s.%s",vip2->value,sufix);
-			else 
-			{
-				strcpy(acptr->user->virthost + 14,vip2->value);
-				strcat(acptr->user->virthost,".");
-				strcat(acptr->user->virthost,sufix);
-			}
-		}
 	}
-	if (MyClient(acptr) && mostrar)
-		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
-			botname, acptr->name, acptr->user->virthost);
-	return 0;
 }
 #endif

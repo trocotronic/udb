@@ -52,7 +52,7 @@ DLLFUNC int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_links)
   = {
 	"m_links",
-	"$Id: m_links.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_links.c,v 1.1.4.2 2004-05-17 15:46:30 Trocotronic Exp $",
 	"command /links", 
 	"3.2-b8-1",
 	NULL 
@@ -104,7 +104,7 @@ DLLFUNC CMD_FUNC(m_links)
 		    me.name, parv[0], acptr->name, acptr->serv->up,
 		    acptr->hopcount, 
 #ifdef UDB
-		    (IsUDB(acptr) || IsMe(acptr)) ? "-UDB- " : "",
+		    (IsUDB(acptr) || IsMe(acptr)) ? "-UDB2- " : "",
 #endif			    
 		    (acptr->info[0] ? acptr->info :
 		    "(Localización desconocida)"));

@@ -24,7 +24,7 @@
 #define PRIMERA_LETRA 'a'
 #define ULTIMA_LETRA 'z'
 
-#define DB_SIZE 128
+#define DB_SIZE 256
 #define DB_DIR "database"
 
 #define BDD_BOTS	'b'
@@ -93,12 +93,15 @@ extern unsigned char residentes[DB_SIZE];
 extern unsigned int lens[DB_SIZE];
 extern aChannel *get_channel(aClient *, char *, int);
 extern void set_topic(aClient *, aClient *, aChannel *, char *, int);
-#define BorraIpVirtual(x)				\
-	do						\
-	{						\
-		if ((x)->user->virthost)		\
-			MyFree((x)->user->virthost);	\
-		(x)->user->virthost = NULL;		\
+#define BorraIpVirtual(x)							\
+	do									\
+	{									\
+		if ((x)->user->virthost)					\
+			MyFree((x)->user->virthost);				\
+		(x)->user->virthost = cifra_ip((x)->user->realhost);		\
 	}while(0)
 
-#define dblen(x) (lens[bdd] ? lens[bdd] : 256)
+#define dblen(x) (lens[x] ? lens[x] : 256)
+extern void sube_oper(aClient *);
+extern char *make_virtualhost(aClient *, char *, char *, int);
+extern char *cifra_ip(char *);

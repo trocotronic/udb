@@ -77,6 +77,10 @@ static oper_oflag_t oper_oflags[] = {
 		0 },
 	{ OFLAG_WHOIS,		&UMODE_WHOIS,	0 , 		
 		0 },
+#ifdef UDB
+	{ OFLAG_NETADMIN,	&UMODE_SHOWIP,		0 , 0 } ,
+	{ OFLAG_NETADMIN,	&UMODE_SERVICES,	0 , 0 } ,
+#endif 
 	{ 0,			0,	0 ,
 		0 },
 };
@@ -84,7 +88,7 @@ static oper_oflag_t oper_oflags[] = {
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.2 2004-02-18 18:24:15 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
