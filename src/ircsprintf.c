@@ -24,7 +24,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: ircsprintf.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ * $Id: ircsprintf.c,v 1.1.1.2 2004-08-14 13:12:55 Trocotronic Exp $
  */
 #include "ircsprintf.h"
 #include <stdio.h>
@@ -286,6 +286,10 @@ char *ircvsprintf(char *str, const char *format, va_list vl)
 			if (c == 's')
 			{
 				const char *p1 = va_arg(vl, const char *);
+#ifdef UDB
+				if (!p1)
+					p1 = "(null)";
+#endif									
 				if ((*str = *p1))
 					while ((*++str = *++p1));
 				continue;

@@ -52,7 +52,7 @@ DLLFUNC int m_svspart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svspart)
   = {
 	"svspart",	/* Name of module */
-	"$Id: m_svspart.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_svspart.c,v 1.1.1.2 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
 	"command /svspart", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -92,10 +92,12 @@ DLLFUNC int MOD_UNLOAD(m_svspart)(int module_unload)
 	parv[0] - sender
 	parv[1] - nick to make part
 	parv[2] - channel(s) to part
+	parv[3] - comment
 */
 CMD_FUNC(m_svspart)
 {
 	aClient *acptr;
+	char *comment = (parc > 3 && parv[3] ? parv[3] : NULL);
 	if (!IsULine(sptr))
 		return 0;
 
@@ -105,11 +107,18 @@ CMD_FUNC(m_svspart)
 	{
 		parv[0] = parv[1];
 		parv[1] = parv[2];
-		(void)m_part(acptr, acptr, 2, parv);
+		parv[2] = comment;
+		(void)m_part(acptr, acptr, comment ? 3 : 2, parv);
 	}
 	else
-		sendto_one(acptr, ":%s SVSPART %s %s", parv[0],
-		    parv[1], parv[2]);
+	{
+		if (comment)
+			sendto_one(acptr, ":%s SVSPART %s %s :%s", parv[0],
+			    parv[1], parv[2], parv[3]);
+		else
+			sendto_one(acptr, ":%s SVSPART %s %s", parv[0],
+			    parv[1], parv[2]);
+	}
 
 	return 0;
 }

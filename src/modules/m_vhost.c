@@ -52,7 +52,7 @@ DLLFUNC int m_vhost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_vhost)
   = {
 	"vhost",	/* Name of module */
-	"$Id: m_vhost.c,v 1.1.1.2 2004-05-17 15:46:31 Trocotronic Exp $", /* Version */
+	"$Id: m_vhost.c,v 1.1.1.3 2004-08-14 13:12:56 Trocotronic Exp $", /* Version */
 	"command /vhost", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -175,12 +175,14 @@ int  m_vhost(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		if (vhost->virtuser) {
 			strcpy(olduser, sptr->user->username);
 			strlcpy(sptr->user->username, vhost->virtuser, USERLEN);
+			sendto_serv_butone_token(cptr, sptr->name, MSG_SETIDENT, TOK_SETIDENT,
+						 "%s", sptr->user->username);
 		}
 		sptr->umodes |= UMODE_HIDE;
 		sptr->umodes |= UMODE_SETHOST;
 		sendto_serv_butone_token(cptr, sptr->name,
 			MSG_SETHOST, TOK_SETHOST,
-			"%s", vhost->virthost);
+			"%s", sptr->user->virthost);
 		sendto_one(sptr, ":%s MODE %s :+tx",
 		    sptr->name, sptr->name);
 		if (vhost->swhois) {
