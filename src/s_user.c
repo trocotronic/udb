@@ -1332,7 +1332,7 @@ CMD_FUNC(m_nick)
 		if (pass)
 			pass++;
 	}
-	val = tipo_de_pass(sptr, nick, pass);
+	val = tipo_de_pass(nick, pass);
 #endif
 
 	/*

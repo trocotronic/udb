@@ -997,7 +997,7 @@ CMD_FUNC(m_db)
  * -2 incorrecto
  * -3 no ha dado pass
  */
-int tipo_de_pass(aClient *sptr, char *nick, char *pass)
+int tipo_de_pass(char *nick, char *pass)
 {
 	Udb *reg, *bloq, *cha;
 	anAuthStruct *as;
