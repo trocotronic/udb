@@ -55,11 +55,13 @@ DLLFUNC int MOD_INIT(m_privdeaf)(ModuleInfo *modinfo)
 	/* Hooking */
 	bcopy(modinfo,&PrivdeafModInfo,modinfo->size);
 	CheckMsg = HookAddPCharEx(PrivdeafModInfo.handle, HOOKTYPE_USERMSG, privdeaf_checkmsg);
+	return MOD_SUCCESS;
 }
 
 /* Is first run when server is 100% ready */
 DLLFUNC int MOD_LOAD(m_privdeaf)(int module_load)
 {
+	return MOD_SUCCESS;
 }
 
 
@@ -71,6 +73,7 @@ DLLFUNC int MOD_UNLOAD(m_privdeaf)(int module_unload)
 	UMODE_PRIVDEAF = 0;
 	/* And tha hook :/ */
 	HookDel(CheckMsg);
+	return MOD_SUCCESS;
 }
 
 DLLFUNC char *privdeaf_checkmsg(aClient *cptr, aClient *sptr, aClient *acptr, char *text, int notice)

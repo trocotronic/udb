@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
  */
 
 
@@ -133,6 +133,9 @@ struct zConfiguration {
 	long ban_version_tkl_time;
 	long spamfilter_ban_time;
 	char *spamfilter_ban_reason;
+	char *spamfilter_virus_help_channel;
+	SpamExcept *spamexcept;
+	char *spamexcept_line;
 	aNetwork network;
 };
 
@@ -230,3 +233,5 @@ extern aConfiguration iConf;
 
 #define SPAMFILTER_BAN_TIME		iConf.spamfilter_ban_time
 #define SPAMFILTER_BAN_REASON	iConf.spamfilter_ban_reason
+#define SPAMFILTER_VIRUSCHAN	iConf.spamfilter_virus_help_channel
+#define SPAMFILTER_EXCEPT		iConf.spamexcept_line

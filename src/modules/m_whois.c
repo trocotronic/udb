@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+ 
 #include "config.h"
 #include "struct.h"
 #include "common.h"
@@ -42,6 +42,7 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#undef UDB
 #ifdef UDB
 #include "s_bdd.h"
 #endif
@@ -57,7 +58,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.3 2004-03-08 18:07:07 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

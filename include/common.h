@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: common.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
+ *   $Id: common.h,v 1.1.1.3 2004-03-08 18:07:04 Trocotronic Exp $
  */
 
 #ifndef	__common_include__
@@ -318,6 +318,7 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
 			" NS" \
 			" SJB64" \
 			" VHP" \
+			" TKLEXT" \
 			" UDB" 
 #else
 #define PROTOCTL_SERVER "NOQUIT" \
@@ -329,7 +330,8 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
                         " VL" \
                         " SJ3" \
                         " NS" \
-                        " SJB64"
+                        " SJB64" \
+                        " TKLEXT"
 #endif
 
 #ifdef _WIN32

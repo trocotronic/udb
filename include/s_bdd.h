@@ -20,11 +20,12 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#define DB_SIZE 128
-#define DB_DIR "database"
-
+ 
 #define PRIMERA_LETRA 'a'
 #define ULTIMA_LETRA 'z'
+
+#define DB_SIZE 128
+#define DB_DIR "database"
 
 #define BDD_BOTS	'b'
 #define BDD_CANALES	'c'
@@ -51,19 +52,19 @@
 #define HASH 3
 #define CORR 4
 #define RESI 5
+#define LEN  6
 
 #define BWD_BLOCK 0x1
 #define BWD_MESSAGE 0x2
 #define BWD_CHANNEL 0x4
 #define BWD_QUIT 0x8
 
-#undef HASH_UDB
+#define HASH_UDB
 
 struct _bdd *busca_registro(char, char *), *busca_serie(char, unsigned long);
 
 typedef struct _bdd udb;
 
-extern unsigned long registros[DB_SIZE][DB_SIZE];
 extern char *clave_cifrado;
 
 extern int addreg_file(char, unsigned long, char *, char *);
@@ -84,8 +85,20 @@ struct _bdd
 };
 
 extern udb *primeradb[DB_SIZE], *ultimadb[DB_SIZE];
-
-#define ircstrdup(x,y) if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y)
-#define ircfree(x) if (x) MyFree(x); x = NULL
-
+extern unsigned long hashes[DB_SIZE];
+extern unsigned long series[DB_SIZE];
+extern unsigned int registros[DB_SIZE];
+extern unsigned char corruptas[DB_SIZE];
+extern unsigned char residentes[DB_SIZE];
+extern unsigned int lens[DB_SIZE];
 extern aChannel *get_channel(aClient *, char *, int);
+extern void set_topic(aClient *, aClient *, aChannel *, char *, int);
+#define BorraIpVirtual(x)				\
+	do						\
+	{						\
+		if ((x)->user->virthost)		\
+			MyFree((x)->user->virthost);	\
+		(x)->user->virthost = NULL;		\
+	}while(0)
+
+#define dblen(x) (lens[bdd] ? lens[bdd] : 256)

@@ -61,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.3 2004-03-08 18:07:06 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -100,6 +100,18 @@ extern int m_pass_Init(ModuleInfo *modinfo), m_userhost_Init(ModuleInfo *modinfo
 extern int m_ison_Init(ModuleInfo *modinfo), m_silence_Init(ModuleInfo *modinfo);
 extern int m_knock_Init(ModuleInfo *modinfo), m_umode2_Init(ModuleInfo *modinfo);
 extern int m_squit_Init(ModuleInfo *modinfo), m_protoctl_Init(ModuleInfo *modinfo);
+extern int m_addline_Init(ModuleInfo *modinfo), m_addmotd_Init(ModuleInfo *modinfo);
+extern int m_addomotd_Init(ModuleInfo *modinfo), m_wallops_Init(ModuleInfo *modinfo);
+extern int m_admin_Init(ModuleInfo *modinfo), m_globops_Init(ModuleInfo *modinfo);
+extern int m_locops_Init(ModuleInfo *modinfo), m_chatops_Init(ModuleInfo *modinfo);
+extern int m_trace_Init(ModuleInfo *modinfo), m_netinfo_Init(ModuleInfo *modinfo);
+extern int m_links_Init(ModuleInfo *modinfo), m_help_Init(ModuleInfo *modinfo);
+extern int m_rules_Init(ModuleInfo *modinfo), m_close_Init(ModuleInfo *modinfo);
+extern int m_map_Init(ModuleInfo *modinfo), m_eos_Init(ModuleInfo *modinfo);
+extern int m_server_Init(ModuleInfo *modinfo), m_stats_Init(ModuleInfo *modinfo);
+extern int m_svsfline_Init(ModuleInfo *modinfo), m_undccdeny_Init(ModuleInfo *modinfo);
+extern int m_dccdeny_Init(ModuleInfo *modinfo), m_whowas_Init(ModuleInfo *modinfo);
+extern int m_connect_Init(ModuleInfo *modinfo);
 #ifdef GUEST
 extern int m_guest_Init(ModuleInfo *modinfo);
 #endif
@@ -133,6 +145,18 @@ extern int m_pass_Load(int module_load), m_userhost_Load(int module_load);
 extern int m_ison_Load(int module_load), m_silence_Load(int module_load);
 extern int m_knock_Load(int module_load), m_umode2_Load(int module_load);
 extern int m_squit_Load(int module_load), m_protoctl_Load(int module_load);
+extern int m_addline_Load(int module_load), m_addmotd_Load(int module_load);
+extern int m_addomotd_Load(int module_load), m_wallops_Load(int module_load);
+extern int m_admin_Load(int module_load), m_globops_Load(int module_load);
+extern int m_locops_Load(int module_load), m_chatops_Load(int module_load);
+extern int m_trace_Load(int module_load), m_netinfo_Load(int module_load);
+extern int m_links_Load(int module_load), m_help_Load(int module_load);
+extern int m_rules_Load(int module_load), m_close_Load(int module_load);
+extern int m_map_Load(int module_load), m_eos_Load(int module_load);
+extern int m_server_Load(int module_load), m_stats_Load(int module_load);
+extern int m_svsfline_Load(int module_load), m_undccdeny_Load(int module_load);
+extern int m_dccdeny_Load(int module_load), m_whowas_Load(int module_load);
+extern int m_connect_Load(int module_load);
 #ifdef GUEST
 extern int m_guest_Load(int module_load);
 #endif
@@ -157,8 +181,16 @@ extern int m_sajoin_Unload(), m_sapart_Unload(), m_knock_Umload();
 extern int m_kick_Unload(), m_topic_Unload(), m_umode2_Unload();
 extern int m_invite_Unload(), m_list_Unload(), m_squit_Unload();
 extern int m_samode_Unload(), m_sjoin_Unload(), m_protoctl_Unload();
-extern int m_pass_Unload(), m_userhost_Unload();
+extern int m_pass_Unload(), m_userhost_Unload(), m_knock_Unload();
 extern int m_ison_Unload(), m_silence_Unload();
+extern int m_addline_Unload(), m_addmotd_Unload(), m_addomotd_Unload();
+extern int m_wallops_Unload(), m_admin_Unload(), m_globops_Unload();
+extern int m_locops_Unload(), m_chatops_Unload(), m_trace_Unload();
+extern int m_netinfo_Unload(), m_links_Unload(), m_help_Unload();
+extern int m_rules_Unload(), m_close_Unload(), m_map_Unload();
+extern int m_eos_Unload(), m_server_Unload(), m_stats_Unload();
+extern int m_svsfline_Unload(), m_dccdeny_Unload(), m_undccdeny_Unload();
+extern int m_whowas_Unload(), m_connect_Unload();
 #ifdef GUEST
 extern int m_guest_Unload();
 #endif
@@ -259,6 +291,29 @@ int    l_commands_Init(ModuleInfo *modinfo)
 	m_umode2_Init(ModCmdsInfo);
 	m_squit_Init(ModCmdsInfo);
 	m_protoctl_Init(ModCmdsInfo);
+	m_addline_Init(ModCmdsInfo);
+	m_addmotd_Init(ModCmdsInfo);
+	m_addomotd_Init(ModCmdsInfo);
+	m_wallops_Init(ModCmdsInfo);
+	m_admin_Init(ModCmdsInfo);
+	m_globops_Init(ModCmdsInfo);
+	m_locops_Init(ModCmdsInfo);
+	m_chatops_Init(ModCmdsInfo);
+	m_trace_Init(ModCmdsInfo);
+	m_netinfo_Init(ModCmdsInfo);
+	m_links_Init(ModCmdsInfo);
+	m_help_Init(ModCmdsInfo);
+	m_rules_Init(ModCmdsInfo);
+	m_close_Init(ModCmdsInfo);
+	m_map_Init(ModCmdsInfo);
+	m_eos_Init(ModCmdsInfo);
+	m_server_Init(ModCmdsInfo);
+	m_stats_Init(ModCmdsInfo);
+	m_svsfline_Init(ModCmdsInfo);
+	m_dccdeny_Init(ModCmdsInfo);
+	m_undccdeny_Init(ModCmdsInfo);
+	m_whowas_Init(ModCmdsInfo);
+	m_connect_Init(ModCmdsInfo);
 #ifdef GUEST
 	m_guest_Init(ModCmdsInfo);
 #endif
@@ -339,6 +394,29 @@ int    l_commands_Load(int module_load)
 	m_umode2_Load(module_load);
 	m_squit_Load(module_load);
 	m_protoctl_Load(module_load);
+	m_addline_Load(module_load);
+	m_addmotd_Load(module_load);
+	m_addomotd_Load(module_load);
+	m_wallops_Load(module_load);
+	m_admin_Load(module_load);
+	m_globops_Load(module_load);
+	m_locops_Load(module_load);
+	m_chatops_Load(module_load);
+	m_trace_Load(module_load);
+	m_netinfo_Load(module_load);
+	m_links_Load(module_load);
+	m_help_Load(module_load);
+	m_rules_Load(module_load);
+	m_close_Load(module_load);
+	m_map_Load(module_load);
+	m_eos_Load(module_load);
+	m_server_Load(module_load);
+	m_stats_Load(module_load);
+	m_svsfline_Load(module_load);
+	m_dccdeny_Load(module_load);
+	m_undccdeny_Load(module_load);
+	m_whowas_Load(module_load);
+	m_connect_Load(module_load);
 #ifdef GUEST
 	m_guest_Load(module_load);
 #endif
@@ -419,6 +497,29 @@ int	l_commands_Unload(int module_unload)
 	m_umode2_Unload();
 	m_squit_Unload();
 	m_protoctl_Unload();
+	m_addline_Unload();
+	m_addmotd_Unload();
+	m_addomotd_Unload();
+	m_wallops_Unload();
+	m_admin_Unload();
+	m_globops_Unload();
+	m_locops_Unload();
+	m_chatops_Unload();
+	m_trace_Unload();
+	m_netinfo_Unload();
+	m_links_Unload();
+	m_help_Unload();
+	m_rules_Unload();
+	m_close_Unload();
+	m_map_Unload();
+	m_eos_Unload();
+	m_server_Unload();
+	m_stats_Unload();
+	m_svsfline_Unload();
+	m_dccdeny_Unload();
+	m_undccdeny_Unload();
+	m_whowas_Unload();
+	m_connect_Unload();
 #ifdef GUEST
 	m_guest_Unload();
 #endif

@@ -112,7 +112,7 @@ DLLFUNC int m_getinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_getinfo)
   = {
 	"getinfo",
-	"$Id: m_getinfo.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $",
+	"$Id: m_getinfo.c,v 1.1.1.3 2004-03-08 18:07:06 Trocotronic Exp $",
 	"command /getinfo",
 	"3.2-b8-1",
 	NULL 
@@ -146,7 +146,7 @@ DLLFUNC int MOD_UNLOAD(m_getinfo)(int module_unload)
 	if (del_Command(MSG_GETINFO, TOK_GETINFO, m_getinfo) < 0)
 	{
 		sendto_realops("Failed to delete commands when unloading %s",
-				m_getinfo_Header.name);
+				MOD_HEADER(m_getinfo).name);
 		return MOD_FAILED;
 	}
 	return MOD_SUCCESS;
