@@ -400,7 +400,7 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 	registros[SERS][bdd] = serie;
 	if ((db = busca_registro(bdd, index)))
 	{
-		if (valor[0] == '\0')
+		if (BadPtr(valor))
 		{
 			delreg(db, add);
 			if (bdd == BDD_BADWORDS)
@@ -419,7 +419,7 @@ int addreg(char bdd, unsigned long serie, char *index, char *valor, int add)
 			addreg_file(bdd, serie, index, valor);
 		return 0;
 	}
-	if (valor[0] == '\0')
+	if (BadPtr(valor))
 		return 0;
 	db = (udb *)malloc(sizeof(udb) + 1);
 	db->index = (char *)malloc(sizeof(char) * strlen(index) + 1);
@@ -492,6 +492,7 @@ unsigned long lee_hash(char bdd)
 		return 0L;
 	fseek(fp, 32 * (bdd - PRIMERA_LETRA), SEEK_SET);
 	lee = (char *)malloc(sizeof(char) * 32 + 1);
+	bzero(lee, 33);
 	fread(lee, 1, 32, fp);
 	fclose(fp);
 	return atol(lee);
@@ -580,9 +581,9 @@ int loadbdd(char bdd)
 	char archivo[128], data[512], *regs[3], buf[BUFSIZE];
 	int i, g, h;
 	udb *dbaux, *dbtmp;
+	registros[REGS][bdd] = registros[SERS][bdd] = registros[HASH][bdd] = 0L;
 	if (comprueba_hash(bdd))
 		return 0;	
-	registros[REGS][bdd] = registros[SERS][bdd] = registros[HASH][bdd] = 0L;
 #ifdef HASH_UDB
 	clear_udb_hash_table();
 #endif	
@@ -591,6 +592,8 @@ int loadbdd(char bdd)
 	{
 		dbtmp = dbaux->next;
 		free(dbaux);
+		free(dbaux->index);
+		free(dbaux->value);
 	}
 	primeradb[bdd] = ultimadb[bdd] = NULL;
 	sprintf(archivo, DB_DIR "\\%c.bdd", bdd);
@@ -601,6 +604,7 @@ int loadbdd(char bdd)
 	}
 	while (!feof(fp))
 	{
+		regs[0] = regs[1] = regs[2] = NULL;
 		memset(buf, 0, BUFSIZE);
 		if (!fgets(data, 512, fp))
 			break;
@@ -621,6 +625,12 @@ int loadbdd(char bdd)
 		regs[h] = (char *)malloc(sizeof(char) * strlen(buf) + 1);
 		strcpy(regs[h], buf);
 		addreg(bdd, atol(regs[0]), regs[1], !regs[2][0] ? "" : regs[2] + 1, 0);
+		if (regs[0])
+			free(regs[0]);
+		if (regs[1])
+			free(regs[1]);
+		if (regs[2])
+			free(regs[2]);
 	}
 	fclose(fp);
 	registros[HASH][bdd] = lee_hash(bdd);
@@ -628,7 +638,16 @@ int loadbdd(char bdd)
 		sendto_ops("Tabla '%c' R=%09lu", bdd, registros[REGS][bdd]);
 	return 0;
 }
-
+void bdd_init()
+{
+	int i;
+	for (i = PRIMERA_LETRA; i <= ULTIMA_LETRA; i++)
+	{
+		primeradb[i] = ultimadb[i] = NULL;
+		registros[i][SERS] = registros[i][REGS] = registros[i][HASH] = registros[i][CORR] = registros[i][RESI] = 0;
+	}
+	loadbdds();
+}
 CMD_FUNC(m_db)
 {
 	ConfigItem_link *aconf;

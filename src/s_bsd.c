@@ -743,7 +743,7 @@ static int check_init(aClient *cptr, char *sockn, size_t size)
  * -1 = Access denied
  * -2 = Bad socket.
  */
-int  check_client(aClient *cptr)
+int  check_client(aClient *cptr, char *username)
 {
 	static char sockname[HOSTLEN + 1];
 	struct hostent *hp = NULL;
@@ -776,7 +776,7 @@ int  check_client(aClient *cptr)
 		}
 	}
 
-	if ((i = AllowClient(cptr, hp, sockname)))
+	if ((i = AllowClient(cptr, hp, sockname, username)))
 	{
 		return i;
 	}
@@ -2256,8 +2256,12 @@ int  read_message(time_t delay, fdlist *listp)
 			if (fd >= MAXCLIENTS)
 			{
 				ircstp->is_ref++;
-				sendto_realops("Todas las conexiones en uso. (%s)",
-				    get_client_name(cptr, TRUE));
+				if (last_allinuse < TStime() - 15)
+				{
+					sendto_realops("Todas las conexiones en uso. (%s)",
+					    get_client_name(cptr, TRUE));
+					last_allinuse = TStime();
+				}
 				(void)send(fd,
 				    "ERROR :Todas las conexiones en uso\r\n", 32, 0);
 				(void)close(fd);

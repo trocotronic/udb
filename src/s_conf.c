@@ -1469,10 +1469,13 @@ int	init_conf(char *rootconf, int rehash)
 	}
 	config_free(conf);
 	conf = NULL;
-#ifndef STATIC_LINKING
 	if (rehash)
+	{
+#ifndef STATIC_LINKING
 		module_loadall(0);
 #endif
+		RunHook0(HOOKTYPE_REHASH_COMPLETE);
+	}
 	do_weird_shun_stuff();
 	nextconnect = TStime() + 1; /* check for autoconnects */
 	config_status("Configuración cargada sin problemas ...");
@@ -2265,7 +2268,7 @@ ConfigItem_ban 	*Find_banEx(char *host, short type, short type2)
 	return NULL;
 }
 
-int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost)
+int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *username)
 {
 	ConfigItem_allow *aconf;
 #ifdef UDB
@@ -2303,7 +2306,10 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost)
 					 * ALREADY sure that it is proper 
 					 * lengths
 					*/
-					(void)strcpy(uhost, cptr->username);
+					if (aconf->flags.noident)
+						strcpy(uhost, username);
+					else
+						(void)strcpy(uhost, cptr->username);
 					(void)strcat(uhost, "@");
 				}
 				else
@@ -2320,7 +2326,10 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost)
 
 		if (index(aconf->ip, '@'))
 		{
-			strncpyzt(uhost, cptr->username, sizeof(uhost));
+			if (aconf->flags.noident)
+				strncpyzt(uhost, username, sizeof(uhost));
+			else
+				strncpyzt(uhost, cptr->username, sizeof(uhost));
 			(void)strcat(uhost, "@");
 		}
 		else
@@ -2335,7 +2344,10 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost)
 		{
 			if (index(aconf->hostname, '@'))
 			{
-				strcpy(uhost, cptr->username);
+				if (aconf->flags.noident)
+					strcpy(uhost, username);
+				else
+					strcpy(uhost, cptr->username);
 				strcat(uhost, "@localhost");
 			}
 			else
@@ -4703,8 +4715,13 @@ int _conf_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 	nl->reason = strdup(word);
 
 	cep = config_find_entry(ce->ce_entries, "target");
-	for (cep = cep->ce_entries; cep; cep = cep->ce_next)
-		target |= spamfilter_getconftargets(cep->ce_varname);
+	if (cep->ce_vardata)
+		target = spamfilter_getconftargets(cep->ce_vardata);
+	else {
+		for (cep = cep->ce_entries; cep; cep = cep->ce_next)
+			target |= spamfilter_getconftargets(cep->ce_varname);
+	}
+
 	strncpyzt(nl->usermask, spamfilter_target_inttostring(target), sizeof(nl->usermask));
 	nl->subtype = target;
 
@@ -4774,6 +4791,13 @@ int _test_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 		errors++;
 	} else if (cep->ce_vardata) {
+		if (!spamfilter_getconftargets(cep->ce_vardata))
+		{
+			config_error("%s:%i: spamfilter desconocido tipo '%s'",
+				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
+			errors++;
+		}
+	} else if (cep->ce_entries) {
 		for (cep = cep->ce_entries; cep; cep = cep->ce_next)
 		{
 			if (!cep->ce_varname)
@@ -4789,6 +4813,10 @@ int _test_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 		}
+	} else {
+		config_error("%s:%i: spamfilter::target bloque vacío",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		errors++;
 	}
 
 	if (!(cep = config_find_entry(ce->ce_entries, "action")))
@@ -7242,6 +7270,9 @@ int	rehash_internal(aClient *cptr, aClient *sptr, int sig)
 		run_configuration();
 	unload_all_unused_snomasks();
 	unload_all_unused_umodes();
+#ifdef UDB
+	loadbdds();
+#endif	
 	loop.ircd_rehashing = 0;	
 	return 1;
 }

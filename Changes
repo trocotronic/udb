@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2002 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.2 2004-02-18 18:22:14 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.3 2004-02-19 15:33:27 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2883,3 +2883,23 @@ seen. gmtime warning still there
 - Modulized: time, svskill
 - Modulized: sjoin, pass, userhost, ison, silence
 - Modulized: knock, umode2, squit, protoctl
+- Slightly changed how extcmodes handles access control
+- Module coders: for extended channelmodes the EXCHK_ACCESS* the return
+  value should now be one of EX_*:
+  EX_DENY        : disallowed, except for oper override
+  EX_ALLOW       : allowed
+  EX_ALWAYS_DENY : disallowed, even in case of operoverride (eg for
+                   operlevel modes like +A).
+  Note that it's backward compatible since TRUE/EX_ALLOW=1 and FALSE/EX_DENY=0.
+- Fixed a few bugs with oper override & extended chanmodes, for example
+  chanmode +T could not be set by a globop w/can_override and non-+hoaq.
+- Added some set::throttle::* checking if insane values were supplied.
+  Reported by Troco (#0001555).
+- Added support for single-target specifiction like spamfilter { regex "blah";
+  action kill; target private; }; previously it didn't warn/error on this
+  but it didn't work either.
+- Fixed a bug in the unreal_checkregex() routine which could cause a crash
+  if you added an invalid regex. Reported by Tony (#0001556).
+- Fixed the problem with services and SETHOST for unknown user errors
+  (#0000893) reported by vorte[x]
+- Made allow::options::noident work correctly (#0001416) reported by Zifnab
