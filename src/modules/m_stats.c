@@ -55,7 +55,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.1 2004-03-08 18:07:07 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.2 2004-03-09 17:36:45 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -486,7 +486,7 @@ DLLFUNC CMD_FUNC(m_stats)
 		else
 			stat->func(sptr, NULL);
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat->flag);
-		sendto_snomask(SNO_EYES, "Stats \'%c\' requested by %s (%s@%s)",
+		sendto_snomask(SNO_EYES, "Stats \'%c\' solicitada por %s (%s@%s)",
 			stat->flag, sptr->name, sptr->user->username, GetHost(sptr));
 	}
 	else
@@ -506,7 +506,7 @@ int stats_banversion(aClient *sptr, char *para)
 		if (bans->flag.type != CONF_BAN_VERSION)
 			continue;
 		sendto_one(sptr, rpl_str(RPL_STATSBANVER), me.name, sptr->name,
-			bans->mask, bans->reason ? bans->reason : "No Reason");
+			bans->mask, bans->reason ? bans->reason : "Sin razón");
 	}
 	return 0;
 }

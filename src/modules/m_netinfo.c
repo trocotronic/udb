@@ -50,7 +50,7 @@ DLLFUNC int m_netinfo(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_netinfo)
   = {
 	"m_netinfo",
-	"$Id: m_netinfo.c,v 1.1.4.1 2004-03-08 18:07:06 Trocotronic Exp $",
+	"$Id: m_netinfo.c,v 1.1.4.2 2004-03-09 17:36:45 Trocotronic Exp $",
 	"command /netinfo", 
 	"3.2-b8-1",
 	NULL 
@@ -131,7 +131,7 @@ DLLFUNC CMD_FUNC(m_netinfo)
 	if (lmax > IRCstats.global_max)
 	{
 		IRCstats.global_max = lmax;
-		sendto_realops("Max Global Count is now %li (set by link %s)",
+		sendto_realops("Max Global es %li (fijado por %s)",
 		    lmax, cptr->name);
 	}
 
@@ -139,20 +139,20 @@ DLLFUNC CMD_FUNC(m_netinfo)
 	if ((xx - endsync) < 0)
 	{
 		sendto_realops
-		    ("Possible negative TS split at link %s (%li - %li = %li)",
+		    ("Posible TS negativo por split en %s (%li - %li = %li)",
 		    cptr->name, (xx), (endsync), (xx - endsync));
 		sendto_serv_butone(&me,
-		    ":%s SMO o :\2(sync)\2 Possible negative TS split at link %s (%li - %li = %li)",
+		    ":%s SMO o :\2(sync)\2 Posible TS negativo por split en %s (%li - %li = %li)",
 		    me.name, cptr->name, (xx), (endsync), (xx - endsync));
 	}
 	sendto_realops
-	    ("Link %s -> %s is now synced [secs: %li recv: %ld.%hu sent: %ld.%hu]",
+	    ("Link %s -> %s sincronizado [segs: %li recibido: %ld.%hu enviado: %ld.%hu]",
 	    cptr->name, me.name, (TStime() - endsync), sptr->receiveK,
 	    sptr->receiveB, sptr->sendK, sptr->sendB);
 #ifdef ZIP_LINKS
 	if ((MyConnect(cptr)) && (IsZipped(cptr)) && cptr->zip->in->total_out && cptr->zip->out->total_in) {
 		sendto_realops
-		("Zipstats for link to %s: decompressed (in): %01lu=>%01lu (%3.1f%%), compressed (out): %01lu=>%01lu (%3.1f%%)",
+		("Zipstats para el link %s: descomprimido (inn): %01lu=>%01lu (%3.1f%%), comprimido (out): %01lu=>%01lu (%3.1f%%)",
 			get_client_name(cptr, TRUE),
 			cptr->zip->in->total_in, cptr->zip->in->total_out,
 			(100.0*(float)cptr->zip->in->total_in) /(float)cptr->zip->in->total_out,
@@ -162,36 +162,38 @@ DLLFUNC CMD_FUNC(m_netinfo)
 #endif
 
 	sendto_serv_butone(&me,
-	    ":%s SMO o :\2(sync)\2 Link %s -> %s is now synced [secs: %li recv: %ld.%hu sent: %ld.%hu]",
+	    ":%s SMO o :\2(sync)\2 Link %s -> %s sincronizado [segs: %li recibido: %ld.%hu enviado: %ld.%hu]",
 	    me.name, cptr->name, me.name, (TStime() - endsync), sptr->receiveK,
 	    sptr->receiveB, sptr->sendK, sptr->sendB);
 
 	if (!(strcmp(ircnetwork, parv[8]) == 0))
 	{
-		sendto_realops("Network name mismatch from link %s (%s != %s)",
+		sendto_realops("El nombre de Red no se corresponde en %s (%s != %s)",
 		    cptr->name, parv[8], ircnetwork);
 		sendto_serv_butone(&me,
-		    ":%s SMO o :\2(sync)\2 Network name mismatch from link %s (%s != %s)",
+		    ":%s SMO o :\2(sync)\2 El nombre de Red no se corresponde %s (%s != %s)",
 		    me.name, cptr->name, parv[8], ircnetwork);
 	}
 
 	if ((protocol != UnrealProtocol) && (protocol != 0))
 	{
 		sendto_realops
-		    ("Link %s is running Protocol u%li while we are running %d!",
+		    ("El link %s utiliza el protocolo u%li y este servidor el %d",
 		    cptr->name, protocol, UnrealProtocol);
 		sendto_serv_butone(&me,
-		    ":%s SMO o :\2(sync)\2 Link %s is running u%li while %s is running %d!",
+		    ":%s SMO o :\2(sync)\2 El link %s utiliza el protocolo u%li y este servidor el %d",
 		    me.name, cptr->name, protocol, me.name, UnrealProtocol);
 
 	}
 	ircsprintf(buf, "%lX", CLOAK_KEYCRC);
+#ifndef UDB /* con el UDB las cloak poca importancia tienen */
 	if (*parv[4] != '*' && strcmp(buf, parv[4]))
 	{
 		sendto_realops
 			("Link %s is having a DIFFERENT CLOAK KEY - %s != %s. \002YOU SHOULD CORRECT THIS ASAP\002.",
 				cptr->name, parv[4], buf);
 	}
+#endif
 	SetNetInfo(cptr);
 	return 0;
 }

@@ -1,9 +1,9 @@
 ; UnrealIRCd Win32 Installation Script for My Inno Setup Extensions
 ; Requires ISX 3.0.4 to work
 
-; #define USE_SSL
+#define USE_SSL
 ; Uncomment the above line to package an SSL build
-#define USE_ZIP
+;#define USE_ZIP
 ; Uncomment the above line to package with ZIP support
 ; #define USE_CURL
 ; Uncomment the above line to package with libcurl support

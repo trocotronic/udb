@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2002 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.4 2004-03-08 18:07:03 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.5 2004-03-09 17:36:44 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3017,3 +3017,4 @@ seen. gmtime warning still there
 - Added a check to try and prevent people from adding all-encompassing
   regexp's in /spamfilter. Thanks to Ville Laurikari for coming up with the
   method!
+- Removed the old/unused src/win32/version.c (#0001630) reported by fez

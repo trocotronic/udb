@@ -20,12 +20,16 @@
  */
 
 /*
- * $Id: sock.h,v 1.1.1.4 2004-03-08 18:07:04 Trocotronic Exp $
+ * $Id: sock.h,v 1.1.1.5 2004-03-09 17:36:45 Trocotronic Exp $
  *
 <<<<<<< sock.h
 <<<<<<< sock.h
 <<<<<<< sock.h
+<<<<<<< sock.h
  * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.4  2004/03/08 18:07:04  Trocotronic
+ * RC2+UDB 1.2
+ *
  * Revision 1.1.1.3  2004/02/19 15:33:28  Trocotronic
  * Estabilizamos
  *
@@ -36,6 +40,9 @@
  * Empezamos
 =======
  * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.4  2004/03/08 18:07:04  Trocotronic
+ * RC2+UDB 1.2
+ *
  * Revision 1.1.1.3  2004/02/19 15:33:28  Trocotronic
  * Estabilizamos
  *
@@ -44,8 +51,17 @@
  *
 =======
  * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.4  2004/03/08 18:07:04  Trocotronic
+ * RC2+UDB 1.2
+ *
  * Revision 1.1.1.3  2004/02/19 15:33:28  Trocotronic
  * Estabilizamos
+ *
+>>>>>>> 1.1.1.1.2.1
+=======
+ * $Log: not supported by cvs2svn $
+ * Revision 1.1.1.4  2004/03/08 18:07:04  Trocotronic
+ * RC2+UDB 1.2
  *
 >>>>>>> 1.1.1.1.2.1
 =======
