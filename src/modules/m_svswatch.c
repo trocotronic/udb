@@ -47,12 +47,12 @@ DLLFUNC int m_svswatch(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
 /* Place includes here */
 #define MSG_SVSWATCH       "SVSWATCH"
-#define TOK_SVSWATCH       "BW"
+#define TOK_SVSWATCH       "Bw"
 
 ModuleHeader MOD_HEADER(m_svswatch)
   = {
 	"svswatch",	/* Name of module */
-	"$Id: m_svswatch.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_svswatch.c,v 1.1.1.2 2004-10-31 20:21:54 Trocotronic Exp $", /* Version */
 	"command /svswatch", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

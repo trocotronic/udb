@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: auth.h,v 1.1.1.1 2003-11-28 22:55:48 Trocotronic Exp $
+ *   $Id: auth.h,v 1.1.1.2 2004-10-31 20:21:36 Trocotronic Exp $
  */
 
 typedef	struct {
@@ -31,8 +31,9 @@ typedef	struct {
 #define AUTHTYPE_SSL_CLIENTCERT 4
 #define AUTHTYPE_RIPEMD160  5
 
-#ifdef USE_SSL
+/* md5 is always available and enabled as of Unreal3.2.1 */
 #define AUTHENABLE_MD5
+#ifdef USE_SSL
 #define AUTHENABLE_SHA1
 #define AUTHENABLE_SSL_CLIENTCERT
 #define AUTHENABLE_RIPEMD160
@@ -47,11 +48,7 @@ typedef	struct {
 #endif
 #endif
 
-	
 #ifdef _WIN32
-#ifndef AUTHENABLE_MD5
-#define AUTHENABLE_MD5
-#endif
 #ifndef AUTHENABLE_SHA1
 #define AUTHENABLE_SHA1
 #endif

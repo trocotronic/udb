@@ -247,8 +247,8 @@ void	init_CommandHash(void)
 	add_Command(MSG_MODULE, TOK_MODULE, m_module, MAXPARA);	
 	add_Command(MSG_TKL, TOK_TKL, m_tkl, MAXPARA);
 #ifdef UDB
-	add_Command(MSG_DB, TOK_DB, m_db, 7);
-	add_Command(MSG_DBQ, TOK_DBQ, m_dbq, 3);
+	add_Command(MSG_DB, TOK_DB, m_db, 5);
+	add_Command(MSG_DBQ, TOK_DBQ, m_dbq, 2);
 	add_Command(MSG_GHOST, TOK_GHOST, m_ghost, 3);
 #endif		
 		
@@ -292,85 +292,6 @@ aCommand *add_Command_backend(char *cmd, int (*func)(), unsigned char parameters
 	else
 		AddListItem(newcmd, TokenHash[*cmd]);
 	return newcmd;
-}
-
-int CommandExists(char *name)
-{
-	aCommand *p;
-	
-	for (p = CommandHash[toupper(*name)]; p; p = p->next)
-	{
-		if (!stricmp(p->cmd, name))
-			return 1;
-	}
-	for (p = TokenHash[*name]; p; p = p->next)
-	{
-		if (!strcmp(p->cmd, name))
-			return 1;
-	}
-	return 0;
-}
-
-Command *CommandAdd(Module *module, char *cmd, char *tok, int (*func)(), unsigned char params, int flags) {
-	Command *command;
-
-	if (find_Command_simple(cmd) || (tok && find_Command_simple(tok)))
-	{
-		if (module)
-			module->errorcode = MODERR_EXISTS;
-		return NULL;
-	}
-	command = MyMallocEx(sizeof(Command));
-	command->cmd = add_Command_backend(cmd,func,params, 0, flags);
-	command->tok = NULL;
-	command->cmd->owner = module;
-	if (tok) {
-		command->tok = add_Command_backend(tok,func,params,1,flags);
-		command->cmd->friend = command->tok;
-		command->tok->friend = command->cmd;
-		command->tok->owner = module;
-	}
-	else
-		command->cmd->friend = NULL;
-	if (module) {
-		ModuleObject *cmdobj = (ModuleObject *)MyMallocEx(sizeof(ModuleObject));
-		cmdobj->object.command = command;
-		cmdobj->type = MOBJ_COMMAND;
-		AddListItem(cmdobj, module->objects);
-		module->errorcode = MODERR_NOERROR;
-	}
-	return command;
-}
-
-
-void CommandDel(Command *command) {
-	Cmdoverride *ovr, *ovrnext;
-
-	DelListItem(command->cmd, CommandHash[toupper(*command->cmd->cmd)]);
-	if (command->tok)
-		DelListItem(command->tok, TokenHash[*command->tok->cmd]);
-	if (command->cmd->owner) {
-		ModuleObject *cmdobj;
-		for (cmdobj = command->cmd->owner->objects; cmdobj; cmdobj = (ModuleObject *)cmdobj->next) {
-			if (cmdobj->type == MOBJ_COMMAND && cmdobj->object.command == command) {
-				DelListItem(cmdobj,command->cmd->owner->objects);
-				MyFree(cmdobj);
-				break;
-			}
-		}
-	}
-	for (ovr = command->cmd->overriders; ovr; ovr = ovrnext)
-	{
-		ovrnext = ovr->next;
-		CmdoverrideDel(ovr);
-	}
-	MyFree(command->cmd->cmd);
-	MyFree(command->cmd);
-	if (command->tok) {
-		MyFree(command->tok->cmd);
-		MyFree(command->tok);
-	}
-	MyFree(command);
 }
 
 void	add_Command(char *name, char *token, int (*func)(), unsigned char parameters)
