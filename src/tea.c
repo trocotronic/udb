@@ -46,7 +46,6 @@
 #include "version.h"
 #endif
 
-#define toLower(c) (NTL_tolower_tab[(c)])
 #define NUMNICKLOG 6
 #define NUMNICKMAXCHAR 'z'	/* See convert2n[] */
 #define NUMNICKBASE 64		/* (2 << NUMNICKLOG) */
@@ -118,26 +117,6 @@ static const unsigned int convert2n[] = {
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-const char NTL_tolower_tab[] = {
-       /* x00-x07 */ '\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06', '\x07',
-       /* x08-x0f */ '\x08', '\x09', '\x0a', '\x0b', '\x0c', '\x0d', '\x0e', '\x0f',
-       /* x10-x17 */ '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17',
-       /* x18-x1f */ '\x18', '\x19', '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f',
-       /* ' '-x27 */    ' ',    '!',    '"',    '#',    '$',    '%',    '&', '\x27',
-       /* '('-'/' */    '(',    ')',    '*',    '+',    ',',    '-',    '.',    '/',
-       /* '0'-'7' */    '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7',
-       /* '8'-'?' */    '8',    '9',    ':',    ';',    '<',    '=',    '>',    '?',
-       /* '@'-'G' */    '@',    'a',    'b',    'c',    'd',    'e',    'f',    'g',
-       /* 'H'-'O' */    'h',    'i',    'j',    'k',    'l',    'm',    'n',    'o',
-       /* 'P'-'W' */    'p',    'q',    'r',    's',    't',    'u',    'v',    'w',
-       /* 'X'-'_' */    'x',    'y',    'z',    '{',    '|',    '}',    '~',    '_',
-       /* '`'-'g' */    '`',    'a',    'b',    'c',    'd',    'e',    'f',    'g',
-       /* 'h'-'o' */    'h',    'i',    'j',    'k',    'l',    'm',    'n',    'o',
-       /* 'p'-'w' */    'p',    'q',    'r',    's',    't',    'u',    'v',    'w',
-       /* 'x'-x7f */    'x',    'y',    'z',    '{',    '|',    '}',    '~', '\x7f'
-};
-/* *INDENT-ON* */
-
 
 unsigned int base64toint(const char *s)
 {
@@ -178,10 +157,9 @@ char *cifranick(char *nickname, char *pass)
      /* Normalizar nick */
     while (nick[i] != 0)
     {
-       nick[i] = toLower(nick[i]);
+       nick[i] = tolower(nick[i]);
        i++;
     }  
-
     memset(tmpnick, 0, sizeof(tmpnick));
     strncpy(tmpnick, nick ,sizeof(tmpnick) - 1);
 
@@ -199,9 +177,9 @@ char *cifranick(char *nickname, char *pass)
 
     while(cont--)
     {
-	  v[0] = ntohl(*p++);      /* 32 bits */
-      v[1] = ntohl(*p++);      /* 32 bits */
-      tea(v, k, x);
+	   v[0] = ntohl(*p++);      /* 32 bits */
+	   v[1] = ntohl(*p++);      /* 32 bits */
+       	   tea(v, k, x);
     }
 
     inttobase64(clave, x[0], 6);

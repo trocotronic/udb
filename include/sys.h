@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.2 2004-02-18 18:24:11 Trocotronic Exp $
+ *   $Id: sys.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
@@ -142,6 +142,9 @@ typedef unsigned short u_int16_t;
  *  IPv4 or IPv6 structures?
  */
 
+# define MYDUMMY_SIZE 128
+
+
 #ifdef INET6
 
 # define AND16(x) ((x)[0]&(x)[1]&(x)[2]&(x)[3]&(x)[4]&(x)[5]&(x)[6]&(x)[7]&(x)[8]&(x)[9]&(x)[10]&(x)[11]&(x)[12]&(x)[13]&(x)[14]&(x)[15])
@@ -160,7 +163,6 @@ typedef unsigned short u_int16_t;
 //#  define uint32_t __u32
 // # endif
 
-# define MYDUMMY_SIZE 128
 char mydummy[MYDUMMY_SIZE];
 char mydummy2[MYDUMMY_SIZE];
 
@@ -232,7 +234,7 @@ static const struct in6_addr in6addr_any = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 #define CLOSE_SOCK(fd) closesocket(fd)
 #define IOCTL(x, y, z) ioctlsocket((x), (y), (z))
 #define ERRNO WSAGetLastError()
-#define STRERROR(x) nt_strerror(x)
+#define STRERROR(x) sock_strerror(x)
 #define SET_ERRNO(x) WSASetLastError(x)
 /* Error constant portability */
 #define P_EMFILE        WSAEMFILE

@@ -63,13 +63,13 @@ static struct liststats {
 
 void outofmemory();
 
-int  flinks = 0;
-int  freelinks = 0;
-Link *freelink = NULL;
-Member *freemember = NULL;
-Membership *freemembership = NULL;
-MembershipL *freemembershipL = NULL;
-int  numclients = 0;
+MODVAR int  flinks = 0;
+MODVAR int  freelinks = 0;
+MODVAR Link *freelink = NULL;
+MODVAR Member *freemember = NULL;
+MODVAR Membership *freemembership = NULL;
+MODVAR MembershipL *freemembershipL = NULL;
+MODVAR int  numclients = 0;
 
 void initlists(void)
 {
@@ -199,6 +199,7 @@ anUser *make_user(aClient *cptr)
 		user->snomask = 0;
 		*user->realhost = '\0';
 		user->virthost = NULL;
+		user->ip_str = NULL;
 		cptr->user = user;		
 	}
 	return user;
@@ -240,6 +241,8 @@ void free_user(anUser *user, aClient *cptr)
 			MyFree((char *)user->swhois);
 		if (user->virthost)
 			MyFree((char *)user->virthost);
+		if (user->ip_str)
+			MyFree((char *)user->ip_str);
 		if (user->operlogin)
 			MyFree(user->operlogin);
 		/*

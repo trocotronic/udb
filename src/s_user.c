@@ -51,6 +51,7 @@ Computing Center and Jarkko Oikarinen";
 #ifdef _WIN32
 #include "version.h"
 #endif
+
 #ifdef UDB
 #include "s_bdd.h"
 #endif
@@ -63,13 +64,10 @@ void create_snomask(aClient *, anUser *, char *);
 extern int short_motd(aClient *sptr);
 extern aChannel *get_channel(aClient *cptr, char *chname, int flag);
 /* static  Link    *is_banned(aClient *, aChannel *); */
-int  dontspread = 0;
+MODVAR int  dontspread = 0;
 extern char *me_hash;
 extern char backupbuf[];
 static char buf[BUFSIZE];
-#ifdef UDB
-char *cifranick(char *nickname, char *pass);
-#endif
 
 void iNAH_host(aClient *sptr, char *host)
 {
@@ -271,7 +269,7 @@ const char *StripControlCodes(unsigned char *text)
 	return new_str;
 }
 
-char umodestring[UMODETABLESZ+1];
+MODVAR char umodestring[UMODETABLESZ+1];
 
 /*
 ** next_client
@@ -755,7 +753,7 @@ extern char *canonize(char *buffer)
 }
 
 
-extern char cmodestring[512];
+extern MODVAR char cmodestring[512];
 
 /*
 ** register_user
@@ -778,10 +776,10 @@ extern char cmodestring[512];
 **	   this is not fair. It should actually request another
 **	   nick from local user or kill him/her...
 */
-extern aTKline *tklines;
+extern MODVAR aTKline *tklines;
 extern int badclass;
 
-extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost)
+int register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost, char *ip)
 {
 	ConfigItem_ban *bconf;
 	char *parv[3], *tmpstr;
@@ -939,7 +937,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 		 * following block for the benefit of time-dependent K:-lines
 		 */
 		if ((bconf =
-		    Find_ban(make_user_host(user->username, user->realhost),
+		    Find_ban(sptr, make_user_host(user->username, user->realhost),
 		    CONF_BAN_USER)))
 		{
 			ircstp->is_ref++;
@@ -951,7 +949,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 			    KLINE_ADDRESS);
 			return exit_client(cptr, cptr, cptr, "Estás baneado.");
 		}
-		if ((bconf = Find_ban(sptr->info, CONF_BAN_REALNAME)))
+		if ((bconf = Find_ban(NULL, sptr->info, CONF_BAN_REALNAME)))
 		{
 			ircstp->is_ref++;
 			sendto_one(cptr,
@@ -984,7 +982,6 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 #ifdef UDB
 	if (IsHidden(sptr))
     		user->virthost = make_virtualhost(sptr, user->realhost, user->virthost, 1); 
-    	sube_oper(sptr);
 #else
 	user->virthost =
 	    (char *)make_virthost(user->realhost, user->virthost, 1);
@@ -1101,6 +1098,8 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 			/* Here pig.. yeah you .. -Stskeeps */
 			sptr->user->virthost = strdup(virthost);
 		}
+		if (ip && (*ip != '*'))
+			sptr->user->ip_str = strdup(decode_ip(ip));
 	}
 
 	hash_check_watch(sptr, RPL_LOGON);	/* Uglier hack */
@@ -1110,9 +1109,7 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 	    sptr->hopcount + 1, sptr->lastnick, user->username, user->realhost,
 	    user->server, user->servicestamp, sptr->info,
 	    (!buf || *buf == '\0' ? "+" : buf),
-/*	    ((IsHidden(sptr)
-	    && (sptr->umodes & UMODE_SETHOST)) ? sptr->user->virthost : "*"));*/
-	    user->virthost);
+	    sptr->umodes & UMODE_SETHOST ? sptr->user->virthost : NULL);
 
 	/* Send password from sptr->passwd to NickServ for identification,
 	 * if passwd given and if NickServ is online.
@@ -1186,6 +1183,9 @@ extern int register_user(aClient *cptr, aClient *sptr, char *nick, char *usernam
 **      parv[8] = umodes
 **	parv[9] = virthost, * if none
 **	parv[10] = info
+**  if NICKIP:
+**      parv[10] = ip
+**      parv[11] = info
 */
 CMD_FUNC(m_nick)
 {
@@ -1318,7 +1318,7 @@ CMD_FUNC(m_nick)
 #ifdef GUEST
 			if (IsUnknown(sptr))
 			{
-				RunHook(HOOKTYPE_GUEST, cptr, sptr, parc, parv);
+				RunHook4(HOOKTYPE_GUEST, cptr, sptr, parc, parv);
 				return 0;
 			}
 #endif
@@ -1498,10 +1498,9 @@ CMD_FUNC(m_nick)
 		{
 #ifdef UDB
             		mismonick = 1;
-#else
+#endif
 			/* Allows change of case in his/her nick */
 			removemoder = 0; /* don't set the user -r */
-#endif
 			goto nickkilldone;	/* -- go and process change */
 		} else
 			/*
@@ -1521,7 +1520,7 @@ CMD_FUNC(m_nick)
 	   ** Decide, we really have a nick collision and deal with it
 	 */
 	if (!IsServer(cptr))
-	{		
+	{
 		/*
 		   ** NICK is coming from local client connection. Just
 		   ** send error reply and ignore the command.
@@ -1623,16 +1622,8 @@ CMD_FUNC(m_nick)
 
 			sendto_one(cptr, ":%s KILL %s :%s (Colisión de nick)",
 			    me.name, parv[1], me.name);
-			sendto_one(cptr, "NICK %s %d %ld %s %s %s :%s",
-			    acptr->name, acptr->hopcount + 1, acptr->lastnick,
-			    acptr->user->username, acptr->user->realhost,
-			    acptr->user->server, acptr->info);
-			send_umode(cptr, acptr, 0, SEND_UMODES, buf);
-			if (IsHidden(acptr))
-			{
-				sendto_one(cptr, ":%s SETHOST %s", acptr->name,
-				    acptr->user->virthost);
-			}
+			send_umode(NULL, acptr, 0, SEND_UMODES, buf);
+			sendto_one_nickcmd(cptr, acptr, buf);
 			if (acptr->user->away)
 				sendto_one(cptr, ":%s AWAY :%s", acptr->name,
 				    acptr->user->away);
@@ -1702,19 +1693,11 @@ CMD_FUNC(m_nick)
 			/* Kill their user. */
 			sendto_one(cptr, ":%s KILL %s :%s (Colisión de nick)",
 			    me.name, parv[1], me.name);
-			sendto_one(cptr, "NICK %s %d %ld %s %s %s :%s",
-			    acptr->name, acptr->hopcount + 1, acptr->lastnick,
-			    acptr->user->username, acptr->user->realhost,
-			    acptr->user->server, acptr->info);
-			send_umode(cptr, acptr, 0, SEND_UMODES, buf);
+			send_umode(NULL, acptr, 0, SEND_UMODES, buf);
+			sendto_one_nickcmd(cptr, acptr, buf);
 			if (acptr->user->away)
 				sendto_one(cptr, ":%s AWAY :%s", acptr->name,
 				    acptr->user->away);
-			if (IsHidden(acptr))
-			{
-				sendto_one(cptr, ":%s SETHOST %s", acptr->name,
-				    acptr->user->virthost);
-			}
 
 			send_user_joins(cptr, acptr);
 			return 0;	/* their user lost, ignore the NICK */
@@ -1781,6 +1764,7 @@ CMD_FUNC(m_nick)
 			if (puede_cambiar_nick_en_bdd(cptr, sptr, acptr, parv, nick, pass, nick_used) < 0)
 				return 0;
 #endif				
+
 			if (TStime() - sptr->user->flood.nick_t >= NICK_PERIOD)
 			{
 				sptr->user->flood.nick_t = TStime();
@@ -1792,7 +1776,7 @@ CMD_FUNC(m_nick)
 
 			RunHook2(HOOKTYPE_LOCAL_NICKCHANGE, sptr, nick);
 		} else {
-			sendto_snomask(SNO_FNICKCHANGE, "*** Notice -- %s (%s@%s) has changed his/her nickname to %s", sptr->name, sptr->user->username, sptr->user->realhost, nick);
+			sendto_snomask(SNO_FNICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s", sptr->name, sptr->user->username, sptr->user->realhost, nick);
 			RunHook3(HOOKTYPE_REMOTE_NICKCHANGE, cptr, sptr, nick);
 		}			
 #ifdef UDB
@@ -1892,7 +1876,7 @@ CMD_FUNC(m_nick)
 #endif
 			sptr->lastnick = TStime();	/* Always local client */
 			if (register_user(cptr, sptr, nick,
-			    sptr->user->username, NULL, NULL) == FLUSH_BUFFER)
+			    sptr->user->username, NULL, NULL, NULL) == FLUSH_BUFFER)
 				return FLUSH_BUFFER;
 			strcpy(nick, sptr->name); /* don't ask, but I need this. do not remove! -- Syzop */
 			update_watch = 0;
@@ -1915,10 +1899,7 @@ CMD_FUNC(m_nick)
 		parv[3] = nick;
 		m_user(cptr, sptr, parc - 3, &parv[3]);
 		if (GotNetInfo(cptr) && !IsULine(sptr))
-			sendto_snomask(SNO_FCLIENT,
-			    "*** Notice -- Cliente conecta en %s: %s (%s@%s)",
-			    sptr->user->server, sptr->name,
-			    sptr->user->username, sptr->user->realhost);
+			sendto_fconnectnotice(sptr->name, sptr->user, sptr, 0, NULL);
 	}
 	else if (IsPerson(sptr) && update_watch)
 		hash_check_watch(sptr, RPL_LOGON);
@@ -2042,7 +2023,7 @@ CMD_FUNC(m_user)
 {
 #define	UFLAGS	(UMODE_INVISIBLE|UMODE_WALLOP|UMODE_SERVNOTICE)
 	char *username, *host, *server, *realname, *umodex = NULL, *virthost =
-	    NULL;
+	    NULL, *ip = NULL;
 	u_int32_t sstamp = 0;
 	anUser *user;
 	aClient *acptr;
@@ -2094,6 +2075,15 @@ CMD_FUNC(m_user)
 		umodex = parv[5];
 		virthost = parv[6];
 	}
+	else if (parc == 9 && IsServer(cptr))
+	{
+		if (isdigit(*parv[4]))
+			sstamp = atol(parv[4]);
+		realname = (BadPtr(parv[8])) ? "<bad-realname>" : parv[8];
+		umodex = parv[5];
+		virthost = parv[6];
+		ip = parv[7];
+	}
 	else
 	{
 		realname = (BadPtr(parv[4])) ? "<bad-realname>" : parv[4];
@@ -2141,6 +2131,7 @@ CMD_FUNC(m_user)
 	 * which seemed bad. Not to say this is much better ;p. -- Syzop
 	 */
 	strncpyzt(user->realhost, Inet_ia2p(&sptr->ip), sizeof(user->realhost));
+	user->ip_str = strdup(Inet_ia2p(&sptr->ip));
 	user->server = me_hash;
       user_finish:
 	user->servicestamp = sstamp;
@@ -2154,7 +2145,7 @@ CMD_FUNC(m_user)
 
 		return(
 		    register_user(cptr, sptr, sptr->name, username, umodex,
-		    virthost));
+		    virthost,ip));
 	}
 	else
 		strncpyzt(sptr->user->username, username, USERLEN + 1);
@@ -2233,6 +2224,7 @@ void create_snomask(aClient *sptr, anUser *user, char *snomask) {
 		}
 	}
 }
+
 /*
  * m_umode() added 15/10/91 By Darren Reed.
  * parv[0] - sender

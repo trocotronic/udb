@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.2 2004-02-18 18:24:10 Trocotronic Exp $
+ *   $Id: config.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -241,7 +241,11 @@
  *       the maintainer.
  */
 
-/* #undef	DEBUGMODE	   define DEBUGMODE to enable debugging mode.*/
+/* DEBUGMODE: This should only be used when tracing a problem. It creates
+ * an insane amount of log output which can be very useful for debugging.
+ * You should *NEVER* enable this setting on production servers.
+ */
+/* #undef	DEBUGMODE */
 
 /*
  * Full pathnames and defaults of irc system's support files. Please note that
@@ -255,7 +259,6 @@
 #define OPATH   	"oper.motd"	/* Operators MOTD file */
 #define	LPATH		"debug.log"	/* Where the debug file lives, if DEBUGMODE */
 #define	PPATH		"ircd.pid"	/* file for server pid */
-#define lPATH		"ircd.log"	/* server log file */
 #define VPATH		"ircd.svsmotd"	/* Services MOTD append. */
 #define BPATH		"bot.motd"	/* Bot MOTD */
 #define IRCDTUNE 	"ircd.tune"	/* tuning .. */
@@ -494,11 +497,6 @@
  * msgs, joins, ctcps, nickchanges and /knock.
  */
 #define NEWCHFLOODPROT
-
-/*
- * Sistema UDB y protocolo (Trocotronic - trocotronic@telefonica.net)
- */
-#define UDB
 
 /* ------------------------- END CONFIGURATION SECTION -------------------- */
 #define MOTD MPATH

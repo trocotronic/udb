@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: inet.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+ * $Id: inet.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
  *
  *	@(#)inet.h	5.4 (Berkeley) 6/1/90
  */
@@ -29,6 +29,9 @@
 #else
 #define	__u_l	unsigned long
 #endif
+
+extern int inet_pton(int af, const char *src, void *dst);
+extern const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
 
 #ifdef __STDC__
 # ifndef _WIN32

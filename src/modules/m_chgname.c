@@ -58,7 +58,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgname)
   = {
 	"chgname",	/* Name of module */
-	"$Id: m_chgname.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $", /* Version */
+	"$Id: m_chgname.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
 	"command /chgname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -163,7 +163,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		/* set the realname first to make n:line checking work */
 		ircsprintf(acptr->info, "%s", parv[2]);
 		/* only check for n:lines if the person who's name is being changed is not an oper */
-		if (!IsAnOper(acptr) && Find_ban(acptr->info, CONF_BAN_REALNAME)) {
+		if (!IsAnOper(acptr) && Find_ban(NULL, acptr->info, CONF_BAN_REALNAME)) {
 			int xx;
 			xx =
 			   exit_client(cptr, sptr, &me,
@@ -176,13 +176,13 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    "%s changed the GECOS of %s (%s@%s) to be %s",
 			    sptr->name, acptr->name, acptr->user->username,
 			    GetHost(acptr), parv[2]);
+			/* Logging ability added by XeRXeS */
+			ircd_log(LOG_CHGCMDS,
+				"CHGNAME: %s changed the GECOS of %s (%s@%s) to be %s", 
+				sptr->name, acptr->name, acptr->user->username,
+				GetHost(acptr), parv[2]);
 		}
 
-		/* Logging ability added by XeRXeS */
-		ircd_log(LOG_CHGCMDS,
-		"CHGNAME: %s changed the GECOS of %s (%s@%s) to be %s", 
-		sptr->name, acptr->name, acptr->user->username,
-		GetHost(acptr), parv[2]);
 
 		sendto_serv_butone_token(cptr, sptr->name,
 		    MSG_CHGNAME, TOK_CHGNAME, "%s :%s", acptr->name, parv[2]);

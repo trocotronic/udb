@@ -52,7 +52,6 @@ DLLFUNC int m_svs2mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 #endif
 
-extern ircstats IRCstats;
 #define MSG_SVSMODE 	"SVSMODE"	
 #define TOK_SVSMODE 	"n"	
 #define MSG_SVS2MODE    "SVS2MODE"
@@ -65,7 +64,7 @@ extern ircstats IRCstats;
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.3 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 

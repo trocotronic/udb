@@ -51,10 +51,10 @@ DLLFUNC int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 #define MSG_AWAY 	"AWAY"	
 #define TOK_AWAY 	"6"	
 
-ModuleHeader MOD_HEADER(m_away)
+DLLFUNC ModuleHeader MOD_HEADER(m_away)
   = {
 	"m_away",
-	"$Id: m_away.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_away.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
 	"command /away", 
 	"3.2-b8-1",
 	NULL 

@@ -54,7 +54,7 @@ int  parse_help(aClient *sptr, char *name, char *help)
 		if (!helpitem)
 			return 1;
 		SND(" -");
-		HDR("        ***** UnrealIRCd Help System *****");
+		HDR("        ***** Sistema de Ayuda UnrealIRCd *****");
 		SND(" -");
 		text = helpitem->text;
 		while (text) {
@@ -68,11 +68,11 @@ int  parse_help(aClient *sptr, char *name, char *help)
 	helpitem = Find_Help(help);
 	if (!helpitem) {
 		SND(" -");
-		HDR("        ***** No Help Available *****");
+		HDR("        ***** No hay ayuda disponible *****");
 		SND(" -");
-		SND("   We're sorry, we don't have help available for the command you requested.");
+		SND("   Lo sentimos pero no tenemos ayuda sobre el comando que pide. ");
 		SND(" -");
-		sendto_one(sptr,":%s 292 %s : ***** Go to %s if you have any further questions *****",
+		sendto_one(sptr,":%s 292 %s : ***** Vaya a %s si tiene más dudas *****",
 		    me.name, sptr->name, helpchan);
 		SND(" -");
 		return 0;

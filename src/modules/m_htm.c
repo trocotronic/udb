@@ -44,18 +44,6 @@
 #endif
 
 
-#ifndef NO_FDLIST
-extern float currentrate;
-extern float currentrate2;
-extern float highest_rate;
-extern float highest_rate2;
-extern int lifesux;
-extern int noisy_htm;
-extern time_t LCF;
-extern int LRV;
-#endif
-
-
 DLLFUNC int m_htm(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 EVENT(lcf_check);
 EVENT(htm_calc);
@@ -75,7 +63,7 @@ static Hook *ConfTest, *ConfRun, *ServerStats;
 ModuleHeader MOD_HEADER(m_htm)
   = {
 	"htm",	/* Name of module */
-	"$Id: m_htm.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_htm.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
 	"command /htm", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

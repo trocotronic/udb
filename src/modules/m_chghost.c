@@ -58,7 +58,7 @@ DLLFUNC int m_chghost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chghost)
   = {
 	"chghost",	/* Name of module */
-	"$Id: m_chghost.c,v 1.1.1.2 2004-02-18 18:24:14 Trocotronic Exp $", /* Version */
+	"$Id: m_chghost.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
 	"/chghost", /* Short description of module */
 	"3.2-b8-1",
     };
@@ -198,12 +198,12 @@ DLLFUNC int m_chghost(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    "%s changed the virtual hostname of %s (%s@%s) to be %s",
 			    sptr->name, acptr->name, acptr->user->username,
 			    acptr->user->realhost, parv[2]);
+			/* Logging added by XeRXeS */
+ 		      	ircd_log(LOG_CHGCMDS,                                         
+				"CHGHOST: %s changed the virtual hostname of %s (%s@%s) to be %s",
+				sptr->name, acptr->name, acptr->user->username, acptr->user->realhost, parv[2]); 
 		}
  
-		/* Logging added by XeRXeS */
- 	      	ircd_log(LOG_CHGCMDS,                                         
-			"CHGHOST: %s changed the virtual hostname of %s (%s@%s) to be %s",            
-			sptr->name, acptr->name, acptr->user->username, acptr->user->realhost, parv[2]); 
                   
 		acptr->umodes |= UMODE_HIDE;
 		acptr->umodes |= UMODE_SETHOST;

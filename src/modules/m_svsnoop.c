@@ -52,13 +52,10 @@ DLLFUNC int m_svsnoop(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 #define TOK_SVSNOOP 	"f"
 
 
-extern ircstats IRCstats;
-extern int SVSNOOP;
-
 ModuleHeader MOD_HEADER(m_svsnoop)
   = {
 	"m_svsnoop",
-	"$Id: m_svsnoop.c,v 1.1.1.2 2004-02-18 18:24:17 Trocotronic Exp $",
+	"$Id: m_svsnoop.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
 	"command /svsnoop", 
 	"3.2-b8-1",
 	NULL

@@ -35,7 +35,7 @@
 #include "threads.h"
 #include <string.h>
 #ifndef CLEAN_COMPILE
-static char rcsid[] = "@(#)$Id: res.c,v 1.1.1.3 2004-05-17 15:46:29 Trocotronic Exp $";
+static char rcsid[] = "@(#)$Id: res.c,v 1.2 2004-07-04 02:47:35 Trocotronic Exp $";
 #endif
 #if 0
 #undef	DEBUG	/* because there is a lot of debug code in here :-) */
@@ -134,7 +134,7 @@ int init_resolver(int op)
 #else
 		ret = resfd = socket(AF_INET, SOCK_DGRAM, 0);
 #endif
-		(void)setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (const void *)&on, on);
+		(void)setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (const char *)&on, on);
 	}
 #ifdef DEBUGMODE
 	if (op & RES_INITDEBG)
@@ -374,7 +374,7 @@ static int send_res_msg(char *msg, int len, int rcount)
 #endif
 
 		{
-			Debug((DEBUG_DNS, "send_res_msg, errno = %s",strerror(ERRNO)));
+			Debug((DEBUG_DNS, "send_res_msg, errno = %s",STRERROR(ERRNO)));
 			reinfo.re_sent++;
 			sent++;
 		}
@@ -1204,7 +1204,7 @@ static void update_list(ResRQ *rptr, aCache *cachep)
 #ifdef	DEBUGMODE
  #ifdef INET6
 			Debug((DEBUG_DNS, "u_l:add IP %s hal %x ac %d",
-				inet_ntop(((struct IN_ADDR *)s), mydummy,
+				inet_ntop(AF_INET6, ((struct IN_ADDR *)s), mydummy,
 				          MYDUMMY_SIZE),
 				HE(cp)->h_addr_list, addrcount));
  #else
@@ -1662,6 +1662,13 @@ int m_dns(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		sendto_one(sptr, "NOTICE %s :retrans=%d s, retry=%d times", sptr->name, ircd_res.retrans, ircd_res.retry);
 		sendto_one(sptr, "NOTICE %s :Default domain name: %s", sptr->name, ircd_res.defdname);
 		sendto_one(sptr, "NOTICE %s :End of info.", sptr->name);
+		return 2;
+	}
+	if (parv[1] && *parv[1] == 'c')
+	{
+		flush_cache();
+		sendto_realops("%s cleared the DNS cache", sptr->name);
+		sendto_one(sptr, "NOTICE %s :DNS cache cleared", sptr->name);
 		return 2;
 	}
 	sendto_one(sptr, "NOTICE %s :Ca %d Cd %d Ce %d Cl %d Ch %d:%d Cu %d",

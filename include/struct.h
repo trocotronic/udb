@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.4 2004-05-17 15:46:28 Trocotronic Exp $
+ *   $Id: struct.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -37,6 +37,8 @@
 #include <openssl/err.h>    
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <openssl/md5.h>
+#include <openssl/ripemd.h>
 #endif
 #include "common.h"
 #include "sys.h"
@@ -50,6 +52,7 @@
 #ifdef STDDEFH
 # include <stddef.h>
 #endif
+#include "md5.h"
 
 #ifdef HAVE_SYSLOG
 # include <syslog.h>
@@ -69,8 +72,7 @@
 
 #include "channel.h"
 
-
-extern int sendanyways;
+extern MODVAR int sendanyways;
 
 
 typedef struct aloopStruct LoopStruct;
@@ -98,6 +100,7 @@ typedef struct _configitem_listen ConfigItem_listen;
 typedef struct _configitem_allow ConfigItem_allow;
 typedef struct _configflag_allow ConfigFlag_allow;
 typedef struct _configitem_allow_channel ConfigItem_allow_channel;
+typedef struct _configitem_allow_dcc ConfigItem_allow_dcc;
 typedef struct _configitem_vhost ConfigItem_vhost;
 typedef struct _configitem_except ConfigItem_except;
 typedef struct _configitem_link	ConfigItem_link;
@@ -183,7 +186,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 /* NOTE: this must be down here so the stuff from struct.h IT uses works */
 #include "whowas.h"
 
-/* Loggin types */
+/* Logging types */
 #define LOG_ERROR 0x0001
 #define LOG_KILL  0x0002
 #define LOG_TKL   0x0004
@@ -194,6 +197,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define LOG_SACMDS 0x0080
 #define LOG_CHGCMDS 0x0100
 #define LOG_OVERRIDE 0x0200
+#define LOG_SPAMFILTER 0x0400
 
 
 /*
@@ -276,13 +280,15 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OPT_NOT_VHP	0x2000
 #define OPT_TKLEXT	0x4000
 #define OPT_NOT_TKLEXT	0x8000
+#define OPT_NICKIP	0x10000
+#define OPT_NOT_NICKIP  0x20000
 
 /* client->flags (32 bits): 28 used, 4 free */
 #define	FLAGS_PINGSENT   0x0001	/* Unreplied ping sent */
 #define	FLAGS_DEADSOCKET 0x0002	/* Local socket is dead--Exiting soon */
 #define	FLAGS_KILLED     0x0004	/* Prevents "QUIT" from being sent for this */
 #define	FLAGS_BLOCKED    0x0008	/* socket is in a blocked condition */
-#define FLAGS_UNOCCUP1   0x0010 /* [FREE] */
+#define FLAGS_OUTGOING   0x0010 /* outgoing connection, do not touch cptr->listener->clients */
 #define	FLAGS_CLOSING    0x0020	/* set when closing to suppress errors */
 #define	FLAGS_LISTEN     0x0040	/* used to mark clients which we listen() on */
 #define	FLAGS_CHKACCESS  0x0080	/* ok to check clients access if set */
@@ -305,14 +311,14 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #ifdef ZIP_LINKS
 #define FLAGS_ZIP        0x1000000
 #endif
-#define FLAGS_UNOCCUP2   0x2000000 /* [FREE] */
+#define FLAGS_DCCNOTICE  0x2000000 /* Has the user seen a notice on how to use DCCALLOW already? */
 #define FLAGS_SHUNNED    0x4000000
 #define FLAGS_VIRUS      0x8000000 /* tagged by spamfilter */
 #ifdef USE_SSL
 #define FLAGS_SSL        0x10000000
 #endif
 #define FLAGS_UNOCCUP4   0x20000000 /* [FREE] */
-#define FLAGS_DCCBLOCK   0x40000000
+#define FLAGS_DCCBLOCK   0x40000000 /* Block all DCC send requests */
 #define FLAGS_MAP        0x80000000	/* Show this entry in /map */
 /* Dec 26th, 1997 - added flags2 when I ran out of room in flags -DuffJ */
 
@@ -343,9 +349,11 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define PROTO_VHP		0x0400	/* Send hostnames in NICKv2 even if not sethosted */
 #define PROTO_SJB64		0x0800
 #define PROTO_TKLEXT	0x1000	/* TKL extension: 10 parameters instead of 8 (3.2RC2) */
+#define PROTO_NICKIP	0x2000  /* Send IP addresses in the NICK command */
 #ifdef UDB
-#define PROTO_UDB       0x2000
+#define PROTO_UDB       0x4000
 #endif
+
 /* note: client->proto is currently a 'short' (max is 0x8000) */
 
 /*
@@ -394,6 +402,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	IsDead(x)		((x)->flags & FLAGS_DEADSOCKET)
 #define GotProtoctl(x)		((x)->flags & FLAGS_PROTOCTL)
 #define IsBlocked(x)		((x)->flags & FLAGS_BLOCKED)
+#define IsOutgoing(x)		((x)->flags & FLAGS_OUTGOING)
 #define GotNetInfo(x) 		((x)->flags & FLAGS_NETINFO)
 #define SetNetInfo(x)		((x)->flags |= FLAGS_NETINFO)
 
@@ -433,6 +442,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #endif
 
 #define GetHost(x)			(IsHidden(x) ? (x)->user->virthost : (x)->user->realhost)
+#define GetIP(x)			((x->user && x->user->ip_str) ? x->user->ip_str : (MyConnect(x) ? Inet_ia2p(&x->ip) : NULL))
 
 #define SetKillsF(x)		((x)->user->snomask |= SNO_KILLS)
 #define SetClientF(x)		((x)->user->snomask |= SNO_CLIENT)
@@ -451,8 +461,11 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	DoingDNS(x)		((x)->flags & FLAGS_DOINGDNS)
 #define	SetAccess(x)		((x)->flags |= FLAGS_CHKACCESS); Debug((DEBUG_DEBUG, "SetAccess(%s)", (x)->name))
 #define SetBlocked(x)		((x)->flags |= FLAGS_BLOCKED)
+#define SetOutgoing(x)		do { x->flags |= FLAGS_OUTGOING; } while(0)
 #define	DoingAuth(x)		((x)->flags & FLAGS_AUTH)
 #define	NoNewLine(x)		((x)->flags & FLAGS_NONL)
+#define IsDCCNotice(x)		((x)->flags & FLAGS_DCCNOTICE)
+#define SetDCCNotice(x)		do { x->flags |= FLAGS_DCCNOTICE; } while(0)
 #define SetRegNick(x)		((x)->umodes & UMODE_REGNICK)
 #define SetHidden(x)            ((x)->umodes |= UMODE_HIDE)
 #define SetHideOper(x)      ((x)->umodes |= UMODE_HIDEOPER)
@@ -493,6 +506,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #endif
 #define SupportSJOIN(x)		((x)->proto & PROTO_SJOIN)
 #define SupportNICKv2(x)	((x)->proto & PROTO_NICKv2)
+#define SupportNICKIP(x)	((x)->proto & PROTO_NICKIP)
 #define SupportSJOIN2(x)	((x)->proto & PROTO_SJOIN2)
 #define SupportUMODE2(x)	((x)->proto & PROTO_UMODE2)
 #define SupportNS(x)		((x)->proto & PROTO_NS)
@@ -511,9 +525,6 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define SetVL(x)		((x)->proto |= PROTO_VL)
 #define SetSJ3(x)		((x)->proto |= PROTO_SJ3)
 #define SetVHP(x)		((x)->proto |= PROTO_VHP)
-#ifdef UDB
-#define SetUDB(x)      		((x)->proto |= PROTO_UDB)
-#endif
 #define SetTKLEXT(x)	((x)->proto |= PROTO_TKLEXT)
 
 #define ClearSJOIN(x)		((x)->proto &= ~PROTO_SJOIN)
@@ -525,9 +536,6 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define ClearVL(x)		((x)->proto &= ~PROTO_VL)
 #define ClearVHP(x)		((x)->proto &= ~PROTO_VHP)
 #define ClearSJ3(x)		((x)->proto &= ~PROTO_SJ3)
-#ifdef UDB
-#define ClearUDB(x)     	((x)->proto &= ~PROTO_UDB)
-#endif
 
 /*
  * defined operator access levels
@@ -549,6 +557,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OFLAG_LNOTICE	0x00004000	/* Oper can send local serv notices */
 #define OFLAG_GNOTICE	0x00008000	/* Oper can send global notices */
 #define OFLAG_ADMIN		0x00010000	/* Admin */
+#define OFLAG_ADDLINE	0x00020000	/* Oper can use /addline */
 #define OFLAG_ZLINE		0x00080000	/* Oper can use /zline and /unzline */
 #define OFLAG_NETADMIN	0x00200000	/* netadmin gets +N */
 #define OFLAG_COADMIN	0x00800000	/* co admin gets +C */
@@ -576,6 +585,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OPCanDCCDeny(x)	((x)->oflag & OFLAG_DCCDENY)
 #define OPCanTKL(x)	((x)->oflag & OFLAG_TKL)
 #define OPCanGZL(x)	((x)->oflag & OFLAG_GZL)
+#define OPCanAddline(x)   ((x)->oflag & OFLAG_ADDLINE)
 #define OPCanZline(x)   ((x)->oflag & OFLAG_ZLINE)
 #define OPCanRehash(x)	((x)->oflag & OFLAG_REHASH)
 #define OPCanDie(x)	((x)->oflag & OFLAG_DIE)
@@ -661,6 +671,21 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	CURSES_TERM	1
 #define	TERMCAP_TERM	2
 
+/* Dcc deny types (see src/s_extra.c) */
+#define DCCDENY_HARD	0
+#define DCCDENY_SOFT	1
+
+/* Linked list dcc flags */
+#define DCC_LINK_ME		1 /* My dcc allow */
+#define DCC_LINK_REMOTE	2 /* I need to remove dccallows from these clients when I die */
+
+struct irc_netmask
+{
+	short int type;
+	struct IN_ADDR mask;
+	short int bits;
+};
+
 struct FloodOpt {
 	unsigned short nmsg;
 	TS   firstmsg;
@@ -705,6 +730,7 @@ struct User {
 	Membership *channel;		/* chain of channel pointer blocks */
 	Link *invited;		/* chain of invite pointer blocks */
 	Link *silence;		/* chain of silence pointer blocks */
+	Link *dccallow;		/* chain of dccallowed entries */
 	char *away;		/* pointer to away message */
 	u_int32_t servicestamp;	/* Services' time stamp variable */
 	signed char refcnt;	/* Number of times this block is referenced */
@@ -720,6 +746,7 @@ struct User {
 #ifdef	LIST_DEBUG
 	aClient *bcptr;
 #endif
+	char *ip_str;		/* The IP in string form */
 	char *operlogin;	/* Only used if person is/was opered, used for oper::maxlogins */
 	struct {
 		time_t nick_t;
@@ -791,7 +818,10 @@ struct t_kline {
 	aTKline *prev, *next;
 	int type;
 	unsigned short subtype; /* subtype (currently spamfilter only), see SPAMF_* */
-	Spamfilter *spamf;
+	union {
+		Spamfilter *spamf;
+		struct irc_netmask *netmask;
+	} ptr;
 	char usermask[USERLEN + 3];
 	char *hostmask, *reason, *setby;
 	TS expire_at, set_at;
@@ -815,19 +845,19 @@ typedef struct ircstatsx {
 	int  global_max;	/* global max */
 } ircstats;
 
-extern ircstats IRCstats;
+extern MODVAR ircstats IRCstats;
 
 #include "modules.h"
 
-extern Umode *Usermode_Table;
-extern short	 Usermode_highest;
+extern MODVAR Umode *Usermode_Table;
+extern MODVAR short	 Usermode_highest;
 
-extern Snomask *Snomask_Table;
-extern short Snomask_highest;
+extern MODVAR Snomask *Snomask_Table;
+extern MODVAR short Snomask_highest;
 
 #ifdef EXTCMODE
-extern Cmode *Channelmode_Table;
-extern unsigned short Channelmode_highest;
+extern MODVAR Cmode *Channelmode_Table;
+extern MODVAR unsigned short Channelmode_highest;
 #endif
 
 extern Umode *UmodeAdd(Module *module, char ch, int options, int (*allowed)(aClient *sptr, int what), long *mode);
@@ -909,6 +939,8 @@ struct Client {
 #endif
 #ifdef USE_SSL
 	SSL		*ssl;
+#elif defined(_WIN32)
+	void	*ssl_NOTUSED;
 #endif
 #ifndef NO_FDLIST
 	long lastrecvM;		/* to check for activity --Mika */
@@ -1043,6 +1075,9 @@ struct _configitem_class {
 	ConfigFlag flag;
 	char	   *name;
 	int	   pingfreq, connfreq, maxclients, sendq, recvq, clients;
+	int xrefcount; /* EXTRA reference count, 'clients' also acts as a reference count but
+	                * link blocks also refer to classes so a 2nd ref. count was needed.
+	                */
 };
 
 struct _configflag_allow {
@@ -1060,6 +1095,7 @@ struct _configitem_allow {
 	unsigned short		maxperip;
 	int					port;
 	ConfigItem_class	*class;
+	struct irc_netmask	*netmask;
 	ConfigFlag_allow	flags;
 };
 
@@ -1133,6 +1169,8 @@ struct _configitem_link {
 	time_t			hold;
 #ifdef USE_SSL
 	char		*ciphers;
+#elif defined(_WIN32)
+	void *ciphers_NOTUSED;
 #endif
 #ifdef ZIP_LINKS
 	int compression_level;
@@ -1144,15 +1182,14 @@ struct _configitem_except {
 	ConfigFlag_except      flag;
 	int type;
 	char		*mask;
+	struct irc_netmask *netmask;
 };
 
 struct _configitem_ban {
 	ConfigItem		*prev, *next;
 	ConfigFlag_ban	flag;
 	char			*mask, *reason;
-	struct IN_ADDR netmask;
-	int bits;
-	short masktype;
+	struct irc_netmask	*netmask;
 	unsigned short action;
 };
 
@@ -1207,6 +1244,12 @@ struct _configitem_allow_channel {
 	ConfigItem		*prev, *next;
 	ConfigFlag		flag;
 	char			*channel;
+};
+
+struct _configitem_allow_dcc {
+	ConfigItem		*prev, *next;
+	ConfigFlag_ban	flag;
+	char			*filename;
 };
 
 struct _configitem_log {
@@ -1628,9 +1671,9 @@ struct liststruct {
 
 /* misc variable externs */
 
-extern char *version, *infotext[], *dalinfotext[], *unrealcredits[];
-extern char *generation, *creation;
-extern char *gnulicense[];
+extern MODVAR char *version, *infotext[], *dalinfotext[], *unrealcredits[];
+extern MODVAR char *generation, *creation;
+extern MODVAR char *gnulicense[];
 /* misc defines */
 
 #define	FLUSH_BUFFER	-2
@@ -1688,7 +1731,7 @@ int	hash_throttling(struct IN_ADDR *in);
 struct	ThrottlingBucket	*find_throttling_bucket(struct IN_ADDR *in);
 void	add_throttling_bucket(struct IN_ADDR *in);
 void	del_throttling_bucket(struct ThrottlingBucket *bucket);
-int	throttle_can_connect(struct IN_ADDR *in);
+int	throttle_can_connect(aClient *, struct IN_ADDR *in);
 
 #endif
 
@@ -1696,15 +1739,8 @@ int	throttle_can_connect(struct IN_ADDR *in);
 
 #define MARK_AS_OFFICIAL_MODULE(modinf)	do { if (modinf && modinf->handle) ModuleSetOptions(modinfo->handle, MOD_OPT_OFFICIAL);  } while(0)
 
-#ifdef PREFIX_AQ
-#ifdef UDB
- #define CHANOPPFX ".&@"
-#else
- #define CHANOPPFX "~&@"
-#endif
-#else
- #define CHANOPPFX "@"
-#endif
+/* old.. please don't use anymore */
+#define CHANOPPFX "@"
 
 /* used for is_banned type field: */
 #define BANCHK_JOIN		0	/* checking if a ban forbids the person from joining */

@@ -50,7 +50,7 @@ extern VOIDSIG s_die();
 
 static char buf[BUFSIZE];
 
-int  max_connection_count = 1, max_client_count = 1;
+MODVAR int  max_connection_count = 1, max_client_count = 1;
 extern ircstats IRCstats;
 extern int do_garbage_collect;
 /* We need all these for cached MOTDs -- codemastr */
@@ -197,6 +197,9 @@ char buf[512];
 		sendto_one(cptr, "PROTOCTL %s %s", PROTOCTL_SERVER, buf);
 #ifdef ZIP_LINKS
 	}
+#endif
+#ifdef UDB
+	sendto_one(cptr, "PROTOCTL UDB2");
 #endif
 }
 

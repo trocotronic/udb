@@ -53,7 +53,7 @@ DLLFUNC int m_spamfilter(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.4 2004-05-17 15:46:30 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.2 2004-07-04 02:47:37 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -90,7 +90,9 @@ DLLFUNC int MOD_UNLOAD(m_tkl)(int module_unload)
 	    (del_Command(MSG_SHUN, TOK_SHUN, m_shun) < 0 ) ||
 	    (del_Command(MSG_ZLINE, TOK_NONE, m_tzline) < 0) ||
 	    (del_Command(MSG_GZLINE, TOK_NONE, m_gzline) < 0) ||
-	    (del_Command(MSG_KLINE, TOK_NONE, m_tkline) < 0))
+	    (del_Command(MSG_KLINE, TOK_NONE, m_tkline) < 0) ||
+	    (del_Command(MSG_SPAMFILTER, TOK_NONE, m_spamfilter) < 0) ||
+	    (del_Command(MSG_TEMPSHUN, TOK_TEMPSHUN, m_tempshun) < 0))
 
 	{
 		sendto_realops("Failed to delete commands when unloading %s",

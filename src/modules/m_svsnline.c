@@ -55,7 +55,7 @@ DLLFUNC int m_svsnline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnline)
   = {
 	"svsnline",	/* Name of module */
-	"$Id: m_svsnline.c,v 1.1.1.2 2004-02-18 18:24:16 Trocotronic Exp $", /* Version */
+	"$Id: m_svsnline.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
 	"command /svsnline", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -137,7 +137,7 @@ DLLFUNC int m_svsnline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		  if (parc < 4)
 			  return 0;
 		 
-		  if (!Find_banEx(parv[3], CONF_BAN_REALNAME, CONF_BAN_TYPE_AKILL))
+		  if (!Find_banEx(NULL, parv[3], CONF_BAN_REALNAME, CONF_BAN_TYPE_AKILL))
 		  {
 			bconf = (ConfigItem_ban *) MyMallocEx(sizeof(ConfigItem_ban));
 			bconf->flag.type = CONF_BAN_REALNAME;
