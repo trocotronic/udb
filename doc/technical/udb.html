@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>UDB - 3.1 - Documentaci&oacute;n oficial</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style type="text/css">
+ pre { font: "courier new"; font-style: normal;}
+ .set { font-weight: bold; }
+ .desc { margin-left: 15px; }
+</style>
+</head>
+
+<!-- $Id: udb.html,v 1.1.2.1 2005-03-21 11:31:03 Trocotronic Exp $ -->
+
+<body>
+<div align="center"><b><font size="7">UDB</font></b><br>
+  <font size="4"><a href="http://www.rallados.net">http://www.rallados.net</a></font><br>
+  <font size="4">Versi&oacute;n: 3.1</font><br>
+  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 21-03-2005</div>
+<br>
+  <b>Programador:</b> Trocotronic<br>
+  <b>Contribuciones:</b> MaD / Davidlig<br>
+<p><font size="+2"><b>&Iacute;NDICE / TABLA DE CONTENIDOS</b></font><br>
+  1. <a href="#intro">Introducción</a><br>
+  2. <a href="#caracteristicas">Características</a><br>
+  3. <a href="#protocolo">Protocolo</a><br>
+  -- 3.1. <a href="#general">Generalidades</a><br>
+  -- 3.2. <a href="#bloques">Bloques</a><br>
+  -- 3.3. <a href="#comandos">Comandos</a><br>
+  -- 3.4. <a href="#negociacion">Negociación</a><br>
+  4. <a href="#instalacion">Instalación y descarga</a><br>
+</p>
+<p><b><font size="+2"><a name="intro">1.0 Introducción</a></font></b><br></p>
+<div class="desc">
+UDB es un sistema integrado a <a href="http://www.unrealircd.com" target="_blank">UnrealIRCd</a>.<br>
+    Este documento puede imprimirse tantas veces como se desee pero su distribuci&oacute;n est&aacute; vinculada &uacute;nica y 
+    exclusivamente a Colossus, debiendo adjuntar el programa con el mismo.</p>
+<p>    <b>Lea detenidamente</b> este archivo para comprender el uso de este sistema. Est&aacute; unido a muchas 
+caracter&iacute;sticas que requieren una especial atenci&oacute;n. </p>
+<p>Este documento está destinado a los desarrolladores que quieran aprovechar e integrar UDB en sus propios sistemas.</p>
+<p><i>Su lectura no se recomienda a usuarios que no pretendan manipular UDB o a los noveles que quieren montar su propia red.</i></p>
+</div>
+<p><b><font size="+2"><a name="caracteristicas">2.0 Características</a></font></b><br></p>
+<div class="desc">
+El sistema Unreal DataBase (en adelante UDB) para UnrealIRCd se utiliza para mantener información sobre el IRCd a nivel global.<BR /> 
+Esto permite el uso de nicks registrados, ips virtuales e incluso canales persistentes.<BR />
+A simple vista se aprecia el amplio ventanal de opciones que se pueden brindar.<BR />
+Aun así, representa toda una potente herramienta para redes que utilizan este software.<BR />
+Además, el sistema UDB proporciona las siguientes características:<BR />
+- Dos nuevos rangos de canal: & y . (+a Admin de canal, +q Founder de canal)<BR />
+- Simplificación de mensajes gline, kline y kill.<BR />
+- Uso del caracter \'~\' y la \'ñ\' en nicks.<BR />
+- Dos nuevos modos de usuario: +X y +S (muestra ips, nick suspendido)<BR />
+- Protección para operadores (+k)<BR />
+- Comandos /dbq y /ghost.<BR />
+- Dos raw\'s: al modo +R y +S.<BR />	
+- Identificación de nick vía /nick nick:pass o /nick nick pass y ghost de nick vía /nick nick!pass<BR />
+- Auto @ al founder de un canal registrado, modos automáticos y topic automático.<BR />
+- Control de global de clones.<BR />
+- Cifrado de ips dinámico.<BR />
+- Ips personalizadas.<BR />
+- Reconocimiento del flag +h como Operador de servicios.<BR />
+- Jerarquía global de operadores, admins, preoperadores, devels y roots.<BR />
+- Adaptación del comando /whois a la estética de la red iRC-Hispano.<BR />
+- Uso de badwords vía base de datos para evitar spam.<BR />
+- Canales privados.<BR />
+- Canales persistentes que siempre se muestran en /list y conservan su modos y topic aunque no tengan usuarios.<BR />
+- Muchas más.<BR /><BR />
+Como se puede apreciar, son bastantes las mejoras realizadas que no pueden llevarse a cabo sin unos servicios para IRC adaptados al UDB.<BR />
+</div>
+<p><b><font size="+2"><a name="protocolo">3.0 Protocolo</a></font></b><br></p>
+<div class="desc">
+<A name="general"></A><BR /><B>Generalidades</B><BR />
+El UDB tiene como principal objetivo distribuir información a nivel global en la red y de forma síncrona.<BR />
+Una de las formas para distribuir esa información es hacerlo por bloques, permitiendo su paginación y clasificación de una forma clara y ordenada. 
+Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por items y valores (numéricos y alfanuméricos).
+Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
+Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
+Versión actual: <B>3.1</B><BR /><BR />
+<A name="bloques"></A><BR /><B>Bloques</B><BR />
+Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
+Todos los valores que estén precedidos por el símbolo \'*\' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
+Existen cuatro bloques: N (nicks), C (canales), I (ips) y S (set).<BR />
+El bloque N contiene los nicks y todo lo que les concierne. Se estructura de la siguiente forma:<BR />
+- N::&lt;nick>::pass &lt;contraseña> -> contiene la contraseña del nick<BR />
+- N::&lt;nick>::vhost &lt;vhost> -> su host virtual<BR />
+- N::&lt;nick>::forbid &lt;motivo> -> razón de su prohibición (si este bloque está presente no se permite su uso)<BR />
+- N::&lt;nick>::suspendido &lt;motivo> -> razón de su suspenso (si este bloque está presente recibe el flag +S)<BR />
+- N::&lt;nick>::oper *&lt;bits> -> flags de operador (preoper, oper, devel, etc.). Es un número:<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_PREO 0x1<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_OPER 0x2<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_DEVEL 0x4<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_ADMIN 0x8<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_ROOT 0x10<BR />
+&nbsp;&nbsp;- BDD_OPER: recibe automáticamente el flag +h<BR />
+&nbsp;&nbsp;- BDD_ADMIN: recibe automáticamente los flags +oN<BR />
+&nbsp;&nbsp;- BDD_ROOT: además del +oN, recibe todos los privilegios (/rehash, /restart, etc.)<BR />
+<B>NOTA:</B> se requiere la anteposición de \'*\' para indicar que es un valor numérico (entero largo).<BR />
+- N::&lt;nick>::desafio &lt;metodo> -> metodo de cifrado de la contraseña. Métodos que acepta:<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{"plain"|"crypt"|"md5"|"sha1"|"sslclientcert"|"ripemd160"}<BR />
+- N::&lt;nick>::modos &lt;modos> -> contiene los modos de operador que puede utilizar:<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ohaAOkNCWqHX<BR />
+- N::&lt;nick>:snomasks &lt;snomask> -> contiene las snomask de operador que puede utilizar:<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cfFjveGnNqS<BR />
+- N::&lt;nick>::swhois &lt;whois> -> contiene su swhois<BR />
+Todos estos campos se dan en el momento que el usuario se identifica correcamente con /nick nick:pass<BR />
+<BR />
+El bloque C contiene los canales y todo lo que les concierne. Se estructura de la siguiente forma:<BR />
+- C::&lt;#canal>::fundador &lt;nick> -> nick del fundador. El fundador recibe +oq al entrar al canal<BR />
+- C::&lt;#canal>::modos &lt;modos> -> modos del canal<BR />
+- C::&lt;#canal>::topic &lt;topic> -> topic del canal<BR />
+- C::&lt;#canal>::accesos::&lt;usuario> NULL -> es un subloque que contiene los nicks de las personas que pueden entrar (no precisa contenido). Si este bloque está presente sólo podrán entrar en el canal los nicks que figuren en sus subloques.<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Por ejemplo C::&lt#canal>::accesos::Trocotronic NULL -> Sólo Trocotronic, con el modo +r, podrá entrar en el canal.<BR />
+- C::&lt;#canal>::forbid &lt;motivo> -> #canal prohibido<BR />
+- C::&lt;#canal>::suspendido &lt;motivo> -> no da +oq al fundador<BR />
+<BR />
+El bloque I contiene las ips y todo lo que las concierne. Se estructura de la siguiente forma:<BR />
+- I::&lt;ip> *&lt;nº clones> -> nº de clones que se permiten desde esa ip<BR />
+<B>NOTA:</B> se requiere la anteposición de \'*\' para indicar que es un valor numérico (entero largo).<BR />
+<BR />
+El bloque S contiene aspectos de la configuración de la red. Se estructura de la siguiente forma:<BR />
+- S::clave_cifrado &lt;clave alfanumérica> -> la clave de cifrado a usar para encriptar el host de los usuarios<BR />
+- S::sufijo &lt;sufijo> -> sufijo para las ip virtuales<BR />
+- S::NickServ &lt;nick!user@host> -> máscara de NickServ<BR />
+- S::ChanServ &lt;nick!user@host> -> máscara de ChanServ<BR />
+- S::IpServ &lt;nick!user@host> -> máscara de IpServ<BR />
+- S::clones *&lt;nº clones> -> número de clones permitidos en la red<BR />
+<B>NOTA:</B> se requiere la anteposición de \'*\' para indicar que es un valor numérico (entero largo).<BR />
+- S::quit_ips &lt;mensaje quit> -> mensaje que se muestra si esta conexión sobrepasa su capacidad otorgada<BR />
+- S::quit_clones &lt;mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos<BR />
+<BR />
+Estos cuatro bloques se guardan en distintos archivos en forma <U>binaria</U>. Es muy importante este dato, puesto que garantiza el mismo tamaño bajo todos los sistemas operativos.<BR />
+Para evitar manipulaciones externas, estos cuatro archivos están controlados por un sistema que detecta si se ha modificado un archivo vía externa. Si se diera este caso, se borra todo el archivo
+y se solicita de nuevo en caso de estar conectado.<BR />
+<A name="comandos"></A><BR /><B>Comandos</B><BR />
+Toda la manipulación y tratamiento de los bloques se hace mediante el comando de IRC DB. La sintaxis básica es la siguiente:<BR />
+<pre>:&lt;servidor> DB &lt;destino> &lt;comando> &lt;parámetros></pre>
+El servidor es el nodo que efectúa el comando. Algunos de estos comandos requieren que sea HUB. Si se da el caso y no lo es, el comando no se procesa y <U>no se propaga</U>.<BR />
+El destino es el servidor de destino. Puede aceptar una máscara (ej: *.rallados.net).<BR />
+El comando es la orden que se quiere solicitar. Estos comandos son:<BR />
+- INF: solicita información.<BR />
+- RES: solicita un resumen.<BR />
+- INS: inserta un registro (HUB).<BR />
+- DEL: borra un registro (HUB).<BR />
+- DRP: borra un bloque (HUB).<BR />
+- ERR: manda un error.<BR />
+- OPT: optimiza.<BR />
+<BR />
+<U>INF</U><BR />
+Pide información sobre un bloque. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> INF &lt;bloque> &lt;md5> &lt;última-hora-OPT></pre>
+El bloque sólo puede ser N, C, I o S, según se precise. El parámetro md5 corresponde al valor del cifrado del contenido de su archivo (su md5 checksum).<BR />
+El último parámetro corresponde a la última hora GMT en que se ha recibido un OPT. Si no se ha recibido ninguno, vale 0. Cada vez que se recibe un OPT se guarda
+la hora en que se ha efectuado el comando y es la que se utiliza como último parámetro.<BR />
+Por ejemplo, <pre>:servicios.colossus DB irc.rallados.net INF N 419dbf37bf33b7ef0744696b67776ebe 0</pre>
+Donde el md5 corresponde al md5 del contenido de su archivo (el archivo en modo binario).<BR />
+Este comando va estrechamente ligado al RES e inicia la unión de dos servidores. Véase más adelante.<BR />
+<BR />
+<U>RES</U><BR />
+Solicita un resumen. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> RES &lt;bloque> &lt;bytes></pre>
+El parámetro bytes corresponde al número de bytes que ocupa el archivo correspondiente a este bloque.<BR />
+Por este motivo, es muy importante manipular los archivos en modo binario, ya que si no se hace este número puede variar entre servidores.<BR />
+Si al solicitar este comando el número de bytes no se corresponde, el nodo que más registros tiene (HUB <U>seguro</U>) se los manda, a partir del byte especificado.<BR />
+<BR />
+<U>INS</U><BR />
+Inserta un registro en el bloque. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> INS &lt;byte> &lt;bloque>::&lt;item>::&lt;item>::...::&lt;item> &lt;valor></pre>
+El parámetro byte indica en qué byte del archivo debe insertarse este registro. Si este byte no es el que le corresponde, <U>no se insertará</U>.<BR />
+Por ejemplo, <pre>:servicios.colossus DB * 98 N::Trocotronic::vhost trocotronic.rallados.net</pre>
+Insertaría un registro en toda la red, siendo 98 el byte al que toca escribir en el archivo (recomiendo mandar siempre el tamaño del archivo en aquel instante).<BR />
+El control de bytes es delicado, puesto que un byte por encima o por debajo pararía la propagación y el registro no se insertaría. Se utiliza básicamente para mantener los archivos
+completamente sincronizados y que no haya desorden en la inserción de registros.<BR />
+<BR />
+<U>DEL</U><BR />
+Borra un registro de un bloque. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> DEL &lt;byte> &lt;bloque>::&lt;item>::&lt;item>::...::&lt;item></pre>
+El parámetro byte es el mismo que en el caso anterior, puesto que los registros borrados se insertan en el archivo sin valor.<BR />
+Por ejemplo, el archivo nicks.udb podría estar estructurado de la siguiente forma:<BR />
+<PRE>
+Trocotronic::pass a5ed0961cc1ea2df74884c29a2eff96b
+Trocotronic::desafio md5
+Trocotronic::oper *16
+Trocotronic::vhost trocotronic.root.rallados.net
+Trocotronic::oper</PRE>
+Como se observa, la última línea quita el estado de operador, puesto que no hay contenido. Nótese que los saltos de línea son con \'\\n\' y no con \'\\r\\n\'.<BR />
+<BR />
+<U>DRP</U><BR />
+Borra un bloque a partir de un byte. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> DRP &lt;bloque> &lt;byte></pre>
+Trunca un archivo a partir del byte especificado. Generalmente se usa 0 para borrarlo completamente.<BR />
+Este bloque es muy delicado, puesto que un byte mal especificado cortaría los registros por el medio. 
+Es muy importante utilizar este comando con cabeza, puesto que puede causar desincronización y nadie sabe qué efectos puede provocar.<BR />
+<BR />
+<U>ERR</U><BR />
+Manda un error. Su sintaxis es algo variable, según el error que se cometa. No repercute en los servidores. Tan sólo es útil para los desarrolladores y conocer 
+por qué ocurre el error. Su sintaxis es:
+<pre>:&lt;servidor> DB &lt;destino> ERR &lt;comando-respuesta> &lt;errno> [parámetros]</pre>
+El comando-respuesta corresponde al comando que ha generado el error.	El errno corresponde al número de error. Estos son:<BR />
+- E_UDB_NODB (1): el bloque no existe.<BR />
+- E_UDB_LEN (2): el número de bytes no se corresponde.<BR />
+- E_UDB_NOHUB (3): no eres hub y este comando requiere que lo seas.<BR />
+- E_UDB_PARAMS (4): faltan parámetros y el comando no se puede propagar.<BR />
+- E_UDB_NOOPEN (5): ha sido imposible abrir el archivo.<BR />
+- E_UDB_FATAL (6): ha ocurrido un error inesperado.<BR />
+Por ejemplo, una respuesta típica de error sería:
+<pre>:irc.rallados.net DB servicios.colossus ERR INS 2 N 83</pre>
+Sería una respuesta de error a servicios.colossus puesto que ha mandado un INS al bloque N y el número de bytes no se corresponde (él tiene 83).<BR />
+<BR />
+<U>OPT</U><BR />
+Optimiza un archivo. Cada vez que se propaga este comando se compacta el bloque de tal forma que se eliminan los registros repetidos y no se insertan en el archivo.<BR />
+Este comando es útil hacerlo por lo menos una vez al día, puesto que reduce considerablemente el tamaño de los archivos.
+<pre>:&lt;servidor> DB &lt;destino> OPT &lt;bloque> &lt;hora-GMT></pre>
+La hora a usar es la que haya en el momento de propagar el comando en la franja GMT (funciones time(0) en C o $gmt en mIRC).<BR />
+<BR />
+<A name="negociacion"></A><BR /><B>Negociación</B><BR />
+En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.1, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.1 TOKEN VL.<BR />
+Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
+sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
+<B>Paso 1:</B> se intercambian los md5 checksum y las horas del último OPT (mediante el comando INF). <BR />
+- Si las horas son distintas, el que tiene la menor hora borra toda su bloque y lo solicita de nuevo.<BR />
+- Si las horas son iguales, entonces: si los valores md5 son iguales, no se prosigue con la negociación puesto que todo está al día.<BR />
+<B>Paso 2:</B> si los md5 no son iguales, cada servidor manda un RES indicando el número de bytes que posee el archivo de dicho bloque. 
+El nodo que tenga más registros deberá pasarle al otro los que le faltan. Para ello situará el puntero en el archivo justo en el byte indicado en el RES y empezará a mandar los registros desde ese byte.<BR />
+<B>Paso 3:</B> la inserción del registro debe procederse con el comando INS.<BR />
+Es decir, si las horas son iguales y los md5 también el proceso se detiene porque todo está al día.<BR />
+Si las horas son distintas, el que tiene menos hora borra su bloque entero y lo solicita desde 0 (se manda un RES 0).<BR />
+Si son iguales pero los md5 no coinciden, se solicitan los registros a partir de la posición que tengan.<BR />
+Un ejemplo clásico sería este:
+<pre>:servicios.colossus DB irc.rallados.net INF C 0cc175b9c0f1b6a831c399e269772661 0<BR />
+:servicios.colossus DB irc.rallados.net INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
+:servicios.colossus DB irc.rallados.net INF N 4a8a08f09d37b73795649038408b5f33 0<BR />
+:servicios.colossus DB irc.rallados.net INF S 8277e0910d750195b448797616e091ad 0<BR />
+:irc.rallados.net DB servicios.colossus INF C 0cc175b9c0f1b6a831c399e269772661 0<BR />
+:irc.rallados.net DB servicios.colossus INF I 92eb5ffee6ae2fec3ad71c777531578f 0<BR />
+:irc.rallados.net DB servicios.colossus INF N 4a8a08f09d37b73795649038408b5f33 0<BR />
+:irc.rallados.net DB servicios.colossus INF S 8277e0910d750195b448797616e091ad 0<BR />
+Se borra el bloque I de irc.rallados.net porque tiene menos hora. Lo solicita de nuevo.
+:irc.rallados.net DB servicios.colossus RES I 0<BR /></pre>
+Como se ve, el proceso se pararía puesto que los md5 coinciden pero las horas no. Así que se procede a actualizar el bloque I.<BR />
+Veamos otro ejemplo:
+<pre>:servicios.colossus DB INF irc.rallados.net C 0cc175b9c0f1b6a831c399e269772661 1107168820<BR />
+:servicios.colossus DB irc.rallados.net INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
+:servicios.colossus DB irc.rallados.net INF N 4a8a08f09d37b73795649038408b5f33 1107168820<BR />
+:servicios.colossus DB irc.rallados.net INF S 8277e0910d750195b448797616e091ad 1107168820<BR />
+:irc.rallados.net DB servicios.colossus INF C 0cc175b9c0f1b6a831c399e269772661 1107168820<BR />
+:irc.rallados.net DB servicios.colossus INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
+:irc.rallados.net DB servicios.colossus INF N e1671797c52e15f763380b45e841ec32 1107168820<BR />
+:irc.rallados.net DB servicios.colossus INF S 8277e0910d750195b448797616e091ad 1107168820<BR />
+:servicios.colossus DB irc.rallados.net RES N 2738<BR />
+:irc.rallados.net DB servicios.colossus RES N 2338<BR />
+:servicios.colossus DB * INS 2338 N::Trocotronic::modos kXW<BR />
+:servicios.colossus DB * INS 2361 N::Trocotronic::oper *16<BR />
+:servicios.colossus DB * DEL 2383 N::Trocotronic::vhost<BR />
+...</pre>
+Todas las horas son las mismas, pero como se ve, el bloque N está desincronizado, puesto que los md5 no coinciden. Así que se mandan los RESúmenes de este bloque. Y como servicios.colossus tiene más registros, se los manda.<BR />
+Seguiría insertando registro o borrándolos según se diera. Atención al número de bytes que se va incrementando.<BR />
+Partimos del byte 2338, el siguiente registro estará en el byte 2361 puesto que "Trocotronic::modos kXW" ocupa 22 bytes + 1 del \\n = 23 bytes. 2338 + 23 = 2361. 
+El siguiente estará en 2361+22=2383, puesto que "Trocotronic::oper *16" ocupa 21 bytes + 1 del \\n. El siguiente estará en 2383+19=2402 puesto que "Trocotronic::vhost" ocupa 18 bytes + 1 del \\n.<BR />
+Y así sucesivamente.
+</div>
+<p><b><font size="+2"><a name="instalacion">4.0 Instalación y descarga</a></font></b><br></p>
+<div class="desc">
+Para su instalación debe dirigirse a <a href="http://www.rallados.net" target="_blank">http://www.rallados.net</a> y descargar el programa UnrealIRCd+UDB.<br>
+No requiere configuración adicional.
+</div>
+</html>
