@@ -43,7 +43,14 @@
  * Changes:
  * =================================================================
  *
+<<<<<<< m_ircops.c
  * $Log: not supported by cvs2svn $
+ * Revision 1.1.4.1  2004/05/17 15:46:30  Trocotronic
+ * UDB2
+ *
+=======
+ * $Log: not supported by cvs2svn $
+>>>>>>> 1.1.2.1
  * Revision 1.1.2.1  2004/03/21 18:45:12  Trocotronic
  * Añado el comando /ircops, para listar los ircops online (de AngryWolf).
  *
@@ -117,7 +124,7 @@ ModuleHeader Mod_Header
 #endif
   = {
 	"ircops",
-	"$Id: m_ircops.c,v 1.1.4.1 2004-05-17 15:46:30 Trocotronic Exp $",
+	"$Id: m_ircops.c,v 1.1.4.2 2004-05-17 16:58:18 Trocotronic Exp $",
 	"command /ircops",
 	"3.2-b8-1",
 	NULL 
