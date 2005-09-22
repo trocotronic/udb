@@ -285,7 +285,7 @@ static char *replies[] = {
 /* 249 */ NULL, /* hybrid */
 /* 250    RPL_STATSCONN */ ":%s 250 %s :Máximo de conexiones: %d (%d clientes)",
 /* 251    RPL_LUSERCLIENT */ ":%s 251 %s :Actualmente hay %d usuarios y %d invisibles en %d servidores",
-/* 252    RPL_LUSEROP */   ":%s 252 %s %d :operadores(s) online",
+/* 252    RPL_LUSEROP */   ":%s 252 %s %d :operador(es) online",
 /* 253    RPL_LUSERUNKNOWN */ ":%s 253 %s %d :conexion(es) desconocidas",
 /* 254    RPL_LUSERCHANNELS */ ":%s 254 %s %d :canales creados",
 /* 255    RPL_LUSERME */    ":%s 255 %s :Actualmente hay %d clientes y %d servidores linkados a este servidor",

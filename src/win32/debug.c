@@ -204,7 +204,11 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 	sprintf(file, "wircd.%d.core", getpid());
 	fd = fopen(file, "w");
 	GlobalMemoryStatus(&memStats);
+#ifdef UDB
+	fprintf(fd, "Generated at %s\n%s (%d.%d.%d)\n%s[%s%s%s] (%s %s)\n"
+#else
 	fprintf(fd, "Generated at %s\n%s (%d.%d.%d)\n%s[%s%s%s] (%s)\n"
+#endif
 		    "-----------------\nMemory Information:\n"
 		    "\tPhysical: (Available:%ldMB/Total:%ldMB)\n"
 		    "\tVirtual: (Available:%ldMB/Total:%ldMB)\n"
@@ -214,14 +218,17 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 		     asctime(gmtime(&timet)), OSName, VerInfo.dwMajorVersion,
 		     VerInfo.dwMinorVersion, VerInfo.dwBuildNumber, IRCDTOTALVERSION,
 		     serveropts, extraflags ? extraflags : "", tainted ? "3" : "",
+#ifdef UDB
+		     buildid, udbid, memStats.dwAvailPhys/1048576, memStats.dwTotalPhys/1048576, 
+#else
 		     buildid, memStats.dwAvailPhys/1048576, memStats.dwTotalPhys/1048576, 
+#endif
 		     memStats.dwAvailVirtual/1048576, memStats.dwTotalVirtual/1048576, 
 		     GetException(e->ExceptionRecord->ExceptionCode), backupbuf, 
 		     GetRegisters(e->ContextRecord), StackTrace(e));
 
-	sprintf(text, "UnrealIRCd has encountered a fatal error. Debugging information has"
-		      " been dumped to wircd.%d.core, please email this file to "
-		      "coders@lists.unrealircd.org.", getpid());
+	sprintf(text, "Se ha producido un error fatal. La información necesaria ha sido enviada a wircd.%d.core, por favor envíe el archivo vía email a "
+			    "coders@lists.unrealircd.org.", getpid());
 	fclose(fd);
 
 	if (!IsService)
@@ -230,8 +237,7 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 	{
 		FILE *fd = fopen("service.log", "a");
 
-		fprintf(fd, "UnrealIRCd has encountered a fatal error. Debugging information "
-			    "has been dumped to wircd.%d.core, please email this file to "
+		fprintf(fd, "Se ha producido un error fatal. La información necesaria ha sido enviada a wircd.%d.core, por favor envíe el archivo vía email a "
 			    "coders@lists.unrealircd.org.", getpid());
 		fclose(fd);
 	}

@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.es.html,v 1.2.2.4 2005-03-21 10:36:09 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.es.html,v 1.2.2.5 2005-09-22 20:08:06 Trocotronic Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -181,28 +181,29 @@ Windows:<br>
   <br>
   <b>Sistemas operativos soportados y testeados:</b><br>
 <ul>
-<li><b>Versiones *NIX:</b>
+<li><b>*NIX versions:</b>
 <ul>
-<li>Linux 2.2.x
-<li>Linux 2.4.x
-<li>FreeBSD 4.6-STABLE
-<li>FreeBSD 4.5-STABLE
-<li>Solaris 2.x
+<li>Linux (2.2.*, 2.4.*, 2.6.*)
+<li>FreeBSD (4.*, 5.*)
+<li>Solaris (9, 10)
 </ul>
-<li><b>Versiones Windows:</b>
+<li><b>Windows version:</b>
 <ul> 
-<li>WindowsXP Home
-<li>WindowsXP Pro
-<li>Windows 2000 Pro
-<li>Windows 2000 Server
-<li>Windows 2000 Advanced Server
-<li>Windows 98
-<li>Windows Me
+<li>Windows 2000 (Pro, Server, Advanced Server)
+<li>Windows XP (Home, Pro)
+<li>Windows 2003 
+</ul>
+<li><b>Architectures tested:</b>
+<ul>
+<li>ia32 (i386, i486, i586, i686)
+<li>ia64
+<li>amd64
+<li>alpha
 </ul>
 </ul>
   <br>
   Si tiene Unreal3.2 trabajando correctamente en otros sistemas,
-  env&iacute;e los detalles a <a href="mailto://docs@unrealircd.com">docs@unrealircd.com<br>
+  env&iacute;e los detalles a <a href="mailto:coders@lists.unrealircd.com">coders@lists.unrealircd.com<br>
   </a> </p>
 <p><b>Instrucciones de instalaci&oacute;n</b><br>
 Linux:<br>
@@ -610,15 +611,16 @@ Aqu&iacute; tiene una tabla con todas las posibilidades:<br>
 <table border="1">
 <tr><td><b>Nombre:</b></td><td><b>Descripci&oacute;n:</b></td><td><b>Juego de caracteres:</b></td></tr>
 <tr><td>catalan</td><td>Caracteres catalanes</td><td>iso8859-1 (latin1)</td></tr>
-<tr><td>dutch</td><td>Caracteres daneses</td><td>iso8859-1 (latin1)</td></tr>
+<tr><td>danish</td><td>Caracteres daneses</td><td>iso8859-1 (latin1)</td></tr>
+<tr><td>dutch</td><td>Caracteres holandeses</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>french</td><td>Caracteres franceses</td><td>iso8859-1 (latin1)</td></tr>
-<tr><td>swiss-german</td><td>Caracteres suizo-germ&aacute;nicos (no es-zett)</td><td>iso8859-1 (latin1)</td></tr>
+<tr><td>swiss-german</td><td>Caracteres alemanosuizos (no es-zett)</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>icelandic</td><td>Caracteres isl&aacute;ndios</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>german</td><td>Caracteres alemanes</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>italian</td><td>Caracteres italianos</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>spanish</td><td>Caracteres castellanos</td><td>iso8859-1 (latin1)</td></tr>
-<tr><td>swedish</td><td>Caracteres su&iacute;zos</td><td>iso8859-1 (latin1)</td></tr>
-<tr><td><b>latin1</b></td><td>dan&eacute;s, franc&eacute;s, alem&aacute;n, suizo-germ&aacute;nic, castellano, su&iacute;zo, catal&aacute;n, italiano</td><td>iso8859-1 (latin1)</td></tr>
+<tr><td>swedish</td><td>Caracteres suecos</td><td>iso8859-1 (latin1)</td></tr>
+<tr><td><b>latin1</b></td><td>catal&aacute;n, dan&eacute;s, holand&eacute;s, franc&eacute;s, alem&aacute;n, alemanosuizo, castellano, isl&aacute;ndico, italiano, sueco</td><td>iso8859-1 (latin1)</td></tr>
 <tr><td>hungarian</td><td>Caracteres h&uacute;ngaros</td><td>iso8859-2 (latin2), windows-1250	</td></tr>
 <tr><td>polish</td><td>Caracteres polacos, variante windows</td><td>windows-1250</td></tr>
 <tr><td><b>latin2</b></td><td>h&uacute;ngaro, polaco, rumano</td><td>iso8859-2 (latin2)</td></tr>
@@ -636,11 +638,18 @@ Aqu&iacute; tiene una tabla con todas las posibilidades:<br>
 <tr><td><b>chinese</b></td><td>chino-*</td><td>Multibyte: GBK</td></tr>
 <tr><td><b>gbk</b></td><td>chino-*</td><td>Multibyte: GBK</td></tr>
 </table>
-Note que algunas combinaciones pueden causar problemas. 
+<p>Nota 1: Note que algunas combinaciones pueden causar problemas. 
 Por ejemplo, combinando latin* y chinese-* pueden no ser procesados 
 por el programa y emitir&aacute;n un error. 
 Mezclando otros lenguajes pueden mostrar problemas, as&iacute; que Unreal le notificar&aacute; una advertencia si mezcla 
-latin1/latin2/greek.<br><br>
+latin1/latin2/greek u otros grupos.</p>
+<p>Nota 2: El mapa de caracteres (si un cierto grupo de min&uacute;sculos con sus may&uacute;sculos) se corresponden con 
+US-ASCII, significa que o" y O" no se reconocen como el mismo caracter y alguien puede tener 
+un nick con B"ar y alguien con BA"r al mismo tiempo. Es una limitaci&oacute;n del propio sistema operativo 
+e IRCd sigue el estándar puesto que no puede solucionarse de pronto. Tengan cuidado con esta limitaci&oacute;n. 
+Note que esta limitaci&oacute;n se aplica siempre a los canales, que normalmente se permiten y el 
+US-ASCII se reforma.</p>
+<p>Nota 3: Los caracteres b&aacute;sicos para nicks (a-z A-Z 0-9 [ \ ] ^ _ - { | }) siempre se permiten y se incluyen de forma predeterminada.</p>
 
 Ejemplo 1, para gente del oeste de europa:<br>
 <pre>set { allowed-nickchars { latin1; }; };</pre>
@@ -2187,6 +2196,11 @@ set {
   Si est&aacute; en 'yes' (o '1') s&oacute;lo los usuarios invitados por el filtro de spam pueden entrar en ese canal, a excepci&oacute;n de los operadores.</p>
  <p><font class="set">set::spamfilter::except &lt;target(s)&gt;</font><br>
   Estos &quot;target(s)&quot; se omiten del filtro de spam (no se toma ninguna acci&oacute;n). Puede especificar varios separ&aacute;ndolos con comas. Ej: except &quot;#help,#spamreport&quot;;.</p>
+  <u>*** S&oacute;lo para compilaciones con soporte UDB ***</u>
+  <p><font class="set">set::udb::propagador &lt;servidor&gt;</font><br>
+  Nombre del servidor que insertar&aactue; y borrar&aactue; registros por la red (acepta comodines). Normalmente ser&aactue; el servidor de servicios. Aunque pueda aceptar comodines, sólo podrán estar conectado un sólo propagador. Si otro linka, le dará una colisión de propagadores.</p>
+  <p><font class="set">set::udb::pass-flood &lt;v&gt;:&lt;s&gt;</font><br>
+  Protecci&oacute;n para evitar ataques de fuerza bruta sobre las contrase&ntilde;as. Cuando un usuario introduce &lt;v&gt; contrase&ntilde;as incorrectas en menos de &lt;s&gt; segundos, es bloqueado durante este tiempo. Al mismo tiempo, cada vez que introduce una incorrecta, es lagueado durante 3 segundos.
 </div>
 <p><b><font size="+2">5 &#8211; Archivos adicionales <a name="addtlfiles"></a>
   </font></b></p>

@@ -8,6 +8,9 @@ int main() {
 	int i = 0, space = 0, j = 0;
 	char releaseid[512];
 	int generation = 0;
+#ifdef UDB
+	char udbid[512];
+#endif
 
 	if (!fd) {
 		return -1;
@@ -33,6 +36,31 @@ int main() {
 		}
 	}
 	fclose(fd);
+#ifdef UDB
+	i = j = space = 0;
+	
+	if (!(fd = fopen("cambios.udb", "r")))
+		return -1;
+	while (fgets(buf, 1023, fd)) {
+		if (!strstr(buf, "cambios.udb,v"))
+			continue;
+		else {
+			while (!isdigit(buf[i]))
+				i++;
+			j = i;
+			while (buf[j]) {
+				if (buf[j] == ' ')
+					space++;
+				if (space == 3) {
+					buf[j] = 0;
+					break;
+				}
+				j++;
+			}
+			strcpy(udbid,&buf[i]);
+		}
+	}
+#endif
 	i = 0;
 	fd = fopen("src/version.c", "r");
 	if (!fd)
@@ -67,6 +95,10 @@ int main() {
 					fprintf(fd2,"char *generation = \"%d\";\n",generation);
 				else if (!strncmp("char *buildid = \"$id\";",buf,22))
 					fprintf(fd2,"char *buildid = \"%s\";\n",releaseid);
+#ifdef UDB
+				else if (!strncmp("char *udbid = \"$udbid\";",buf,22))
+					fprintf(fd2,"char *udbid = \"%s\";\n",udbid);
+#endif
 				else
 					fprintf(fd2,"%s", buf);
 			}

@@ -27,6 +27,9 @@
 #define DB_DIR "database/"
 #endif
 #define DBMAX 128
+#define UDB_VER "UDB3.2"
+#define ID(x) (x->id >> 8)
+#define LETRA(x) (x->id & 0xFF)
 typedef struct _udb Udb;
 struct _udb
 {
@@ -49,44 +52,42 @@ struct _udb
 	   */
 };
 /* bloques actuales */
-#ifndef MODULE_COMPILE
-DLLFUNC extern MODVAR Udb *nicks;
-DLLFUNC extern MODVAR Udb *canales;
-DLLFUNC extern MODVAR Udb *ips;
-DLLFUNC extern MODVAR Udb *set;
-DLLFUNC extern MODVAR Udb *ultimo;
-DLLFUNC extern MODVAR u_int BDD_NICKS;
-DLLFUNC extern MODVAR u_int BDD_CHANS;
-DLLFUNC extern MODVAR u_int BDD_IPS;
-DLLFUNC extern MODVAR u_int BDD_SET;
-DLLFUNC extern MODVAR time_t gmts[DBMAX];
+#if !defined(MODULE_COMPILE) && defined(_WIN32)
+#define DLLEXP __declspec(dllexport)
 #else
-extern MODVAR Udb *nicks;
-extern MODVAR Udb *canales;
-extern MODVAR Udb *ips;
-extern MODVAR Udb *set;
-extern MODVAR Udb *ultimo;
-extern MODVAR u_int BDD_NICKS;
-extern MODVAR u_int BDD_CHANS;
-extern MODVAR u_int BDD_IPS;
-extern MODVAR u_int BDD_SET;
-extern MODVAR time_t gmts[DBMAX];
+#define DLLEXP
 #endif
+DLLEXP extern MODVAR Udb *nicks;
+DLLEXP extern MODVAR Udb *canales;
+DLLEXP extern MODVAR Udb *ips;
+DLLEXP extern MODVAR Udb *set;
+DLLEXP extern MODVAR Udb *ultimo;
+DLLEXP extern MODVAR u_int BDD_NICKS;
+DLLEXP extern MODVAR u_int BDD_CHANS;
+DLLEXP extern MODVAR u_int BDD_IPS;
+DLLEXP extern MODVAR u_int BDD_SET;
+DLLEXP extern MODVAR time_t gmts[DBMAX];
+DLLEXP extern MODVAR char *grifo;
 
 DLLFUNC extern char *make_virtualhost(aClient *, char *, char *, int);
 DLLFUNC extern Udb *busca_registro(int, char *), *busca_bloque(char *, Udb *);
 DLLFUNC extern int level_oper_bdd(char *);
 DLLFUNC char *get_visiblehost(aClient *, aClient *);
-DLLFUNC extern char *chan_nick();
-DLLFUNC extern char *chan_mask();
-DLLFUNC extern void dale_cosas(int, aClient *);
-DLLFUNC extern int puede_cambiar_nick_en_bdd(aClient *, aClient *, aClient *, char *[], char *, char *, char);
-DLLFUNC extern int tipo_de_pass(char *, char *);
+DLLFUNC extern char *chan_nick(int);
+DLLFUNC extern char *chan_mask(int);
+DLLFUNC extern aClient *chan_client();
+DLLFUNC extern void dale_cosas(int, aClient *, Udb *);
+DLLFUNC extern void quitale_cosas(aClient *, Udb *);
+DLLFUNC extern int tipo_de_pass(char *, char *, Udb *);
+DLLEXP extern MODVAR int pases;
+DLLEXP extern MODVAR int intervalo;
+DLLEXP extern MODVAR aClient *propaga;
+
 #define BorraIpVirtual(x)							\
 	do									\
 	{									\
 		if ((x)->user->virthost)					\
-			MyFree((x)->user->virthost);			\
+			MyFree((x)->user->virthost);				\
 		(x)->user->virthost = NULL;					\
 	}while(0)
 
@@ -112,8 +113,8 @@ DLLFUNC extern int tipo_de_pass(char *, char *);
  *		BDD_ADMIN 0x8
  *		BDD_ROOT 0x10
  * 	- BDD_OPER: recibe automáticamente el flag +h
- *	- BDD_ADMIN: recibe automáticamente los flags +oN
- *	- BDD_ROOT: además del +oN, recibe todos los privilegios (/rehash, /restart, etc.)
+ *	- BDD_ADMIN: recibe automáticamente los flags +oa privilegios de administración
+ *	- BDD_ROOT: recibe +oN y privilegios de servidor (/rehash, /restart, etc.)
  * - N::<nick>::desafio <metodo> -> metodo de cifrado de la contraseña. Métodos que acepta:
  * 		{"plain"|"crypt"|"md5"|"sha1"|"sslclientcert"|"ripemd160"}
  * - N::<nick>::modos <modos> -> contiene los modos de operador que puede utilizar:
@@ -131,10 +132,14 @@ DLLFUNC extern int tipo_de_pass(char *, char *);
  *	sólo podrán entrar en el canal los nicks que figuren en sus subloques.
  *	- C::<#canal>::accesos::Trocotronic NULL -> Sólo Trocotronic, con el modo +r, podrá entrar en el canal.
  * - C::<#canal>::forbid <motivo> -> #canal prohibido
- * - C::<#canal>::suspendido * -> no da +oq al fundador
+ * - C::<#canal>::suspendido NULL -> no da +oq al fundador, el canal no está en +r
+ * - C::<#canal>::pass <contraseña> -> Contraseña del canal para darse +ao. Se usa /join # pass o /invite nick # pass
+ * - C::<#canal>::desafio <desafio> -> Desafío de la contraseña del canal
  *
  * Las ips tienen los siguiente subbloques
- * - I::<ip> *<nº clones> -> nº de clones que se permiten desde esa ip
+ * - I::<ip|host>::clones *<nº clones> -> nº de clones que se permiten desde esa ip
+ * - I::<ip|host>::nolines GZQST -> *Lines que se salta: G Glines, Z Zlines, Q QLines, S Shuns y T Throttling
+ * - I::<ip>::host <host> -> Host al que resuelve dicha ip
  *
  * El bloque set es un unibloque, que contiene todas las características de la red a nivel global.
  * - S::clave_cifrado <clave alfanumérica> -> la clave de cifrado a usar para encriptar el host de los usuarios
@@ -147,9 +152,69 @@ DLLFUNC extern int tipo_de_pass(char *, char *);
  * - S::quit_clones <mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos
  */
 
-#define E_UDB_NODB 1
-#define E_UDB_LEN 2
-#define E_UDB_NOHUB 3
-#define E_UDB_PARAMS 4
-#define E_UDB_NOOPEN 5
-#define E_UDB_FATAL 6
+#define E_UDB_NODB 1 /* no existe bloque */
+#define E_UDB_LEN 2 /* no corresponde offset */
+#define E_UDB_NOHUB 3 /* no es hub */
+#define E_UDB_PARAMS 4 /* faltan parámetros */
+#define E_UDB_NOOPEN 5 /* no puede abrir */
+#define E_UDB_FATAL 6 /* algo raro pasa */
+#define E_UDB_RPROG 7 /* resumen en progreso */
+#define E_UDB_NORES 8 /* no había mandado resumen */
+#define E_UDB_FBSRV 9 /* servidor prohibido */
+
+#define C_FUN "fundador"
+#define C_FUN_TOK "F"
+#define C_MOD "modos"
+#define C_MOD_TOK "M"
+#define C_TOP "topic"
+#define C_TOP_TOK "T"
+#define C_ACC "accesos"
+#define C_ACC_TOK "A"
+#define C_FOR "forbid"
+#define C_FOR_TOK "B"
+#define C_SUS "suspendido"
+#define C_SUS_TOK "S"
+#define C_PAS "pass"
+#define C_PAS_TOK "P"
+#define C_DES "desafio"
+#define C_DES_TOK "D"
+#define N_PAS "pass"
+#define N_PAS_TOK "P"
+#define N_VHO "vhost"
+#define N_VHO_TOK "V"
+#define N_FOR "forbid"
+#define N_FOR_TOK "B"
+#define N_SUS "suspendido"
+#define N_SUS_TOK "S"
+#define N_OPE "oper"
+#define N_OPE_TOK "O"
+#define N_DES "desafio"
+#define N_DES_TOK "D"
+#define N_MOD "modos"
+#define N_MOD_TOK "M"
+#define N_SNO "snomasks"
+#define N_SNO_TOK "K"
+#define N_SWO "swhois"
+#define N_SWO_TOK "W"
+#define I_CLO "clones"
+#define I_CLO_TOK "S"
+#define I_NOL "nolines"
+#define I_NOL_TOK "E"
+#define I_HOS "host"
+#define I_HOS_TOK "H"
+#define S_CLA "clave_cifrado"
+#define S_CLA_TOK "L"
+#define S_SUF "sufijo"
+#define S_SUF_TOK "J"
+#define S_NIC "NickServ"
+#define S_NIC_TOK "N"
+#define S_CHA "ChanServ"
+#define S_CHA_TOK "C"
+#define S_IPS "IpServ"
+#define S_IPS_TOK "I"
+#define S_CLO "clones"
+#define S_CLO_TOK "S"
+#define S_QIP "quit_ips"
+#define S_QIP_TOK "T"
+#define S_QCL "quit_clones"
+#define S_QCL_TOK "Q"

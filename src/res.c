@@ -35,7 +35,7 @@
 #include "threads.h"
 #include <string.h>
 #ifndef CLEAN_COMPILE
-static char rcsid[] = "@(#)$Id: res.c,v 1.1.1.7 2005-03-21 10:36:31 Trocotronic Exp $";
+static char rcsid[] = "@(#)$Id: res.c,v 1.1.1.8 2005-09-22 20:08:11 Trocotronic Exp $";
 #endif
 #if 0
 #undef	DEBUG	/* because there is a lot of debug code in here :-) */
@@ -48,7 +48,7 @@ static CacheTable hashtable[ARES_CACSIZE];
 static aCache *cachetop = NULL;
 static ResRQ *last, *first;
 
-static void rem_cache(aCache *);
+void rem_cache(aCache *);
 static void rem_request(ResRQ *);
 static int do_query_name(Link *, char *, ResRQ *);
 /* revquery is used when looking up IP -> name -> IP to differentiate between
@@ -59,8 +59,8 @@ static void resend_query(ResRQ *);
 static int proc_answer(ResRQ *, HEADER *, char *, char *);
 static int query_name(char *, int, int, ResRQ *);
 static aCache *make_cache(ResRQ *), *rem_list(aCache *);
-static aCache *find_cache_name(char *);
-static aCache *find_cache_number(ResRQ *, char *);
+aCache *find_cache_name(char *);
+aCache *find_cache_number(ResRQ *, char *);
 static int add_request(ResRQ *);
 static ResRQ *make_request(Link *);
 static int send_res_msg(char *, int, int);
@@ -688,6 +688,11 @@ static int proc_answer(ResRQ *rptr, HEADER *hptr, char *buf, char *eob)
 	struct hent *hp;
 	int  class, type, dlen, len, ans = 0, ansa = 0, n;
 	struct IN_ADDR dr, *adr;
+	char current_name[HOSTLEN+1];
+
+	current_name[0] = '\0';
+	if (rptr && rptr->name)
+		strlcpy(current_name, rptr->name, sizeof(current_name));
 
 	cp = buf + sizeof(HEADER);
 	hp = (struct hent *)&(rptr->he);
@@ -773,14 +778,17 @@ static int proc_answer(ResRQ *rptr, HEADER *hptr, char *buf, char *eob)
 			 * We store 'somename' as soon as we get a CNAME,
 			 * and then we make sure our A/AAAA records belong to this
 			 * stored name. I hope that's correct. -- Syzop
+			 *
+			 * UPDATE: we now store it in a slightly different location
+			 * because this caused problems with CNAME reversedns delegation. -- Syzop
 			 */
-			if (hp->h_name && strcasecmp(hp->h_name, hostbuf))
+			if (current_name[0] && strcasecmp(current_name, hostbuf))
 			{
 				Debug((DEBUG_DNS, "Expected A record for '%s', got one for '%s' -- ignored",
-					hp->h_name, hostbuf));
+					current_name, hostbuf));
 #ifdef DEBUGMODE
 				ircd_log(LOG_ERROR, "[DNS/Syzop] Expected A record for '%s', got one for '%s' -- ignored",
-					hp->h_name, hostbuf);
+					current_name, hostbuf);
 #endif
 				cp += dlen;
 				break;
@@ -870,11 +878,11 @@ static int proc_answer(ResRQ *rptr, HEADER *hptr, char *buf, char *eob)
 			      Debug((DEBUG_INFO, "CNAME '%s' too long %d >= %d",
 			            hostbuf, len, HOSTLEN));
 			  }
-			  if (!hp->h_name)
+			  if (current_name[0])
 			  {
 			      char cname_dest[HOSTLEN];
 				  /* If we got a CNAME, so: orig CNAME dest, then our
-				   * request got changed to 'dest', so we have to set h_name
+				   * request got changed to 'dest', so we have to set current_name
 				   * here to that.. -- Syzop
 				   */
 				  /* need to expand 'dest' here... will use 'cname_dest' for storage.. */
@@ -888,12 +896,11 @@ static int proc_answer(ResRQ *rptr, HEADER *hptr, char *buf, char *eob)
 					  break;
 				  }
 				  cp += dlen;
-				  /* no length check needed, assured by ircd_dn_expand() to
-				   * be sizeof(cname_dest) which is HOSTLEN, thus the name
-				   * will be at max HOSTLEN-1.
-				   */
-				  hp->h_name = strdup(cname_dest);
+				  strlcpy(current_name, cname_dest, sizeof(current_name));
 				  Debug((DEBUG_INFO, "Our request got changed to '%s'", cname_dest));
+#ifdef DEBUGMODE
+				  ircd_log(LOG_ERROR, "[Syzop/DNS] Our request got changed to '%s'", cname_dest);
+#endif
 			  }
 			  ans++;
 			  break;
@@ -1178,7 +1185,7 @@ static int hash_name(char *name)
 /*
 ** Add a new cache item to the queue and hash table.
 */
-static aCache *add_to_cache(aCache *ocp)
+aCache *add_to_cache(aCache *ocp)
 {
 	aCache *cp = NULL;
 	int  hashv;
@@ -1367,7 +1374,7 @@ static void update_list(ResRQ *rptr, aCache *cachep)
 	return;
 }
 
-static aCache *find_cache_name(char *name)
+aCache *find_cache_name(char *name)
 {
 	aCache *cp;
 	char *s;
@@ -1413,7 +1420,7 @@ static aCache *find_cache_name(char *name)
 /*
  * find a cache entry by ip# and update its expire time
  */
-static aCache *find_cache_number(ResRQ *rptr, char *numb)
+aCache *find_cache_number(ResRQ *rptr, char *numb)
 {
 	aCache *cp;
 	int  hashv, i;
@@ -1609,7 +1616,7 @@ static aCache *rem_list(aCache *cp)
  *     delete a cache entry from the cache structures and lists and return
  *     all memory used for the cache back to the memory pool.
  */
-static void rem_cache(aCache *ocp)
+void rem_cache(aCache *ocp)
 {
 	aCache **cp;
 	struct hostent *hp = &ocp->he;

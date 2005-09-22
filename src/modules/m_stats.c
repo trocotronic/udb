@@ -52,7 +52,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.6 2005-03-21 10:37:03 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.7 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -1013,11 +1013,11 @@ int stats_badwords(aClient *sptr, char *para)
 		      (words->type & BADW_TYPE_FAST_L) ? "*" : "", words->word,
 		      (words->type & BADW_TYPE_FAST_R) ? "*" : "",
 		      words->action == BADWORD_REPLACE ? 
-		      (words->replace ? words->replace : "<censored>") : "");
+		      (words->replace ? words->replace : "(censurado)") : "");
  #else
 		  sendto_one(sptr, ":%s %i %s :c %s %s", me.name, RPL_TEXT,
 			sptr->name,  words->word, words->action == BADWORD_REPLACE ? 
-			(words->replace ? words->replace : "<censored>") : "");
+			(words->replace ? words->replace : "(censurado)") : "");
  #endif
 	  }
 	  for (words = conf_badword_message; words; words = (ConfigItem_badword *) words->next) {
@@ -1027,11 +1027,11 @@ int stats_badwords(aClient *sptr, char *para)
 		      (words->type & BADW_TYPE_FAST_L) ? "*" : "", words->word,
 		      (words->type & BADW_TYPE_FAST_R) ? "*" : "",
 		      words->action == BADWORD_REPLACE ? 
-		      (words->replace ? words->replace : "<censored>") : "");
+		      (words->replace ? words->replace : "(censurado)") : "");
  #else
 		  sendto_one(sptr, ":%s %i %s :m %s %s", me.name, RPL_TEXT, sptr->name,
 			words->word, words->action == BADWORD_REPLACE ? 
-			(words->replace ? words->replace : "<censored>") : "");
+			(words->replace ? words->replace : "(censurado)") : "");
 
  #endif
 	  }
@@ -1042,11 +1042,11 @@ int stats_badwords(aClient *sptr, char *para)
 		      (words->type & BADW_TYPE_FAST_L) ? "*" : "", words->word,
 		      (words->type & BADW_TYPE_FAST_R) ? "*" : "",
 		      words->action == BADWORD_REPLACE ? 
-		      (words->replace ? words->replace : "<censored>") : "");
+		      (words->replace ? words->replace : "(censurado)") : "");
  #else
 		  sendto_one(sptr, ":%s %i %s :q %s %s", me.name, RPL_TEXT, sptr->name,
 			words->word, words->action == BADWORD_REPLACE ? 
-			(words->replace ? words->replace : "<censored>") : "");
+			(words->replace ? words->replace : "(censurado)") : "");
 
  #endif
 	  }

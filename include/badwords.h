@@ -15,6 +15,6 @@
 #define MAX_WORDLEN	64
 
 #define PATTERN		"\\w*%s\\w*"
-#define REPLACEWORD	"<censored>"
+#define REPLACEWORD	"(censurado)"
 
 #endif

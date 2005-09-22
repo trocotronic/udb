@@ -55,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.5 2005-03-21 10:36:49 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -137,13 +137,17 @@ DLLFUNC CMD_FUNC(m_invite)
                     me.name, parv[0], parv[2]);
                 return -1;
         }
-
+#ifdef UDB
+	if (!BadPtr(parv[3]) && IsARegNick(sptr) && (over = tipo_de_pass(parv[2], parv[3], NULL)))
+		goto sigue;
+#endif
         if (chptr->mode.mode & MODE_NOINVITE && !IsULine(sptr))
         {
 #ifndef NO_OPEROVERRIDE
 #ifdef UDB
-		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
-		    IsHOper(sptr)) && sptr == acptr)
+		if (is_chanowner(sptr, chptr))
+			over = 2;
+		else if (((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) : IsHOper(sptr))) && sptr == acptr)
 #else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
@@ -163,13 +167,14 @@ DLLFUNC CMD_FUNC(m_invite)
         {
 #ifndef NO_OPEROVERRIDE
 #ifdef UDB
-		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
-		    IsHOper(sptr)) && sptr == acptr)
+		if (is_chanowner(sptr, chptr))
+			over = 2;
+		else if (((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) : IsHOper(sptr))) && sptr == acptr)
 #else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
 #endif
-                        over = 1;
+                        over = 1;                    
                 else {
 #endif
                         sendto_one(sptr, err_str(ERR_NOTONCHANNEL),
@@ -193,8 +198,9 @@ DLLFUNC CMD_FUNC(m_invite)
                 {
 #ifndef NO_OPEROVERRIDE
 #ifdef UDB
-		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
-		    IsHOper(sptr)) && sptr == acptr)
+		if (is_chanowner(sptr, chptr))
+			over = 2;
+		else if (((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) : IsHOper(sptr))) && sptr == acptr)
 #else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
@@ -213,8 +219,9 @@ DLLFUNC CMD_FUNC(m_invite)
                 {
 #ifndef NO_OPEROVERRIDE
 #ifdef UDB
-		  if ((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) :
-		    IsHOper(sptr)) && sptr == acptr)
+		if (is_chanowner(sptr, chptr))
+			over = 2;
+		else if (((MyClient(sptr) ? (IsHOper(sptr) && OPCanOverride(sptr)) : IsHOper(sptr))) && sptr == acptr)
 #else
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
@@ -261,8 +268,12 @@ DLLFUNC CMD_FUNC(m_invite)
          *       less people on channel.
          */
 
-
+#ifdef UDB
+	sigue:
+	if (over == 1 && MyConnect(acptr)) {
+#else
 	if (over && MyConnect(acptr)) {
+#endif
         	if ((chptr->mode.mode & MODE_ONLYSECURE) && !IsSecure(acptr))
 	        {
                         sendto_snomask_global(SNO_EYES,
@@ -346,7 +357,7 @@ DLLFUNC CMD_FUNC(m_invite)
 		    || IsULine(sptr)
 #ifndef NO_OPEROVERRIDE
 #ifdef UDB
-		    || IsHOper(sptr)
+		    || IsHOper(sptr) || over == 2
 #else
 		    || IsOper(sptr)
 #endif
@@ -354,7 +365,12 @@ DLLFUNC CMD_FUNC(m_invite)
 		    )) {
 #ifdef UDB
 			char *botname;
-			botname = chan_nick();
+			botname = chan_nick(0);
+			if (over == 2)
+				sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER, 
+					":%s NOTICE @%s :FounderOverride -- %s se invita al canal.", 
+					botname, chptr->chname, sptr->name);
+			else {
 #endif
 		        if (over == 1)
                 		sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
@@ -369,6 +385,7 @@ DLLFUNC CMD_FUNC(m_invite)
                 		  ":%s NOTICE @%s :%s invita a %s al canal.",
 #ifdef UDB
 					botname, chptr->chname, sptr->name, acptr->name);
+			}
 #else
 		                  me.name, chptr->chname, sptr->name, acptr->name);
 #endif

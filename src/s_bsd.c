@@ -103,6 +103,7 @@ static unsigned char minus_one[] =
 #endif /* _WIN32 */
 
 #ifdef UDB
+#include "s_bdd.h"
 #define NO_OPER_FLOOD
 #endif
 
@@ -619,16 +620,20 @@ char logbuf[BUFSIZ];
 # endif
 #endif
 #ifndef _WIN32
+#ifndef NOCLOSEFD
 for (fd = 3; fd < MAXCONNECTIONS; fd++)
 {
 	(void)close(fd);
 }
 (void)close(1);
+#endif
 
 if (bootopt & BOOT_TTY)		/* debugging is going to a tty */
 	goto init_dgram;
+#ifndef NOCLOSEFD
 if (!(bootopt & BOOT_DEBUG))
 	(void)close(2);
+#endif
 
 if ((bootopt & BOOT_CONSOLE) || isatty(0))
 {
@@ -641,7 +646,9 @@ if ((bootopt & BOOT_CONSOLE) || isatty(0))
 	if ((fd = open("/dev/tty", O_RDWR)) >= 0)
 	{
 		(void)ioctl(fd, TIOCNOTTY, (char *)NULL);
+#ifndef NOCLOSEFD
 		(void)close(fd);
+#endif
 	}
 #endif
 
@@ -651,15 +658,19 @@ if ((bootopt & BOOT_CONSOLE) || isatty(0))
 #else
 	(void)setpgrp(0, (int)getpid());
 #endif
+#ifndef NOCLOSEFD
 	(void)close(0);		/* fd 0 opened by inetd */
+#endif
 	local[0] = NULL;
 }
 init_dgram:
 #else
+#ifndef NOCLOSEFD
 	close(fileno(stdin));
 	close(fileno(stdout));
 	if (!(bootopt & BOOT_DEBUG))
 	close(fileno(stderr));
+#endif
 	memset(local, 0, sizeof(aClient*) * MAXCONNECTIONS);
 	LastSlot = -1;
 
@@ -906,7 +917,7 @@ void close_connection(aClient *cptr)
 	 * the SQUIT flag has been set, then we don't schedule a fast
 	 * reconnect.  Pisses off too many opers. :-)  -Cabal95
 	 */
-	if (IsServer(cptr) && !(cptr->flags & FLAGS_SQUIT) &&
+	if (IsServer(cptr) && !(cptr->flags & FLAGS_SQUIT) && cptr->serv->conf &&
 	    (!cptr->serv->conf->flag.temporary &&
 	      (cptr->serv->conf->options & CONNECT_AUTO)))
 	{
@@ -2006,7 +2017,7 @@ deadsocket:
 				    ("Servidor %s cierra la conexión",
 				    get_client_name(cptr, FALSE));
 				sendto_serv_butone(&me,
-				    ":%s GLOBOPS :Servidor %s ciera la conexión",
+				    ":%s GLOBOPS :Servidor %s cierra la conexión",
 				    me.name, get_client_name(cptr, FALSE));
 			}
 			else

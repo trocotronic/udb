@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.4 2005-03-21 10:37:06 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.5 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -95,10 +95,9 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
         aClient *acptr;
 #ifdef UDB
-	long old_umodes;
 	int val = 0;
 	Udb *reg;
-	char buf[BUFSIZE];
+	char buf[BUFSIZE], *c;
 #endif
 
         if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
@@ -108,6 +107,12 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
         {
 		if (do_nick_name(parv[2]) == 0)
 			return 0;
+#ifdef UDB
+		if ((c = strchr(parv[2], ':')))
+			*c = '\0';
+		if ((c = strchr(parv[2], '!')))
+			*c = '\0';
+#endif
                 if ((acptr = find_person(parv[1], NULL)))
                 {
                         if (find_client(parv[2], NULL)) /* Collision */
@@ -115,10 +120,7 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
                                     "Nickname collision due to Services enforced "
                                     "nickname change, your nick was overruled");
 #ifdef UDB                                
-			old_umodes = acptr->umodes;
-			acptr->umodes &= ~(UMODE_SUSPEND | UMODE_REGNICK | UMODE_HELPOP | UMODE_SHOWIP | UMODE_RGSTRONLY | UMODE_SERVICES);
-			if (MyClient(acptr) && IsPerson(acptr))
-				send_umode(acptr, acptr, old_umodes, SEND_UMODES, buf);
+			quitale_cosas(acptr, NULL);
 #else
                         acptr->umodes &= ~UMODE_REGNICK;
 #endif
@@ -149,16 +151,13 @@ int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #ifdef UDB
 			if ((reg = busca_registro(BDD_NICKS, parv[2])))
 			{
-				if (!busca_bloque("suspendido", reg))
+				if (!busca_bloque(N_SUS_TOK, reg))
 					val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
 				else
 					val = 1;
 			}
-			old_umodes = acptr->umodes; /* antes de todo lo que tenga que dar */
 			if (strcasecmp(parv[1], parv[2]))
-				dale_cosas(val, acptr);
-			if (MyClient(acptr) && IsPerson(acptr))
-				send_umode(acptr, acptr, old_umodes, SEND_UMODES, buf);
+				dale_cosas(val, acptr, reg);
 			if (IsHidden(acptr))
 				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
 #endif	

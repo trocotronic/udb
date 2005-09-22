@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.6 2005-03-21 10:37:02 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.7 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -197,7 +197,7 @@ CMD_FUNC(m_sjoin)
 	char invexbuf[1024];
 	char cbuf[1024];
 	char buf[1024];
-	char nick[NICKLEN + 1];
+	char nick[1024];
 	char *s = NULL;
 	aClient *acptr;
 	aChannel *chptr;
@@ -217,7 +217,7 @@ CMD_FUNC(m_sjoin)
 #ifdef UDB
 	char *qmask = sptr->name, *qnick = sptr->name, tt[NICKLEN+1+USERLEN+1+HOSTLEN+1], *cc;
 	Udb *chanserv;
-	if ((chanserv = busca_registro(BDD_SET, "ChanServ")))
+	if ((chanserv = busca_registro(BDD_SET, S_CHA_TOK)))
 	{
 		strncpy(tt, chanserv->data_char, sizeof(tt));
 		if ((cc = strchr(tt, '!')))
@@ -414,7 +414,7 @@ CMD_FUNC(m_sjoin)
 		while (
 		    (*tp == '@') || (*tp == '+') || (*tp == '%')
 #ifdef UDB		    
-		    || (*tp == '*') || (*tp == '$') || (*tp == '&')
+		    || (*tp == '.') || (*tp == '$') || (*tp == '&')
 #else		    
 		    || (*tp == '*') || (*tp == '~') || (*tp == '&')
 #endif		    
@@ -431,7 +431,11 @@ CMD_FUNC(m_sjoin)
 			  case '+':
 				  modeflags |= CHFL_VOICE;
 				  break;
+#ifdef UDB
+			  case '.':
+#else
 			  case '*':
+#endif
 				  modeflags |= CHFL_CHANOWNER;
 				  break;
 #ifdef UDB

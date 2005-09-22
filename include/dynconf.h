@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.6 2005-03-21 10:36:16 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.7 2005-09-22 20:08:09 Trocotronic Exp $
  */
 
 
@@ -343,6 +343,10 @@ struct SetCheck {
 	unsigned has_options_show_connect_info:1;
 	unsigned has_options_mkpasswd_for_everyone:1;
 	unsigned has_options_allow_part_if_shunned:1;
+#ifdef UDB
+	unsigned has_grifo:1;
+	unsigned has_pass_flood:1;
+#endif
 };
 
 

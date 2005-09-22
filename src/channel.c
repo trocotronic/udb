@@ -694,7 +694,7 @@ int  is_chanowner(aClient *cptr, aChannel *chptr)
 #ifdef UDB
 	if ((reg = busca_registro(BDD_CHANS, chptr->chname)))
 	{
-		if ((bloq = busca_bloque("fundador", reg)))
+		if ((bloq = busca_bloque(C_FUN_TOK, reg)))
 		{
 			if (IsARegNick(cptr) && !strcasecmp(bloq->data_char, cptr->name))
 				return 1;
@@ -1786,8 +1786,8 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 		char comment[1024], mask[1024];
 #ifdef UDB
 		char *botname, *botnick;
-		botname = chan_mask();
-		botnick = chan_nick();
+		botname = chan_mask(0);
+		botnick = chan_nick(0);
 #endif
 		ircsprintf(comment,
 		    "Flood (Límite en %i líneas cada %i segundos)",
@@ -2204,7 +2204,11 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_HALFOP)
 			*bufptr++ = '%';
 		if (lp->flags & MODE_CHANOWNER)
+#ifdef UDB
+			*bufptr++ = '.';
+#else
 			*bufptr++ = '*';
+#endif
 		if (lp->flags & MODE_CHANPROT)
 #ifdef UDB
 			*bufptr++ = '$';
@@ -2331,7 +2335,11 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_HALFOP)
 			*bufptr++ = '%';
 		if (lp->flags & MODE_CHANOWNER)
+#ifdef UDB
+			*bufptr++ = '.';
+#else
 			*bufptr++ = '*';
+#endif
 		if (lp->flags & MODE_CHANPROT)
 #ifdef UDB
 			*bufptr++ = '$';
@@ -2422,8 +2430,11 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 		}
 
 	}
-
+#ifdef UDB
+	if (n || !chptr->members)
+#else
 	if (n)
+#endif
 	{
 		*bufptr++ = '\0';
 		if (bufptr[-1] == ' ')
@@ -2679,8 +2690,13 @@ long mode;
 			mode = get_chanbitbychar(e->m);
 			if (e->chptr->mode.mode & mode)
 			{
+#ifdef UDB
+				sendto_serv_butone(&me, ":%s MODE %s -%c 0", chan_nick(0), e->chptr->chname, e->m);
+				sendto_channel_butserv(e->chptr, &me, ":%s MODE %s -%c", chan_mask(0), e->chptr->chname, e->m);
+#else
 				sendto_serv_butone(&me, ":%s MODE %s -%c 0", me.name, e->chptr->chname, e->m);
 				sendto_channel_butserv(e->chptr, &me, ":%s MODE %s -%c", me.name, e->chptr->chname, e->m);
+#endif
 				e->chptr->mode.mode &= ~mode;
 			}
 			
@@ -2772,14 +2788,22 @@ char m;
 	if (!(chptr->mode.mode & modeflag))
 	{
 		char comment[1024], target[CHANNELLEN + 8];
-		ircsprintf(comment, "*** Channel %sflood(límite %d líneas cada %d segundos), se pone el modo +%c",
+		ircsprintf(comment, "*** Flood de canal %s (límite %d líneas cada %d segundos), se pone el modo +%c",
 			text, chptr->mode.floodprot->l[what], chptr->mode.floodprot->per, m);
 		ircsprintf(target, "%%%s", chptr->chname);
+#ifdef UDB
+		sendto_channelprefix_butone_tok(NULL, chan_client(), chptr,
+			PREFIX_HALFOP|PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
+			MSG_NOTICE, TOK_NOTICE, target, comment, 0);
+		sendto_serv_butone(&me, ":%s MODE %s +%c 0", chan_nick(0), chptr->chname, m);
+		sendto_channel_butserv(chptr, &me, ":%s MODE %s +%c", chan_mask(0), chptr->chname, m);
+#else
 		sendto_channelprefix_butone_tok(NULL, &me, chptr,
 			PREFIX_HALFOP|PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
 			MSG_NOTICE, TOK_NOTICE, target, comment, 0);
 		sendto_serv_butone(&me, ":%s MODE %s +%c 0", me.name, chptr->chname, m);
 		sendto_channel_butserv(chptr, &me, ":%s MODE %s +%c", me.name, chptr->chname, m);
+#endif
 		chptr->mode.mode |= modeflag;
 		if (chptr->mode.floodprot->r[what]) /* Add remove-chanmode timer... */
 		{

@@ -52,7 +52,7 @@ DLLFUNC int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_kick)
   = {
 	"m_kick",
-	"$Id: m_kick.c,v 1.1.4.5 2005-03-21 10:36:50 Trocotronic Exp $",
+	"$Id: m_kick.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /kick", 
 	"3.2-b8-1",
 	NULL 
@@ -167,7 +167,7 @@ CMD_FUNC(m_kick)
 							   me.name, sptr->name, "KICK", 
 							   errbuf);
 						sendto_one(who,
-						    ":%s %s %s :*** Q: %s tried to kick you from channel %s (%s)",
+						    ":%s %s %s :*** Q: %s intenta expulsarte del canal %s (%s)",
 						    me.name, IsWebTV(who) ? "PRIVMSG" : "NOTICE", who->name,
 						    parv[0],
 						    chptr->chname, comment);

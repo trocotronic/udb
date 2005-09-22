@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.3+UDB 3.1-es
+AppVerName=UnrealIRCd3.2.4pre1+UDB 3.2es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -68,9 +68,9 @@ Source: "..\..\unreal.exe"; DestDir: "{app}"; Flags: ignoreversion; MinVersion: 
 Source: "..\modules\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion
 Source: "tre.dll"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef USE_SSL
-Source: "c:\openssl\bin\openssl.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "c:\openssl\bin\ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "c:\openssl\bin\libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\out32dll\openssl.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\out32dll\ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\out32dll\libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\makecert.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\encpem.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\ssl.cnf"; DestDir: "{app}"; Flags: ignoreversion
@@ -192,4 +192,4 @@ Filename: "{app}\encpem.bat"; WorkingDir: "{app}"; Tasks: enccert
 Filename: "{app}\unreal.exe"; Parameters: "uninstall"; Flags: runminimized; RunOnceID: "DelService"; Tasks: installservice
 
 [Languages]
-Name: "Castellano"; MessagesFile: "compiler:Languages\SpanishStd-2-5.1.0.isl"
+Name: "Castellano"; MessagesFile: "compiler:Languages\Spanish.isl"

@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.10 2005-03-21 10:36:00 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.11 2005-09-22 20:08:04 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -774,3 +774,91 @@
 ** internal 3.2.3-pre4 release **
 - Corrected small doc typo in unreal32docs, reported by arbiter.
 ** 3.2.3 release **
+- Fixed incorrect badword { } in conf causing a crash (should give an error).
+- spamfilter.conf Gaggle worm sigs were broken causing odd things to match, this is because
+  \\ now needs to be escaped as \\\\ due to the 3.2.3 conf change... didn't think of updating sigs.
+- Clarified some nickchar stuff in the docs
+- Added 'danish' nickchars, supplied by klaus (#0002436).
+- Module coders: Added HOOKTYPE_LOCAL_SPAMFILTER: catches (local) spamfilter matches.
+- Fixed chanmode G showing up twice in 005, reported by Snake (#0002466).
+- Fixed a TKL crash on incorrect *line, reported by nanookles1234 (#0002524).
+- Redid include dependencies in Makefile, this makes things safer because on any .h change it
+  would force a recompile of all files, but it could mean things will be a bit slower for us
+  coders unless we tweak it later on.
+- Changed whois a bit to print less useless results.
+- Added several indicators to the "detect binary incompatible modules"-system such as detecting
+  of a ziplinks module on non-ziplinks (on windows this is ok however), nospoof module on a
+  a server without nospoof server, etc. Hopefully this will help some people preventing odd
+  crashes because they did not recompile or (re)install modules properly.
+- Added './unreal backtrace', so far this has only been tested on Linux and FreeBSD.
+- Fixed a bug making ./Config not load the previously stored settings on Solaris 10 and
+  probably other Unixes, reported by lion-o (#0002474).
+- Cosmetic bug in set::modes-on-join: now rejecting +I in it. Reported by Ron2K (#0002508).
+- Moved all TKL code and register_user to modules (using efuncs), that means 20 functions
+  and 2000 lines total that can be hotfixed if needed ;). The effort involved in moving all
+  this sucks a lot though :/. This might need some more testing to make sure it doesn't break
+  anything.
+- Updated support OS list in documentation.
+- Fixed various major bugs due to TKL move from 13h ago.
+- Fixed 2 problems caused by TKL move: 1 windows crash, 1 problem with loading m_*.so,
+  reported by Trocotronic (#0002553, #0002554).
+- Added some TSCTL logging (this reminds me we need to add new log levels for 3.3 ;p).
+- Attempt to fix bug #2431: 3.2.3 broke CNAME delegation for reverse dns. I'm sorry it took
+  so long, but this stuff just plain sucks...
+- Made '?*' work correctly in wildcard matches ('1 or more characters'), reported by
+  Bugz (#2585).
+- Added -fno-strict-aliasing.. this might well be temporary, but we get tons of strict-
+  aliasing warnings, so it sounds good to disable this type of optimization for now.
+- Fixed problem with crash-on-link if compiled with GCC 4, reported by jonneyboy (#2573)
+  and PHANTOm (#2590).
+- IPv6: Added configure check for in6addr_any to fix Fedora Core 4 compile problem,
+  reported by wheatie80 (#2594).
+- Added -Wno-pointer-sign (if available) to get rid of those stupid warnings that are
+  enabled by default even without -Wall (!?) on GCC4.
+- Fixed a bug where allow channel::channel generated a warning when specified multiple times
+  (#0002427) reported by matridom.
+- Fixed ~c not working properly with * and ?'s in channel names.. Now you just need to
+  escape them like in all bans (eg: to ban #* you need to +b ~c:#\*). As an additional
+  bonus, real wildcards are now accepted and processed (eg: +b ~c:#*sex*, just don't
+  forget to specify the #). Reported by PhantasyX (#2605).
+- Sidenote on above: ~c:*chan* is not supported (use ~c:#*chan* instead) because it would
+  cause "hidden bans", therefore it now prints a message (which is useful anyway), but
+  does accept such remote bans. In 3.2.5 or so we could enable support for it, it's
+  not that important though... ;)
+- Added ifdefs for mass closing of file descriptors on start, can now be disabled by
+  adding -DNOCLOSEFD as a compile option. Useful for valgrind w/--db-attach=yes, mpatrol,
+  and some other debugging tools (not useful for anyone normally running a server).
+- Fixed a read-after-free: sptr->serv->aconf was freed but not NULL'ed in exit_client,
+  causing close_connection to read from it (when deciding on doing a quick reconnect).
+  Could have caused a crash, although nobody ever reported one...
+- Removed useless strncpyzt with dest==src.
+- Temporary workaround for spamfilter bug: action 'viruschan' in combination with the
+  'u' (user) target can cause severe problems (crashes, etc). For now, we have disabled
+  'viruschan' in combination with 'u'. A real fix will require quite some work, sorry.
+- Fixed crash with invalid set::network-name (eg: high ascii), reported by galahad
+  (#0002584), now printing an error instead (the network name is limited by the 005 spec).
+- Added Bulgarian example.bg.conf, translated by Peace.
+- Spamfilter: regexes (and reasons) are now more limited in size, this is to combat "I set
+  a spamfilter, but cannot remove it" problems. In practice this means - depending on the
+  length of your spamfilter reason - regexes will be max ~300 characters.
+  Spamfilters set in the .conf can be slightly longer (which still causes them to be
+  truncated in '/stats f', but they don't have to be removed anyway so it's kinda
+  acceptable if it's really needed). This should fix bug #2083, reported by White_Magic.
+- Fixed a bug where an invalid /*line could cause a crash, reported by Gilou (#2629).
+- (5 minutes later..) Small update for above, fix was incorrect for ipv6.
+- CMDLINE_CONFIG behavior change: command line configuration is now still permitted
+  if #undef'ed (which is the default) if uid==euid && gid==egid, since it doesn't make
+  any sense to disable it then and is in fact just plain annoying.
+- Added FAKELAG_CONFIGURABLE option in include/config.h, this enables an option called
+  class::options::nofakelag, which disables "fake lag" for a certain class (that is:
+  the artificial delay introduced by the ircd to prevent flooding is turned off,
+  allowing the user to flood at full speed).
+  IT'S USE IS DISCOURAGED UNLESS YOU REALLY KNOW WHAT YOU ARE DOING.
+  Sorry, option is not in ./Config -advanced since I don't get autoconf working, but it's
+  such a scary option that this might as well be a good idea to keep in config.h anyway.
+  This feature has been suggested for several years (and refused), but the final
+  suggestion (with implementation specific hints) came from Gilou in bug #0002207.
+- Fixed win32 makefile, now compiles fine.
+- Fixed (important?) reference count bug regarding sptr->serv->conf. I don't know what
+  effects this caused (memory corruption?), but it didn't look good ;).
+- Fixed an invalid badword block in the conf causing a crash, reported by Monk (#2639).

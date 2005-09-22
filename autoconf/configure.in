@@ -20,6 +20,20 @@ CFLAGS="-pipe $CFLAGS"
 fi
 fi
 
+dnl (the gcc flag detection trick is taken from xemacs/Vin Shelton)
+
+dnl UnrealIRCd might not be strict-aliasing safe at this time
+case "`gcc -v --help 2>&1`" in
+	*-fstrict-aliasing* ) CFLAGS="$CFLAGS -fno-strict-aliasing" ;;
+esac
+
+dnl Pointer signedness warnings are really a pain and 99.9% of the time
+dnl they are of absolutely no use whatsoever. IMO the person who decided
+dnl to enable this without -Wall should be shot on sight.
+case "`gcc -v --help 2>&1`" in
+	*-Wpointer-sign* ) CFLAGS="$CFLAGS -Wno-pointer-sign" ;;
+esac
+
 AC_PATH_PROG(RM,rm)
 AC_PATH_PROG(CP,cp)
 AC_PATH_PROG(TOUCH,touch)
@@ -114,9 +128,26 @@ if test "$ac_cv_ip6" = "no"; then
 AC_MSG_WARN(Your system does not support IPv6 so it will not be enabled)
 else
 AC_DEFINE(INET6)
+	dnl in6addr_any detection code taken from ratbox
+	AC_MSG_CHECKING([for struct in6addr_any])
+	AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM(
+			[[#define IN_AUTOCONF
+			#include <sys/types.h>
+			#include <sys/socket.h>
+			#include <netinet/in.h>]],
+			[[struct in6_addr a = in6addr_any;]]
+		)],
+		[AC_MSG_RESULT(yes)],
+		[
+			AC_MSG_RESULT(no)
+			AC_DEFINE(NO_IN6ADDR_ANY)
+		]
+	)
 fi
 LIBS="$save_libs"
 ])
+
 AC_CHECK_HEADER(sys/param.h,AC_DEFINE(PARAMH))
 AC_CHECK_HEADER(stdlib.h,AC_DEFINE(STDLIBH))
 AC_CHECK_HEADER(stddef.h,AC_DEFINE(STDDEFH))

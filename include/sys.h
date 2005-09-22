@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.4 2005-03-21 10:36:21 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.5 2005-09-22 20:08:10 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
@@ -191,7 +191,7 @@ char mydummy2[MYDUMMY_SIZE];
 #  endif
 # endif
 
-# if defined(linux)
+# if defined(linux) && defined(NO_IN6ADDR_ANY)
 static const struct in6_addr in6addr_any = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0
 };

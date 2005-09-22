@@ -47,11 +47,7 @@
 
 /* l_commands.c/commands.so is a special case so we have to do this manually :p */
 #ifdef DYNAMIC_LINKING
-#if defined(USE_SSL) && !defined(_WIN32)
-DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9 "/SSL";
-#else
-DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9;
-#endif
+#include "modversion.h"
 #endif
 
 extern ModuleHeader m_svsnoop_Header;
@@ -65,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.7 2005-03-21 10:36:40 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.8 2005-09-22 20:08:12 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -77,7 +73,8 @@ ModuleHeader l_commands_Header
 */
 
 extern int m_htm_Test(ModuleInfo *modinfo), m_join_Test(ModuleInfo *modinfo);
-extern int m_mode_Test(ModuleInfo *modinfo);
+extern int m_mode_Test(ModuleInfo *modinfo), m_nick_Test(ModuleInfo *modinfo);
+extern int m_tkl_Test(ModuleInfo *modinfo);
 
 extern int m_sethost_Init(ModuleInfo *modinfo), m_setname_Init(ModuleInfo *modinfo), m_chghost_Init(ModuleInfo *modinfo);
 extern int m_chgident_Init(ModuleInfo *modinfo), m_setident_Init(ModuleInfo *modinfo), m_sdesc_Init(ModuleInfo *modinfo);
@@ -222,6 +219,8 @@ int l_commands_Test(ModuleInfo *modinfo)
 	m_htm_Test(ModCmdsInfo);
 	m_join_Test(ModCmdsInfo);
 	m_mode_Test(ModCmdsInfo);
+	m_nick_Test(ModCmdsInfo);
+	m_tkl_Test(ModCmdsInfo);
 	return MOD_SUCCESS;
 }
 

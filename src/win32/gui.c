@@ -17,7 +17,11 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#ifdef UDB
+#define WIN32_VERSION BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6
+#else
 #define WIN32_VERSION BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4
+#endif
 #include "resource.h"
 #include "version.h"
 #include "setup.h"

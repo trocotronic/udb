@@ -54,6 +54,7 @@
 #include "badwords.h"
 #ifdef UDB
 #include "s_bdd.h"
+int pases = 3, intervalo = 60;
 #endif
 
 #define ircstrdup(x,y) do { if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); } while(0)
@@ -339,11 +340,6 @@ extern void charsys_add_language(char *name);
 extern void charsys_reset_pretest(void);
 int charsys_postconftest(void);
 void charsys_finish(void);
-
-/* Stuff we only need here for spamfilter, so not in h.h... */
-extern aTKline *tklines[TKLISTLEN];
-extern inline int tkl_hash(char c);
-extern aTKline *tkl_del_line(aTKline *tkl);
 
 /*
  * Config parser (IRCd)
@@ -1514,6 +1510,10 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->modef_default_unsettime = 0;
 	i->modef_max_unsettime = 60; /* 1 hour seems enough :p */
 #endif
+#ifdef UDB
+	pases = 3;
+	intervalo = 60;
+#endif
 	i->ban_version_tkl_time = 86400; /* 1d */
 	i->spamfilter_ban_time = 86400; /* 1d */
 	i->spamfilter_ban_reason = strdup("Spam/advertising");
@@ -1562,7 +1562,7 @@ char *encoded;
 	{
 		if (tk->type != TKL_SPAMF)
 			continue; /* global entry or something else.. */
-		if (!strcmp(tk->ptr.spamf->tkl_reason, "<internally added by ircd>"))
+		if (!strcmp(tk->ptr.spamf->tkl_reason, "(añadida intermamente por el ircd)"))
 		{
 			MyFree(tk->ptr.spamf->tkl_reason);
 			tk->ptr.spamf->tkl_reason = strdup(encoded);
@@ -1583,7 +1583,7 @@ static void make_default_logblock(void)
 {
 ConfigItem_log *ca = MyMallocEx(sizeof(ConfigItem_log));
 
-	config_status("No log { } block found -- using default: errors will be logged to 'ircd.log'");
+	config_status("No se encuentra bloque log { }. Se usará uno por defecto: los errores se guardarán en 'ircd.log'");
 
 	ca->file = strdup("ircd.log");
 	ca->flags |= LOG_ERROR;
@@ -1673,7 +1673,7 @@ int	init_conf(char *rootconf, int rehash)
 	}
 	else	
 	{
-		config_error("IRCd configuration failed to load");
+		config_error("Falla al cargar la configuración del IRCd");
 #ifndef STATIC_LINKING
 		Unload_all_testing_modules();
 #endif
@@ -2166,6 +2166,10 @@ int	config_post_test()
 		Error("falta set::help-channel");
 	if (!settings.has_hiddenhost_prefix)
 		Error("falta set::hiddenhost-prefix");
+#ifdef UDB
+	if (!settings.has_grifo)
+		Error("falta set::udb::propagador");
+#endif
 	for (h = Hooks[HOOKTYPE_CONFIGPOSTTEST]; h; h = h->next) 
 	{
 		int value, errs = 0;
@@ -2232,7 +2236,7 @@ int	config_run()
 
 	if (errors > 0)
 	{
-		config_error("%i errores.", errors);
+		config_error("%i error(es).", errors);
 	}
 	return (errors > 0 ? -1 : 1);
 }
@@ -2325,7 +2329,7 @@ int	config_test()
 	errors += config_post_test();
 	if (errors > 0)
 	{
-		config_error("%i errores", errors);
+		config_error("%i error(es)", errors);
 	}
 	return (errors > 0 ? -1 : 1);
 }
@@ -2563,7 +2567,7 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 {
 	ConfigItem_allow *aconf;
 #ifdef UDB
-	Udb *reg, *ireg;
+	Udb *reg, *bloq, *ireg;
 	int defmaxclons;
 	aClient *aux;
 #endif		
@@ -2666,12 +2670,12 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 		{
 #endif
 #ifdef UDB
-			if (!(ireg = busca_registro(BDD_SET, "clones")))
-				defmaxclons = aconf->maxperip;
+			if (!(ireg = busca_registro(BDD_SET, S_CLO_TOK)))
+				defmaxclons = aconf->maxperip ? aconf->maxperip : 2;
 			else
 				defmaxclons = ireg->data_long;
-			if ((reg = busca_registro(BDD_IPS, cptr->sockhost)))
-				defmaxclons = reg->data_long;
+			if ((reg = busca_registro(BDD_IPS, cptr->sockhost)) && (bloq = busca_bloque(I_CLO_TOK, reg)))
+				defmaxclons = bloq->data_long;
 #endif		
 			ii = 1;
 #ifdef UDB
@@ -2696,7 +2700,7 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 #ifdef UDB
 					if (ii > defmaxclons)
 					{
-						if (!(ireg = busca_registro(BDD_SET, reg ? "quit_ips" : "quit_clones")))
+						if (!(ireg = busca_registro(BDD_SET, reg ? S_QIP_TOK : S_QCL_TOK)))
 							exit_client(cptr, cptr, &me, "Demasiadas conexiones para tu IP");
 						else
 							exit_client(cptr, cptr, &me, ireg->data_char);
@@ -3455,7 +3459,7 @@ int	_test_oper(ConfigFile *conf, ConfigEntry *ce)
 */
 int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry *cep;
+	ConfigEntry *cep, *cep2;
 	ConfigItem_class *class;
 	unsigned char isnew = 0;
 
@@ -3469,6 +3473,7 @@ int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 	{
 		isnew = 0;
 		class->flag.temporary = 0;
+		class->options = 0; /* RESET OPTIONS */
 	}
 	ircstrdup(class->name, ce->ce_vardata);
 
@@ -3484,6 +3489,12 @@ int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 			class->sendq = atol(cep->ce_vardata);
 		else if (!strcmp(cep->ce_varname, "recvq"))
 			class->recvq = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
+			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+				if (!strcmp(cep2->ce_varname, "nofakelag"))
+					class->options |= CLASS_OPT_NOFAKELAG;
+		}
 	}
 	if (isnew)
 		AddListItem(class, conf_class);
@@ -3492,7 +3503,7 @@ int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 
 int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry 	*cep;
+	ConfigEntry 	*cep, *cep2;
 	int		errors = 0;
 	char has_pingfreq = 0, has_connfreq = 0, has_maxclients = 0, has_sendq = 0;
 	char has_recvq = 0;
@@ -3504,13 +3515,29 @@ int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 	}
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (config_is_blankorempty(cep, "class"))
+		if (!strcmp(cep->ce_varname, "options"))
+		{
+			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+			{
+#ifdef FAKELAG_CONFIGURABLE
+				if (!strcmp(cep2->ce_varname, "nofakelag"))
+					;
+				else
+#endif
+				{
+					config_error("%s:%d: Opción desconocida '%s' en class::options",
+						cep2->ce_fileptr->cf_filename, cep2->ce_varlinenum, cep2->ce_varname);
+					errors++;
+				}
+			}
+		}
+		else if (config_is_blankorempty(cep, "class"))
 		{
 			errors++;
 			continue;
 		}
 		/* class::pingfreq */
-		if (!strcmp(cep->ce_varname, "pingfreq"))
+		else if (!strcmp(cep->ce_varname, "pingfreq"))
 		{
 			int v = atol(cep->ce_vardata);
 			if (has_pingfreq)
@@ -4521,15 +4548,7 @@ int	_test_allow_channel(ConfigFile *conf, ConfigEntry *ce)
 			continue;
 		}
 		if (!strcmp(cep->ce_varname, "channel"))
-		{
-			if (has_channel)
-			{
-				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
-					cep->ce_varlinenum, "allow channel::channel");
-				continue;
-			}
 			has_channel = 1;
-		}
 		else
 		{
 			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
@@ -5413,7 +5432,7 @@ int _test_badword(ConfigFile *conf, ConfigEntry *ce)
 		if (has_replace && action == 'b')
 		{
 			config_error("%s:%i: badword::action es block pero existe badword::replace",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 			errors++;
 		}
 	}
@@ -6780,6 +6799,25 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 #endif
 		}
+#ifdef UDB
+		else if (!strcmp(cep->ce_varname, "udb"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) 
+			{
+				if (!strcmp(cepp->ce_varname, "propagador"))
+				{
+					ircstrdup(grifo, cepp->ce_vardata);	
+				}
+				else if (!strcmp(cepp->ce_varname, "pass-flood"))
+				{
+					int cnt, period;
+					config_parse_flood(cepp->ce_vardata, &cnt, &period);
+					pases = cnt;
+					intervalo = period;
+				}
+			}
+		}
+#endif
 		else 
 		{
 			int value;
@@ -6802,7 +6840,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 	int		tempi;
 	int	    errors = 0;
 	Hook	*h;
-#define CheckNull(x) if ((!(x)->ce_vardata) || (!(*((x)->ce_vardata)))) { config_error("%s:%i: missing parameter", (x)->ce_fileptr->cf_filename, (x)->ce_varlinenum); errors++; continue; }
+#define CheckNull(x) if ((!(x)->ce_vardata) || (!(*((x)->ce_vardata)))) { config_error("%s:%i: falta un parámetro", (x)->ce_fileptr->cf_filename, (x)->ce_varlinenum); errors++; continue; }
 #define CheckDuplicate(cep, name, display) if (settings.has_##name) { config_warn_duplicate((cep)->ce_fileptr->cf_filename, cep->ce_varlinenum, "set::" display); continue; } else settings.has_##name = 1
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
@@ -6880,6 +6918,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					case 'v':
 					case 'b':
 					case 'e':
+					case 'I':
 					case 'O':
 					case 'A':
 					case 'z':
@@ -7027,8 +7066,17 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			CheckDuplicate(cep, maxdccallow, "maxdccallow");
 		}
 		else if (!strcmp(cep->ce_varname, "network-name")) {
+			char *p;
 			CheckNull(cep);
 			CheckDuplicate(cep, network_name, "network-name");
+			for (p = cep->ce_vardata; *p; p++)
+				if ((*p < ' ') || (*p > '~'))
+				{
+					config_error("%s:%i: set::network-name sólo puede contener caracteres ASCII 33-126. Caracter no válido = '%c'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+					break;
+				}
 		}
 		else if (!strcmp(cep->ce_varname, "default-server")) {
 			CheckNull(cep);
@@ -7610,6 +7658,40 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 #endif
 		}
+#ifdef UDB
+		else if (!strcmp(cep->ce_varname, "udb"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "propagador"))
+				{
+					CheckNull(cepp);
+					CheckDuplicate(cep, grifo, "udb::propagador");
+				}
+				else if (!strcmp(cepp->ce_varname, "pass-flood"))
+				{
+					int cnt, period;
+					CheckDuplicate(cepp, pass_flood, "udb::pass-flood");
+					if (!config_parse_flood(cepp->ce_vardata, &cnt, &period) ||
+					    (cnt < 1) || (cnt > 255) || (period < 5))
+					{
+						config_error("%s:%i: set::udb::pass-flood error. Sintaxis '<v>:<s>' (ej 5:60), "
+						             "<v> 1-255, <s> mayor que 4",
+							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
+						errors++;
+					}
+				}
+				else
+				{
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::udb",
+						cepp->ce_varname);
+					errors++;
+					continue;
+				}
+			}
+		}
+#endif
 		else
 		{
 			int used = 0;
@@ -7640,7 +7722,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 			}
 			if (!used) {
-				config_error("%s:%i: directriz desconcida set::%s",
+				config_error("%s:%i: directriz desconocida set::%s",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
 					cep->ce_varname);
 				errors++;

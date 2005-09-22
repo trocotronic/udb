@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.1 2005-03-21 10:36:54 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.2 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -511,16 +511,16 @@ creationtime = sendts;
 	if (samode)
 	{
 		sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
-	    		chan_nick(), chptr->chname, modebuf, parabuf);
+	    		chan_nick(0), chptr->chname, modebuf, parabuf);
 		if (IsServer(sptr) && sendts != -1)
-			sendto_serv_butone_token(cptr, chan_nick(), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s %lu", chptr->chname, isbounce ? "&" : "",
 			    	modebuf, parabuf, sendts);
 		else if (samode && IsMe(sptr)) /* SAMODE is a special case: always send a TS of 0 (omitting TS==desynch) */
-			sendto_serv_butone_token(cptr, chan_nick(), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
 		   		 "%s %s %s 0", chptr->chname, modebuf, parabuf);
 		else
-			sendto_serv_butone_token(cptr, chan_nick(), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s", chptr->chname, isbounce ? "&" : "",
 		    		modebuf, parabuf);
 	}
@@ -1018,7 +1018,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			  goto breaktherules;
 		
 		  /* Services are special! */
-		  if (IsServices(member->cptr) && MyClient(cptr) && !IsNetAdmin(cptr) && (what == MODE_DEL))
+		  if (IsServices(member->cptr) 
+#ifdef UDB
+		  && (member->cptr != cptr)
+#endif
+		  && MyClient(cptr) && !IsNetAdmin(cptr) && (what == MODE_DEL))
 		  {
 			char errbuf[NICKLEN+50];
 			ircsprintf(errbuf, "%s es un %s de Red", member->cptr->name, IsBot(member->cptr) ? "Servicio" : "Operador");

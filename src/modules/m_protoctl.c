@@ -43,6 +43,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -52,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.6 2005-03-21 10:36:57 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.7 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -336,23 +339,25 @@ CMD_FUNC(m_protoctl)
 		 * support it.
 		 */
 #ifdef UDB
- 		else if (strcmp(s, "UDB3.1") == 0)
+ 		else if (strncmp(s, "UDB", 3) == 0)
 		{
-#ifndef PROTOCTL_MADNESS
-			if (remove)
+			if (strncmp(s, UDB_VER, strlen(UDB_VER)) == 0)
 			{
-				cptr->proto &= ~PROTO_UDB;
-				continue;
-			}
+				char *c = NULL;
+#ifndef PROTOCTL_MADNESS
+				if (remove)
+				{
+					cptr->proto &= ~PROTO_UDB;
+					continue;
+				}
 #endif
-			Debug((DEBUG_ERROR, "Chose protocol %s for link %s",
-			    proto, cptr->name));
-			cptr->proto |= PROTO_UDB;
-		}
-		else if (!strcmp(s, "UDB") || !strcmp(s, "UDB2") || !strcmp(s, "UDB3"))
-		{
-			sendto_one(cptr, "ERROR: Versión UDB incorrecta");
-			return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta");
+				Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
+				cptr->proto |= PROTO_UDB;
+				if (!(c = strchr(s, '=')) || (match(grifo, c+1) && match(c+1, grifo)))
+					return exit_client(cptr, sptr, &me, "ERROR: Propagador no coincide");
+			}
+			else
+				return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta");
 		}
 #endif
 	}

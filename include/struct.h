@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.8 2005-03-21 10:36:21 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.9 2005-09-22 20:08:10 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -71,6 +71,11 @@
 #endif
 
 #include "channel.h"
+
+#if defined(_WIN32) && !defined(NOSPOOF)
+ #error "Compiling win32 without nospoof is VERY insecure and NOT supported"
+#endif
+
 
 extern MODVAR int sendanyways;
 
@@ -768,6 +773,10 @@ struct User {
 		time_t away_t;			/* last time the user set away */
 		unsigned char away_c;	/* number of times away has been set */
 #endif
+#ifdef UDB
+		time_t udb_t;
+		unsigned char udb_c;
+#endif
 	} flood;
 #ifdef JOINTHROTTLE
 	aJFlood *jflood;
@@ -1101,6 +1110,8 @@ struct _configitem_admin {
 	char	   *line; 
 };
 
+#define CLASS_OPT_NOFAKELAG		0x1
+
 struct _configitem_class {
 	ConfigItem *prev, *next;
 	ConfigFlag flag;
@@ -1109,6 +1120,7 @@ struct _configitem_class {
 	int xrefcount; /* EXTRA reference count, 'clients' also acts as a reference count but
 	                * link blocks also refer to classes so a 2nd ref. count was needed.
 	                */
+	unsigned int options;
 };
 
 struct _configflag_allow {
@@ -1710,6 +1722,9 @@ struct liststruct {
 
 extern MODVAR char *version, *infotext[], *dalinfotext[], *unrealcredits[];
 extern MODVAR char *generation, *creation;
+#ifdef UDB
+extern MODVAR char *udbid;
+#endif
 extern MODVAR char *gnulicense[];
 /* misc defines */
 

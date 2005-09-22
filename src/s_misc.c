@@ -54,6 +54,9 @@ Computing Center and Jarkko Oikarinen";
 #include "proto.h"
 #include "channel.h"
 #include <string.h>
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 #ifndef NO_FDLIST
 extern fdlist serv_fdlist;
@@ -476,6 +479,7 @@ int  exit_client(aClient *cptr, aClient *sptr, aClient *from, char *comment)
 			{
 				Debug((DEBUG_ERROR, "deleting temporary block %s", sptr->serv->conf->servername));
 				delete_linkblock(sptr->serv->conf);
+				sptr->serv->conf = NULL;
 			}
 		}
 		if (IsServer(sptr))
@@ -681,6 +685,10 @@ static void exit_one_client(aClient *cptr, aClient *sptr, aClient *from, char *c
 				sendto_one(acptr, "SQUIT %s :%s", sptr->name, comment);
 			}
 		}
+#ifdef UDB
+		if (sptr == propaga)
+			propaga = NULL;
+#endif
 	}
 	else if (!(IsPerson(sptr)))
 		/* ...this test is *dubious*, would need
@@ -801,8 +809,7 @@ char text[2048];
 	if (counted == IRCstats.operators)
 		return;
 	sprintf(text, "[BUG] operator count bug! value in /lusers is '%d', we counted '%d', "
-	               "user='%s', userserver='%s', tag=%s. "
-	               "please report to UnrealIRCd team at http://bugs.unrealircd.org/",
+	               "user='%s', userserver='%s', tag=%s. Corrected. ",
 	               IRCstats.operators, counted, orig->name ? orig->name : "<null>",
 	               orig->srvptr ? orig->srvptr->name : "<null>", tag ? tag : "<null>");
 #ifdef DEBUGMODE
@@ -842,7 +849,7 @@ regex_t expr;
 		goto Ilovegotos;
 
 	for (tmp = s; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
+		if (!isalnum(*tmp) && !((int)*tmp >= 128)) {
 			if ((s == tmp) && (*tmp == '*'))
 				continue;
 			if ((*(tmp + 1) == '\0') && (*tmp == '*'))

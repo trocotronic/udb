@@ -47,6 +47,9 @@ static char sccsid[] =
 #include <curl/curl.h>
 #endif
 extern VOIDSIG s_die();
+#ifdef UDB
+#include "s_bdd.h"
+#endif
 
 static char buf[BUFSIZE];
 
@@ -202,7 +205,7 @@ char buf[1024];
 	}
 #endif
 #ifdef UDB
-	sendto_one(cptr, "PROTOCTL UDB3.1");
+	sendto_one(cptr, "PROTOCTL " UDB_VER "=%s", grifo);
 #endif
 }
 
@@ -283,7 +286,7 @@ void m_info_send(aClient *sptr)
 	    ":%s %d %s :| Sistema y protocolo UDB, traducción al castellano y extendido a helpers implementado por:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
-	    ":%s %d %s :|          * Trocotronic (trocotronic@telefonica.net)", me.name, RPL_INFO, sptr->name);
+	    ":%s %d %s :|          * Trocotronic (trocotronic@rallados.net)", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
 	    ":%s %d %s :| Soporte de infrastructura y testeado por:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
@@ -299,6 +302,10 @@ void m_info_send(aClient *sptr)
 	    sptr->name, myctime(me.firsttime));
 	sendto_one(sptr, ":%s %d %s :ReleaseID (%s)", me.name, RPL_INFO,
 	    sptr->name, buildid);
+#ifdef UDB
+	sendto_one(sptr, ":%s %d %s :UDB ReleaseID (%s)", me.name, RPL_INFO,
+	    sptr->name, udbid);
+#endif
 	sendto_one(sptr, rpl_str(RPL_ENDOFINFO), me.name, sptr->name);
 }
 

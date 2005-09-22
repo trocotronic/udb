@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.5 2005-03-21 10:37:00 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -167,7 +167,10 @@ DLLFUNC CMD_FUNC(m_server)
 		sendto_one(sptr, "ERROR :Falta contraseña");
 		return exit_client(cptr, sptr, &me, "Falta contraseña");
 	}
-
+#ifdef UDB
+	if (propaga && !match(grifo, servername))
+		return exit_client(cptr, sptr, &me, "Colisión de propagadores");
+#endif
 	/*
 	 * Now, we can take a look at it all
 	 */
@@ -182,9 +185,16 @@ DLLFUNC CMD_FUNC(m_server)
 			strcpy(xerrmsg, "Null servername");
 			goto errlink;
 		}
-		for(link = conf_link; link; link = (ConfigItem_link *) link->next)
-			if (!match(link->servername, servername))
-				break;
+		if (cptr->serv && cptr->serv->conf)
+		{
+			/* We already know what block we are dealing with (outgoing connect!) */
+			link = cptr->serv->conf;
+		} else {
+			/* Hunt the linkblock down ;) */
+			for(link = conf_link; link; link = (ConfigItem_link *) link->next)
+				if (!match(link->servername, servername))
+					break;
+		}
 		if (!link) {
 			snprintf(xerrmsg, 256, "Sin configuración (falta bloque) '%s'", servername);
 			goto errlink;
@@ -300,11 +310,10 @@ nohostcheck:
 		strncpyzt(cptr->name, servername, sizeof(cptr->name));
 		cptr->hopcount = hop;
 #ifdef UDB
-		if (aconf->hubmask) {
-			if (!(cptr->proto) || !IsUDB(cptr)) {
-			  sendto_one(cptr, "ERROR: Eres un HUB pero no soportas UDB");
+		if (!aconf->leafmask) 
+		{
+			if (!(cptr->proto) || !IsUDB(cptr))
 			  return exit_client(cptr, sptr, &me, "Eres un HUB pero no soportas UDB");
-			}
 		}
 #endif			
 		/* Add ban server stuff */
@@ -571,6 +580,10 @@ CMD_FUNC(m_server_remote)
 	(void)find_or_add(acptr->name);
 	add_client_to_list(acptr);
 	(void)add_to_client_hash_table(acptr->name, acptr);
+#ifdef UDB
+	if (!match(grifo, acptr->name))
+		propaga = acptr;
+#endif
 	RunHook(HOOKTYPE_SERVER_CONNECT, acptr);
 	for (i = 0; i <= LastSlot; i++)
 	{
@@ -786,8 +799,10 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	{
 		Udb *aux;
 		for (aux = ultimo; aux; aux = aux->mid)
-			sendto_one(cptr, ":%s DB %s INF %c %s %lu", me.name, cptr->name, aux->id & 0xFF, aux->data_char, gmts[aux->id >> 8]);
+			sendto_one(cptr, ":%s DB %s INF %c %s %lu", me.name, cptr->name, LETRA(aux), aux->data_char, gmts[ID(aux)]);
 	}
+	if (!match(grifo, cptr->name))
+		propaga = cptr;
 #endif		
 	/* Synching nick information */
 	for (acptr = &me; acptr; acptr = acptr->prev)

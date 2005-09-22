@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: api-isupport.c,v 1.1.4.2 2005-03-21 10:36:24 Trocotronic Exp $
+ * $Id: api-isupport.c,v 1.1.4.3 2005-09-22 20:08:10 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -40,7 +40,7 @@
 #include "proto.h"
 
 Isupport *Isupports; /* List of ISUPPORT (005) tokens */
-char *IsupportStrings[5] = {0,0,0,0,0}; /* If we get more than 5 strings, God help us! */
+MODVAR char *IsupportStrings[5] = {0,0,0,0,0}; /* If we get more than 5 strings, God help us! */
 extern char *cmdstr;
 
 /**

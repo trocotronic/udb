@@ -917,6 +917,7 @@ int InitwIRCD(int argc, char *argv[])
 	WSADATA wsaData;
 #else
 	uid_t uid, euid;
+	gid_t gid, egid;
 	TS   delay = 0;
 #endif
 #ifdef HAVE_PSTAT
@@ -937,6 +938,8 @@ int InitwIRCD(int argc, char *argv[])
 	sbrk0 = (char *)sbrk((size_t)0);
 	uid = getuid();
 	euid = geteuid();
+	gid = getgid();
+	egid = getegid();
 # ifdef	PROFIL
 	(void)monstartup(0, etext);
 	(void)moncontrol(1);
@@ -1062,12 +1065,17 @@ int InitwIRCD(int argc, char *argv[])
 			  bootopt |= BOOT_NOFORK;
 			  break;
 #ifndef _WIN32
-#ifdef CMDLINE_CONFIG
 		  case 'f':
+#ifndef CMDLINE_CONFIG
+		      if ((uid == euid) && (gid == egid))
+			       configfile = p;
+			  else
+			       printf("ERROR: Command line config with a setuid/setgid ircd is not allowed");
+#else
 			  (void)setuid((uid_t) uid);
 			  configfile = p;
-			  break;
 #endif
+			  break;
 		  case 'h':
 			  if (!strchr(p, '.')) {
 
@@ -1128,7 +1136,11 @@ int InitwIRCD(int argc, char *argv[])
 			  bootopt |= BOOT_TTY;
 			  break;
 		  case 'v':
+  #ifdef UDB
+			  (void)printf("%s build %s %s\n", version, buildid, udbid);
+  #else
 			  (void)printf("%s build %s\n", version, buildid);
+  #endif
 #else
 		  case 'v':
 			  if (!IsService) {

@@ -726,7 +726,6 @@ EXPORTS
 	parse_help
 	parse_modsys_version
 	parse_netmask
-	parse_tkl_para
 	place_host_ban
 	port_range
 	portnum
@@ -737,6 +736,8 @@ EXPORTS
 	read_file_ex
 	read_message
 	readcalls
+	regexec
+	regfree
 	register_user
 	rehash
 	rehash_internal
@@ -861,13 +862,13 @@ EXPORTS
 	sub1_from_channel
 	svsmotd
 	tainted
-	target_is_spamexcept
 	tempiConf
 	throttle_can_connect
 	timeofday
 	timeout_query_list
 	tkl_add_line
 	tkl_check_expire
+	tkl_check_local_remove_shun
 	tkl_del_line
 	tkl_expire
 	tkl_hash

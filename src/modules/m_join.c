@@ -45,6 +45,7 @@
 #endif
 #ifdef UDB
 #include "s_bdd.h"
+int fakefund = 0; /* fundador por contraseña */
 #endif
 
 /* Forward declarations */
@@ -72,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.1 2005-03-21 10:36:50 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.2 2005-09-22 20:08:13 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -163,7 +164,11 @@ Ban *banned;
 			return 0;
 	}
 
+#ifdef UDB
+	if ((chptr->mode.mode & MODE_OPERONLY) && !IsHOper(sptr))
+#else
 	if ((chptr->mode.mode & MODE_OPERONLY) && !IsAnOper(sptr))
+#endif
 		return (ERR_OPERONLY);
 
 	if ((chptr->mode.mode & MODE_ADMONLY) && !IsSkoAdmin(sptr))
@@ -180,10 +185,15 @@ Ban *banned;
 	    IsAnOper(sptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
 		return (ERR_BANNEDFROMCHAN);
 
+#ifdef UDB
+	if (!BadPtr(key) && IsARegNick(cptr))
+		fakefund = tipo_de_pass(chptr->chname, key, NULL);
+#endif
+
 	for (lp = sptr->user->invited; lp; lp = lp->next)
 		if (lp->value.chptr == chptr)
 			return 0;
-
+			
         if ((chptr->mode.limit && chptr->users >= chptr->mode.limit))
         {
                 if (chptr->mode.link)
@@ -239,9 +249,9 @@ Ban *banned;
 #ifdef UDB
 	{
 		Udb *reg, *bloq;
-		if ((reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque("accesos", reg)))
+		if ((reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque(C_ACC_TOK, reg)))
 		{
-			if ((!busca_bloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
+			if ((!IsHOper(sptr) && !busca_bloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
 				return (ERR_BANNEDFROMCHAN);
 		}
 	}
@@ -359,14 +369,22 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 {
 	char *parv[] = { 0, 0 };
 #ifdef UDB
-	char *founder, *modos, *topic;
 	Udb *reg, *bloq;
+	char *s = "";
 	int f = 0, udbflags = 0;
 	if (MyClient(sptr) && (reg = busca_registro(BDD_CHANS, chptr->chname)))
 	{
-		bloq = busca_bloque("suspendido", reg);
+		bloq = busca_bloque(C_SUS_TOK, reg);
 		if ((f = is_chanowner(sptr, chptr)) && !bloq)
+		{
 			udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
+			s = ".@";
+		}
+		else if (fakefund == 2)
+		{
+			udbflags |= (CHFL_CHANOP | CHFL_CHANPROT);
+			s = "$@";
+		}
 		else
 			udbflags |= CHFL_DEOPPED;
 	}
@@ -413,7 +431,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			me.name, MSG_SJOIN, TOK_SJOIN,
 			"%B %s :%s%s ", chptr->creationtime, 
 #ifdef UDB
-			chptr->chname, udbflags & CHFL_CHANOWNER ? "*@" : (flags & CHFL_CHANOP ? "@" : ""), sptr->name);
+			chptr->chname, s, sptr->name);
 #else
 			chptr->chname, flags & CHFL_CHANOP ? "@" : "", sptr->name);
 #endif	
@@ -421,7 +439,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			me.name, MSG_SJOIN, TOK_SJOIN,
 			"%li %s :%s%s ", chptr->creationtime, 
 #ifdef UDB
-			chptr->chname, udbflags & CHFL_CHANOWNER ? ".@" : (flags & CHFL_CHANOP ? "@" : ""), sptr->name);
+			chptr->chname, s, sptr->name);
 #else
 			chptr->chname, flags & CHFL_CHANOP ? "@" : "", sptr->name);
 #endif	
@@ -447,8 +465,14 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 #ifdef UDB
 		if (udbflags & CHFL_CHANOWNER)
 			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
-			    chan_nick(),
+			    chan_nick(0),
 			    MSG_MODE, TOK_MODE, "%s +oq %s %s %lu",
+			    chptr->chname, sptr->name, sptr->name, 
+			    chptr->creationtime);
+		else if (udbflags & CHFL_CHANPROT)
+			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
+			    chan_nick(0),
+			    MSG_MODE, TOK_MODE, "%s +ao %s %s %lu",
 			    chptr->chname, sptr->name, sptr->name, 
 			    chptr->creationtime);
 		else
@@ -523,10 +547,12 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			buf[0] = '\0';
 			if (f && !bloq)
 				ircsprintf(buf, "+oq %s %s", sptr->name, sptr->name);
+			else if (fakefund == 2)
+				ircsprintf(buf, "+ao %s %s", sptr->name, sptr->name);
 			else if (chptr->users == 1)
 				ircsprintf(buf, "-o %s", sptr->name);
 			if (buf[0] != '\0')
-				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", chan_mask(), chptr->chname, buf);
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", chan_mask(0), chptr->chname, buf);
 		}
 #endif
 		parv[0] = sptr->name;
@@ -654,9 +680,9 @@ DLLFUNC CMD_FUNC(_do_join)
 				chptr = lp->chptr;
 				sendto_channel_butserv(chptr, sptr,
 				    PARTFMT2, parv[0], chptr->chname,
-				    "Left all channels");
+				    "Abandona todos los canales");
 				if (MyConnect(sptr))
-					RunHook4(HOOKTYPE_LOCAL_PART, cptr, sptr, chptr, "Left all channels");
+					RunHook4(HOOKTYPE_LOCAL_PART, cptr, sptr, chptr, "Abandona todos los canales");
 				remove_user_from_channel(sptr, chptr);
 			}
 			sendto_serv_butone_token(cptr, parv[0],
@@ -703,17 +729,17 @@ DLLFUNC CMD_FUNC(_do_join)
 					{
 						if (d->warn)
 						{
-							sendto_snomask(SNO_EYES, "*** %s tried to join forbidden channel %s",
+							sendto_snomask(SNO_EYES, "*** %s intenta entrar en el canal prohibido %s",
 								get_client_name(sptr, 1), name);
 						}
 						if (d->reason)
 							sendto_one(sptr, 
-							":%s %s %s :*** Can not join %s: %s",
+							":%s %s %s :*** No puedes entrar en %s: %s",
 							me.name, IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, d->reason);
 						if (d->redirect)
 						{
 							sendto_one(sptr,
-							":%s %s %s :*** Redirecting you to %s",
+							":%s %s %s :*** Se te envía a %s",
 							me.name, IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, d->redirect);
 							parv[0] = sptr->name;
 							parv[1] = d->redirect;
@@ -727,9 +753,9 @@ DLLFUNC CMD_FUNC(_do_join)
 			if (!IsOper(sptr) && !IsULine(sptr))
 			{
 				Udb *reg, *bloq;
-				if ((reg = busca_registro(BDD_CHANS, name)) && (bloq = busca_bloque("forbid", reg)))
+				if ((reg = busca_registro(BDD_CHANS, name)) && (bloq = busca_bloque(C_FOR_TOK, reg)))
 				{
-					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", chan_mask(), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
+					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", chan_mask(1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
 					continue;
 				}
 			}
@@ -800,6 +826,9 @@ DLLFUNC CMD_FUNC(_do_join)
 		}
 
 		join_channel(chptr, cptr, sptr, flags);
+#ifdef UDB
+		fakefund = 0; /* very very very important */
+#endif
 	}
 	RET(0)
 #undef RET
