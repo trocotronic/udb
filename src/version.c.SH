@@ -1,10 +1,14 @@
-# $Id: version.c.SH,v 1.1.1.5 2005-03-21 10:36:39 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.6 2005-09-22 20:08:12 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
 id=`grep '$Id: Changes,v' ../Changes`
 id=`echo $id |sed 's/.* Changes\,v \(.*\) .* Exp .*/\1/'`
 echo "$id"
+
+udbid=`grep '$Id: cambios.udb,v' ../cambios.udb`
+udbid=`echo $udbid |sed 's/.* cambios.udb\,v \(.*\) .* Exp .*/\1/'`
+echo "$udbid"
 
 if test -r version.c
 then
@@ -40,7 +44,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.5 2005-03-21 10:36:39 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.6 2005-09-22 20:08:12 Trocotronic Exp $
  */
 
 /*
@@ -56,6 +60,9 @@ char *creation = "$creation";
 #define IRCDTOTALVERSION BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9
 char *version = IRCDTOTALVERSION;
 char *buildid = "$id";
+#ifdef UDB
+char *udbid = "$udbid";
+#endif
 /* moved to s_serv.c */
 char *infotext[] = 
 { 0 };
