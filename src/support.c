@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: support.c,v 1.1.1.7 2005-03-21 10:36:38 Trocotronic Exp $
+ * $Id: support.c,v 1.1.1.8 2005-10-22 14:00:46 Trocotronic Exp $
  */
 
 #ifndef CLEAN_COMPILE
@@ -2306,6 +2306,39 @@ inet_pton6(const char *src, unsigned char *dst)
 	return (1);
 }
 #endif /* !HAVE_INET_PTON */
+
+/** Finds out if an address is IPv6, returns 1 if so, otherwise 0 */
+int isipv6(struct IN_ADDR *addr)
+{
+#ifndef INET6
+	return 0;
+#else
+static char compareme[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff }; /* First part of IPv4-in-IPv6 (::ffff) */
+
+	/* If memcmp returns non-zero it means it did not match, hence it is ipv6, otherwise it is ipv4 */
+	return memcmp(addr, compareme, 12) ? 1 : 0;
+#endif
+}
+
+/** Transforms an IPv4 address (assumed in network byte order) to inet6 (as ::ffff:a.b.c.d). */
+void inet4_to_inet6(const void *src_in, void *dst_in)
+{
+char *dst = dst_in;
+const char *src = src_in;
+
+	memset(dst, 0, 10);
+	dst[10] = 0xff;
+	dst[11] = 0xff;
+	memcpy(&dst[12], src, 4);
+}
+
+/** Transforms an IPv4-in-IPv6 mapped address to IPv4 (so ::ffff:a.b.c.d to a.b.c.d),
+ * both are (/will be) in NETWORK BYTE ORDER.
+ */
+void inet6_to_inet4(const void *src, void *dst)
+{
+	memcpy(dst, (char *)src + 12, 4);
+}
 
 
 #ifdef _WIN32
