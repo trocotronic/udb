@@ -610,12 +610,12 @@ extern TS check_pings(TS currenttime)
 		/* Do spamfilter 'user' banchecks.. */
 		if (loop.do_bancheck_spamf_user && IsPerson(cptr))
 		{
-			if (find_spamfilter_user(cptr) == FLUSH_BUFFER)
+			if (find_spamfilter_user(cptr, SPAMFLAG_NOWARN) == FLUSH_BUFFER)
 				continue;
 		}
 		if (loop.do_bancheck_spamf_away && IsPerson(cptr) && cptr->user->away)
 		{
-			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL) == FLUSH_BUFFER)
+			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL, SPAMFLAG_NOWARN) == FLUSH_BUFFER)
 				continue;
 		}
 		/*
@@ -662,7 +662,7 @@ extern TS check_pings(TS currenttime)
 					Debug((DEBUG_NOTICE,
 					    "DNS/AUTH timeout %s",
 					    get_client_name(cptr, TRUE)));
-					del_queries((char *)cptr);
+					unrealdns_delreq_bycptr(cptr);
 					ClearAuth(cptr);
 					ClearDNS(cptr);
 					SetAccess(cptr);
@@ -754,14 +754,8 @@ extern TS check_pings(TS currenttime)
 static int bad_command(void)
 {
 #ifndef _WIN32
-#ifdef CMDLINE_CONFIG
-#define CMDLINE_CFG "[-f config] "
-#else
-#define CMDLINE_CFG ""
-#endif
 	(void)printf
-	    ("Uso: ircd %s[-h servidor] [-p puerto] [-x nivel_log] [-t] [-H]\n",
-	    CMDLINE_CFG);
+	    ("Uso: ircd %s[-h servidor] [-p puerto] [-x nivel_log] [-t] [-H]\n");
 	(void)printf("Servidor no iniciado.\n\n");
 #else
 	if (!IsService) {
@@ -1520,13 +1514,7 @@ void SocketLoop(void *dummy)
 		 */
 		if (nextconnect && timeofday >= nextconnect)
 			nextconnect = try_connections(timeofday);
-		/*
-		 * ** DNS checks. One to timeout queries, one for cache expiries.
-		 */
-		if (timeofday >= nextdnscheck)
-			nextdnscheck = timeout_query_list(timeofday);
-		if (timeofday >= nextexpire)
-			nextexpire = expire_cache(timeofday);
+
 		/*
 		 * ** take the smaller of the two 'timed' event times as
 		 * ** the time of next event (stops us being late :) - avalon

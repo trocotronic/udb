@@ -65,14 +65,14 @@ aTKline *_tkl_expire(aTKline * tmp);
 EVENT(_tkl_check_expire);
 int _find_tkline_match(aClient *cptr, int xx);
 int _find_shun(aClient *cptr);
-int _find_spamfilter_user(aClient *sptr);
+int _find_spamfilter_user(aClient *sptr, int flags);
 aTKline *_find_qline(aClient *cptr, char *nick, int *ishold);
 int _find_tkline_match_zap(aClient *cptr);
 void _tkl_stats(aClient *cptr, int type, char *para);
 void _tkl_synch(aClient *sptr);
 int _m_tkl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 int _place_host_ban(aClient *sptr, int action, char *reason, long duration);
-int _dospamfilter(aClient *sptr, char *str_in, int type, char *target);
+int _dospamfilter(aClient *sptr, char *str_in, int type, char *target, int flags);
 
 extern MODVAR char zlinebuf[BUFSIZE];
 extern MODVAR aTKline *tklines[TKLISTLEN];
@@ -97,7 +97,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.7 2005-09-22 20:08:13 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.8 2005-10-22 14:00:47 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -1328,7 +1328,7 @@ int  _find_shun(aClient *cptr)
  * Assumes: only call for clients, possible assume on local clients [?]
  * Return values: see dospamfilter()
  */
-int _find_spamfilter_user(aClient *sptr)
+int _find_spamfilter_user(aClient *sptr, int flags)
 {
 char spamfilter_user[NICKLEN + USERLEN + HOSTLEN + REALLEN + 64]; /* n!u@h:r */
 
@@ -1337,7 +1337,66 @@ char spamfilter_user[NICKLEN + USERLEN + HOSTLEN + REALLEN + 64]; /* n!u@h:r */
 
 	ircsprintf(spamfilter_user, "%s!%s@%s:%s",
 		sptr->name, sptr->user->username, sptr->user->realhost, sptr->info);
-	return dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL);
+	return dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL, flags);
+}
+
+int spamfilter_check_users(aTKline *tk)
+{
+char spamfilter_user[NICKLEN + USERLEN + HOSTLEN + REALLEN + 64]; /* n!u@h:r */
+char buf[1024];
+int i, matches = 0;
+aClient *acptr;
+
+	for (i = LastSlot; i >= 0; i--)
+		if ((acptr = local[i]) && MyClient(acptr))
+		{
+			ircsprintf(spamfilter_user, "%s!%s@%s:%s",
+				acptr->name, acptr->user->username, acptr->user->realhost, acptr->info);
+			if (regexec(&tk->ptr.spamf->expr, spamfilter_user, 0, NULL, 0))
+				continue; /* No match */
+
+			/* matched! */
+			ircsprintf(buf, "[Spamfilter] %s!%s@%s coincide con el filtro '%s': [%s: '%s'] [%s]",
+				acptr->name, acptr->user->username, acptr->user->realhost,
+				tk->reason,
+				"user", spamfilter_user,
+				unreal_decodespace(tk->ptr.spamf->tkl_reason));
+
+			sendto_snomask(SNO_SPAMF, "%s", buf);
+			sendto_serv_butone_token(NULL, me.name, MSG_SENDSNO, TOK_SENDSNO, "S :%s", buf);
+			ircd_log(LOG_SPAMFILTER, "%s", buf);
+			RunHook6(HOOKTYPE_LOCAL_SPAMFILTER, acptr, spamfilter_user, spamfilter_user, SPAMF_USER, NULL, tk);
+			matches++;
+		}
+		
+	return matches;
+}
+
+int spamfilter_check_all_users(aClient *from, aTKline *tk)
+{
+char spamfilter_user[NICKLEN + USERLEN + HOSTLEN + REALLEN + 64]; /* n!u@h:r */
+char buf[1024];
+int i, matches = 0;
+aClient *acptr;
+
+	for (acptr = client; acptr; acptr = acptr->next)
+		if (IsPerson(acptr))
+		{
+			ircsprintf(spamfilter_user, "%s!%s@%s:%s",
+				acptr->name, acptr->user->username, acptr->user->realhost, acptr->info);
+			if (regexec(&tk->ptr.spamf->expr, spamfilter_user, 0, NULL, 0))
+				continue; /* No match */
+
+			/* matched! */
+			sendnotice(from, "[Spamfilter] %s!%s@%s coincide con el filtro '%s': [%s: '%s'] [%s]",
+				acptr->name, acptr->user->username, acptr->user->realhost,
+				tk->reason,
+				"user", spamfilter_user,
+				unreal_decodespace(tk->ptr.spamf->tkl_reason));
+			matches++;
+		}
+		
+	return matches;
 }
 
 aTKline *_find_qline(aClient *cptr, char *nick, int *ishold)
@@ -1908,6 +1967,9 @@ int _m_tkl(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			      gmt, parv[5]);
 			  sendto_snomask(SNO_TKL, "*** %s", buf);
 			  ircd_log(LOG_TKL, "%s", buf);
+			  
+			  if (tk && (tk->ptr.spamf->action == BAN_ACT_WARN) && (tk->subtype & SPAMF_USER))
+			  	spamfilter_check_users(tk);
 		  } else {
 			char buf[512];
 			  if (expiry_1 != 0)
@@ -2223,8 +2285,10 @@ SpamExcept *e;
 }
 
 /** dospamfilter: executes the spamfilter onto the string.
- * str:		the text (eg msg text, notice text, part text, quit text, etc
- * type:	the spamfilter type (SPAMF_*)
+ * @param str		The text (eg msg text, notice text, part text, quit text, etc
+ * @param type		The spamfilter type (SPAMF_*)
+ * @param target	The target as a text string (can be NULL, eg: for away)
+ * @param flags		Any flags (SPAMFLAG_*)
  * RETURN VALUE:
  * 0 if not matched, non-0 if it should be blocked.
  * Return value can be FLUSH_BUFFER (-2) which means 'sptr' is
@@ -2232,7 +2296,7 @@ SpamExcept *e;
  * (like from m_message, m_part, m_quit, etc).
  */
  
-int _dospamfilter(aClient *sptr, char *str_in, int type, char *target)
+int _dospamfilter(aClient *sptr, char *str_in, int type, char *target, int flags)
 {
 aTKline *tk;
 char *str;
@@ -2256,6 +2320,8 @@ char *str;
 	{
 		if (!(tk->subtype & type))
 			continue;
+		if ((flags & SPAMFLAG_NOWARN) && (tk->ptr.spamf->action == BAN_ACT_WARN))
+			continue;
 		if (!regexec(&tk->ptr.spamf->expr, str, 0, NULL, 0))
 		{
 			/* matched! */
@@ -2274,7 +2340,7 @@ char *str;
 			ircsprintf(buf, "[Spamfilter] %s!%s@%s matches filter '%s': [%s%s: '%s'] [%s]",
 				sptr->name, sptr->user->username, sptr->user->realhost,
 				tk->reason,
-				spamfilter_inttostring_long(type), targetbuf, str,
+				cmdname_by_spamftarget(type), targetbuf, str,
 				unreal_decodespace(tk->ptr.spamf->tkl_reason));
 
 			sendto_snomask(SNO_SPAMF, "%s", buf);
@@ -2321,6 +2387,14 @@ char *str;
 				}
 				return -1;
 			} else
+			if (tk->ptr.spamf->action == BAN_ACT_WARN)
+			{
+				if ((type != SPAMF_USER) && (type != SPAMF_QUIT))
+					sendto_one(sptr, rpl_str(RPL_SPAMCMDFWD),
+						me.name, sptr->name, cmdname_by_spamftarget(type),
+						unreal_decodespace(tk->ptr.spamf->tkl_reason));
+				return 0;
+			} else
 			if (tk->ptr.spamf->action == BAN_ACT_DCCBLOCK)
 			{
 				if (type == SPAMF_DCC)
@@ -2347,7 +2421,7 @@ char *str;
 					/* Problem! viruschan selected, but we got a just connected user,
 					 * this causes severe problems (atm). [this check is also present
 					 * when adding the thing]. We just kill them instead for now...
-					 * which seems the best alternative: adding shun/*lines is clearly
+					 * which seems the best alternative: adding shun and *lines is clearly
 					 * not what the oper/service wanted, blocking/tempshunning does not
 					 * give the user any hint about what is going in, and KILL is most
 					 * obvious/clear, and less intrussive (you remove the spamfilter and
@@ -2377,7 +2451,7 @@ char *str;
 				{
 					ircsprintf(chbuf, "@%s", chptr->chname);
 					ircsprintf(buf, "[Spamfilter] %s matched filter '%s' [%s%s] [%s]",
-						sptr->name, tk->reason, spamfilter_inttostring_long(type), targetbuf,
+						sptr->name, tk->reason, cmdname_by_spamftarget(type), targetbuf,
 						unreal_decodespace(tk->ptr.spamf->tkl_reason));
 					sendto_channelprefix_butone_tok(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
 						MSG_NOTICE, TOK_NOTICE, chbuf, buf, 0);

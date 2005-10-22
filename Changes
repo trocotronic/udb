@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.11 2005-09-22 20:08:04 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.12 2005-10-22 14:00:38 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -862,3 +862,52 @@
 - Fixed (important?) reference count bug regarding sptr->serv->conf. I don't know what
   effects this caused (memory corruption?), but it didn't look good ;).
 - Fixed an invalid badword block in the conf causing a crash, reported by Monk (#2639).
+- [Internal] Code cleanup for spamfilter target/bantype routines
+- Added 'warn' target which is basically the same as 'block' except it does not block ;).
+  It also sends a numeric to the user saying the command has been processed, but a copy
+  has been sent to ircops. I feel this is a good idea for privacy reasons (anti-spy),
+  though I don't know how users will react to this. If you are using this on your network
+  and get users bothering you about it (or before that ;p), it's probably a good idea
+  to explain it somewhere on your site or FAQ :).
+  Example usage:
+   /spamfilter add p warn - Testing_mirc_decode_filter \$decode\(.*\)
+  [WARNING] The numeric text is likely to change in the next few weeks (early-cvs-commit).
+- If a class block was removed and any other blocks would be referencing the class block
+  (such as: allow::class, oper::class, link::class), then this would cause a crash.
+  Reported by Mike_ (#0002646).
+- Changed the way we build most of the .so's: the .o files of individual modules that were
+  generated (for linkage by commands.so), are now used to generate the .so files of the
+  individual modules as well (eg: m_setname.o -link-> m_setname.so). This reduces compile
+  time ('make') on my machine by 33%, so it's quite noticable ;).
+- Added doc/technical/serverprotocol.html created by aquanight (updates will follow soon).
+- Documented set::channel-command-prefix a bit more, and also changed the default from
+  "`" to "`!." which seems much more reasonable / widespread :).
+- Some m_restart cleanups, suggested by w00t (#2652).
+- Removed all old resolver code and switched over to c-ares (+our caching routines).
+  This should get rid of some annoying untracable (and usually rare) crashbugs in the
+  old resolver. Besides that, it makes things look more clean and understandable.
+  This should be the fix for the following bugids (all the same issue): #2499, #2551, #2558,
+  #2559, #2603, #2642, #2502, #2501, #2618, #2616.
+  Feedback and testing is very much welcomed (syzop@unrealircd.com).
+- Fixed SSL + new resolver problem, would cause an "interesting flood" of messages / 100% CPU.
+  Reported by Trocotronic (#0002659).
+- Fixed a problem with entries in the hosts file (such as, usually, localhost), this would
+  cause an unresolved host and a 30s delay for the user, even though resolving succeeded.
+- When OPEROVERRIDE_VERIFY is enabled, we now allow opers to still join any channels listed
+  in set::auto-join or set::oper-auto-join, even if they are +s/+p. Suggested by ultrotter
+  (#0002644).
+- Added 4 UNREAL_VERSION_* macro's that can be useful for 3rd party modules to find out the
+  unreal version that the user is using. I presume this can be helpful (although nobody ever
+  suggested it ;p). The macros (#define's) are:
+  UNREAL_VERSION_GENERATION    The generation version number        eg: 3 for 3.2.4
+  UNREAL_VERSION_MAJOR         The major version number             eg: 2 for 3.2.4
+  UNREAL_VERSION_MINOR         The minor version number             eg: 4 for 3.2.4
+                               This can be negative for unstable,
+                               alpha and beta versions.
+  UNREAL_VERSION_TIME          Year + week of the day (starting     eg: 200541
+                               on Monday), this is updated on
+                               the CVS server every week.
+  The first 3 are for nicely identifiying the version, the 4th can be useful in case
+  you want to support CVS and/or want some more control.
+- Fixed crash bug (due to new resolver) if not using 1 general *@* / *@* allow block,
+  reported by Daniel.

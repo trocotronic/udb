@@ -1519,6 +1519,7 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->spamfilter_ban_reason = strdup("Spam/advertising");
 	i->spamfilter_virus_help_channel = strdup("#help");
 	i->maxdccallow = 10;
+	i->channel_command_prefix = strdup("`!.");
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -1627,7 +1628,7 @@ int	init_conf(char *rootconf, int rehash)
 		if (rehash)
 		{
 			Hook *h;
-			del_async_connects();
+			unrealdns_delasyncconnects();
 			config_rehash();
 #ifndef STATIC_LINKING
 			Unload_all_loaded_modules();
@@ -2584,41 +2585,36 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 			continue;
 		if (aconf->flags.ssl && !IsSecure(cptr))
 			continue;
-		if (hp)
-			for (i = 0, hname = hp->h_name; hname;
-			    hname = hp->h_aliases[i++])
+		if (hp && hp->h_name)
+		{
+			hname = hp->h_name;
+			strncpyzt(fullname, hname, sizeof(fullname));
+			add_local_domain(fullname, HOSTLEN - strlen(fullname));
+			Debug((DEBUG_DNS, "a_il: %s->%s", sockhost, fullname));
+			if (index(aconf->hostname, '@'))
 			{
-				strncpyzt(fullname, hname,
-				    sizeof(fullname));
-				add_local_domain(fullname,
-				    HOSTLEN - strlen(fullname));
-				Debug((DEBUG_DNS, "a_il: %s->%s",
-				    sockhost, fullname));
-				if (index(aconf->hostname, '@'))
-				{
-					/*
-					 * Doing strlcpy / strlcat here
-					 * would simply be a waste. We are
-					 * ALREADY sure that it is proper 
-					 * lengths
-					*/
-					if (aconf->flags.noident)
-						strcpy(uhost, username);
-					else
-						(void)strcpy(uhost, cptr->username);
-					(void)strcat(uhost, "@");
-				}
-				else
-					*uhost = '\0';
-				/* 
-				 * Same here as above
-				 * -Stskeeps 
+				/*
+				 * Doing strlcpy / strlcat here
+				 * would simply be a waste. We are
+				 * ALREADY sure that it is proper 
+				 * lengths
 				*/
-				(void)strncat(uhost, fullname,
-				    sizeof(uhost) - strlen(uhost));
-				if (!match(aconf->hostname, uhost))
-					goto attach;
+				if (aconf->flags.noident)
+					strcpy(uhost, username);
+				else
+					strcpy(uhost, cptr->username);
+				strcat(uhost, "@");
 			}
+			else
+				*uhost = '\0';
+			/* 
+			 * Same here as above
+			 * -Stskeeps 
+			*/
+			strncat(uhost, fullname, sizeof(uhost) - strlen(uhost));
+			if (!match(aconf->hostname, uhost))
+				goto attach;
+		}
 
 		if (index(aconf->ip, '@'))
 		{
@@ -3149,9 +3145,9 @@ int	_conf_oper(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "class"))
 		{
 			oper->class = Find_class(cep->ce_vardata);
-			if (!oper->class)
+			if (!oper->class || (oper->class->flag.temporary == 1))
 			{
-				config_status("%s:%i: illegal oper::class, clase '%s' desconocida. Se usará la clase 'default'",
+				config_status("%s:%i: illegal oper::class, clase '%s' desconocida, se usará la 'default'",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
 					cep->ce_vardata);
 				oper->class = default_class;
@@ -4289,7 +4285,7 @@ int	_conf_allow(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "class"))
 		{
 			allow->class = Find_class(cep->ce_vardata);
-			if (!allow->class)
+			if (!allow->class || (allow->class->flag.temporary == 1))
 			{
 				config_status("%s:%i: allow::class prohibida, clase desconocida '%s', se usará 'default'",
 					cep->ce_fileptr->cf_filename,
@@ -5873,7 +5869,7 @@ int	_conf_link(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "class"))
 		{
 			link->class = Find_class(cep->ce_vardata);
-			if (!link->class)
+			if (!link->class || (link->class->flag.temporary == 1))
 			{
 				config_status("%s:%i: prohibido link::class, clase desconocida '%s', se usará 'default'",
 					cep->ce_fileptr->cf_filename,

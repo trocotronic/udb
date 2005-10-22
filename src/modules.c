@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.9 2005-09-22 20:08:11 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.10 2005-10-22 14:00:44 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -98,14 +98,14 @@ aTKline *(*tkl_expire)(aTKline * tmp);
 EVENT((*tkl_check_expire));
 int (*find_tkline_match)(aClient *cptr, int xx);
 int (*find_shun)(aClient *cptr);
-int(*find_spamfilter_user)(aClient *sptr);
+int(*find_spamfilter_user)(aClient *sptr, int flags);
 aTKline *(*find_qline)(aClient *cptr, char *nick, int *ishold);
 int  (*find_tkline_match_zap)(aClient *cptr);
 void (*tkl_stats)(aClient *cptr, int type, char *para);
 void (*tkl_synch)(aClient *sptr);
 int (*m_tkl)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 int (*place_host_ban)(aClient *sptr, int action, char *reason, long duration);
-int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target);
+int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags);
 
 
 static const EfunctionsList efunction_table[MAXEFUNCTIONS] = {
@@ -560,7 +560,9 @@ void Unload_all_loaded_modules(void)
 		}
 		DelListItem(mi,Modules);
 		irc_dlclose(mi->dll);
+#ifndef DEBUGMODE
 		remove(mi->tmp_file);
+#endif
 		MyFree(mi->tmp_file);
 		MyFree(mi);
 	}

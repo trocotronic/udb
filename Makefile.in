@@ -16,7 +16,7 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*  
-#*   $Id: Makefile.in,v 1.1.1.4 2005-03-21 10:36:02 Trocotronic Exp $
+#*   $Id: Makefile.in,v 1.1.1.5 2005-10-22 14:00:38 Trocotronic Exp $
 #*/
 
 CC=@CC@
@@ -34,11 +34,11 @@ FROMDOS=/home/cmunk/bin/4dos
 #
 
 #XCFLAGS=-O -g -export-dynamic
-IRCDLIBS=@IRCDLIBS@ @TRELIBS@
+IRCDLIBS=@IRCDLIBS@ @TRELIBS@ @CARESLIBS@
 CRYPTOLIB=@CRYPTOLIB@
 OPENSSLINCLUDES=
 
-XCFLAGS=-I@TREINCDIR@ @CFLAGS@
+XCFLAGS=-I@TREINCDIR@ -I@CARESINCDIR@ @CFLAGS@
 #
 # use the following on MIPS:
 #CFLAGS= -systype bsd43 -DSYSTYPE_BSD43 -I$(INCLUDEDIR)

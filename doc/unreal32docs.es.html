@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.es.html,v 1.2.2.5 2005-09-22 20:08:06 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.es.html,v 1.2.2.6 2005-10-22 14:00:40 Trocotronic Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -2086,7 +2086,7 @@ set {
 <p><font class="set">set::maxdccallow &lt;n&ordm;-entradas&gt;;</font><br>
   L&iacute;mite de entradas en la lista dccallow.</p>
 <p><font class="set">set::channel-command-prefix &lt;prefijo&gt;;</font><br>
-  Especifica el prefijo para mostrar el mensaje a los usuarios que est&eacute;n con +d. Suele usarse para bots. Si se omite, el prefijo es &quot;`&quot;. </p>
+  Especifica el prefijo para mostrar el mensaje a los usuarios que est&eacute;n con +d. Suele usarse para bots. Si se omite, el prefijo es &quot;`!.&quot;. </p>
   <p><font class="set">set::allowed-nickchars { &lt;list&gt; };</font><br>
   Juego de caracteres / lenguajes permitidos en los nicks, vea <a href="#feature_nickchars">Configuraci&oacute;n de caracteres para nicks</a>.</p>
 <p><font class="set">set::allow-userhost-change [never|always|not-on-channels|force-rejoin]</font><br>
@@ -2409,7 +2409,7 @@ set {
   </tr>
   <tr> 
     <td><div align="center">d</div></td>
-    <td>No recibe mensajes de canal </td>
+    <td>No recibes mensajes de canales (a menos que estén prefijados por los caracteres especificados en set::channel-command-prefix)</td>
   </tr>
   <tr> 
     <td><div align="center">G</div></td>
@@ -2498,6 +2498,28 @@ set {
   <tr>
     <td><div align="center">z</div></td>
     <td>Cliente SSL</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<table width="75%" border="1">
+  <tr> 
+    <td><div align="center"><b>Modo</b></div></td>
+    <td><div align="center"><b>Descripci&oacute;n</b></div></td>
+  </tr>
+  <tr> 
+    <td colspan="2"><div align="center"><b>Modos de usuario en UDB</b></div></td>
+  </tr>
+  <tr> 
+    <td><div align="center">S</div></td>
+    <td>Nick suspendido. No recibe +r ni demás flags. Carece de privilegios</td>
+  </tr>
+  <tr> 
+    <td><div align="center">k</div></td>
+    <td>Modo de protección para operadores </td>
+  </tr>
+  <tr> 
+    <td><div align="center">X</div></td>
+    <td>Puede ver la ip real en /whois </td>
   </tr>
 </table>
 <p></p></div>

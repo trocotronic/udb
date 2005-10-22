@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.7 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.8 2005-10-22 14:00:47 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -343,7 +343,7 @@ CMD_FUNC(m_protoctl)
 		{
 			if (strncmp(s, UDB_VER, strlen(UDB_VER)) == 0)
 			{
-				char *c = NULL;
+				char *c = NULL, *parm;
 #ifndef PROTOCTL_MADNESS
 				if (remove)
 				{
@@ -353,8 +353,16 @@ CMD_FUNC(m_protoctl)
 #endif
 				Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
 				cptr->proto |= PROTO_UDB;
-				if (!(c = strchr(s, '=')) || (match(grifo, c+1) && match(c+1, grifo)))
+				if (!(c = strchr(s, '=')))
+					return exit_client(cptr, sptr, &me, "Faltan datos UDB");
+				parm = strtok(c+1, ",");
+				if (!parm || (match(grifo, parm) && match(parm, parm)))
 					return exit_client(cptr, sptr, &me, "ERROR: Propagador no coincide");
+				for (parm = strtok(NULL, ","); parm; parm = strtok(NULL, ","))
+				{
+					if (!strcmp(parm, "PMODE"))
+						cptr->proto |= PROTO_PMODE;
+				}
 			}
 			else
 				return exit_client(cptr, sptr, &me, "ERROR: Versión UDB incorrecta");

@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.2 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.3 2005-10-22 14:00:46 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -193,7 +193,7 @@ Ban *banned;
 	for (lp = sptr->user->invited; lp; lp = lp->next)
 		if (lp->value.chptr == chptr)
 			return 0;
-			
+
         if ((chptr->mode.limit && chptr->users >= chptr->mode.limit))
         {
                 if (chptr->mode.link)
@@ -236,7 +236,7 @@ Ban *banned;
 #else
        	 if (IsOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
 #endif
-            chptr->mode.mode & MODE_PRIVATE))
+            chptr->mode.mode & MODE_PRIVATE) && !is_autojoin_chan(chptr->chname))
                 return (ERR_OPERSPVERIFY);
 #endif
 #endif

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.5 2005-03-21 10:36:19 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.6 2005-10-22 14:00:43 Trocotronic Exp $
  */
 
 /*
@@ -364,6 +364,8 @@
 #define RPL_DUMPING			 640
 #define RPL_DUMPRPL			 641
 #define RPL_EODUMP           642
+
+#define RPL_SPAMCMDFWD       659
 
 #define RPL_WHOISSECURE      671
 

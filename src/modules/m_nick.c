@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.2 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.3 2005-10-22 14:00:46 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -310,7 +310,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		int xx;
 		ircsprintf(spamfilter_user, "%s!%s@%s:%s",
 			nick, sptr->user->username, sptr->user->realhost, sptr->info);
-		xx = dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL);
+		xx = dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL, 0);
 		if (xx < 0)
 			return xx;
 	}
@@ -1148,7 +1148,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 			return xx;
 		}
 		find_shun(sptr);
-		xx = find_spamfilter_user(sptr);
+		xx = find_spamfilter_user(sptr, 0);
 		if (xx < 0)
 			return xx;
 		RunHookReturnInt(HOOKTYPE_PRE_LOCAL_CONNECT, sptr, !=0);

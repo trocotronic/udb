@@ -54,7 +54,7 @@ DLLFUNC int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC ModuleHeader MOD_HEADER(m_away)
   = {
 	"m_away",
-	"$Id: m_away.c,v 1.1.1.4 2005-03-21 10:36:42 Trocotronic Exp $",
+	"$Id: m_away.c,v 1.1.1.5 2005-10-22 14:00:46 Trocotronic Exp $",
 	"command /away", 
 	"3.2-b8-1",
 	NULL 
@@ -122,7 +122,7 @@ int n;
                 return 0;
         }
 
-    n = dospamfilter(sptr, parv[1], SPAMF_AWAY, NULL);
+    n = dospamfilter(sptr, parv[1], SPAMF_AWAY, NULL, 0);
     if (n < 0)
         return n;
 

@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.4 2005-03-21 10:37:09 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.5 2005-10-22 14:00:47 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -248,7 +248,7 @@ DLLFUNC CMD_FUNC(m_topic)
 				Hook *tmphook;
 				int n;
 				
-				if ((n = dospamfilter(sptr, topic, SPAMF_TOPIC, chptr->chname)) < 0)
+				if ((n = dospamfilter(sptr, topic, SPAMF_TOPIC, chptr->chname, 0)) < 0)
 					return n;
 
 				for (tmphook = Hooks[HOOKTYPE_PRE_LOCAL_TOPIC]; tmphook; tmphook = tmphook->next) {

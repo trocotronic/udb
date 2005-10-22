@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.7 2005-10-22 14:00:47 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -799,7 +799,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	{
 		Udb *aux;
 		for (aux = ultimo; aux; aux = aux->mid)
-			sendto_one(cptr, ":%s DB %s INF %c %s %lu", me.name, cptr->name, LETRA(aux), aux->data_char, gmts[ID(aux)]);
+			sendto_one(cptr, ":%s DB %s INF %c %s %lu", me.name, cptr->name, bloques[aux->id], aux->data_char, gmts[aux->id]);
 	}
 	if (!match(grifo, cptr->name))
 		propaga = cptr;

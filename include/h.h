@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.10 2005-09-22 20:08:09 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.11 2005-10-22 14:00:43 Trocotronic Exp $
  */
 
 /*
@@ -385,7 +385,7 @@ extern struct hostent *get_res(char *);
 extern struct hostent *gethost_byaddr(char *, Link *);
 extern struct hostent *gethost_byname(char *, Link *);
 extern void flush_cache();
-extern int init_resolver(int);
+extern void init_resolver(void);
 extern time_t timeout_query_list(time_t);
 extern time_t expire_cache(time_t);
 extern void del_queries(char *);
@@ -738,14 +738,14 @@ extern MODVAR aTKline *(*tkl_expire)(aTKline * tmp);
 extern MODVAR EVENT((*tkl_check_expire));
 extern MODVAR int (*find_tkline_match)(aClient *cptr, int xx);
 extern MODVAR int (*find_shun)(aClient *cptr);
-extern MODVAR int (*find_spamfilter_user)(aClient *sptr);
+extern MODVAR int (*find_spamfilter_user)(aClient *sptr, int flags);
 extern MODVAR aTKline *(*find_qline)(aClient *cptr, char *nick, int *ishold);
 extern MODVAR int  (*find_tkline_match_zap)(aClient *cptr);
 extern MODVAR void (*tkl_stats)(aClient *cptr, int type, char *para);
 extern MODVAR void (*tkl_synch)(aClient *sptr);
 extern MODVAR int (*m_tkl)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 extern MODVAR int (*place_host_ban)(aClient *sptr, int action, char *reason, long duration);
-extern MODVAR int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target);
+extern MODVAR int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags);
 /* /Efuncs */
 extern MODVAR aMotd *opermotd, *svsmotd, *motd, *botmotd, *smotd;
 extern MODVAR int max_connection_count;
@@ -770,3 +770,12 @@ extern void charsys_addallowed(char *s);
 extern void charsys_reset(void);
 extern MODVAR char langsinuse[4096];
 extern MODVAR aTKline *tklines[TKLISTLEN];
+extern char *cmdname_by_spamftarget(int target);
+extern int isipv6(struct IN_ADDR *addr);
+extern void inet4_to_inet6(const void *src_in, void *dst_in);
+extern void unrealdns_delreq_bycptr(aClient *cptr);
+extern void inet6_to_inet4(const void *src, void *dst);
+extern void sendtxtnumeric(aClient *to, char *pattern, ...);
+extern void unrealdns_gethostbyname_link(char *name, ConfigItem_link *conf);
+extern void unrealdns_delasyncconnects(void);
+extern int is_autojoin_chan(char *chname);

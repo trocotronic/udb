@@ -735,7 +735,7 @@ static char *replies[] = {
 /* 656 */ NULL,
 /* 657 */ NULL,
 /* 658 */ NULL,
-/* 659 */ NULL,
+/* 659 RPL_SPAMCMDFWD */ ":%s 659 %s %s :Comando procesado, pero se ha enviado una copa a los operadores para analizarla (propósitos anti-spam). [%s]",
 /* 660 */ NULL, /* kineircd */
 /* 661 */ NULL, /* kineircd */
 /* 662 */ NULL, /* kineircd */

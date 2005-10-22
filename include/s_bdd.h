@@ -27,9 +27,7 @@
 #define DB_DIR "database/"
 #endif
 #define DBMAX 128
-#define UDB_VER "UDB3.2"
-#define ID(x) (x->id >> 8)
-#define LETRA(x) (x->id & 0xFF)
+#define UDB_VER "UDB3.2.1"
 typedef struct _udb Udb;
 struct _udb
 {
@@ -70,8 +68,8 @@ DLLEXP extern MODVAR time_t gmts[DBMAX];
 DLLEXP extern MODVAR char *grifo;
 
 DLLFUNC extern char *make_virtualhost(aClient *, char *, char *, int);
-DLLFUNC extern Udb *busca_registro(int, char *), *busca_bloque(char *, Udb *);
-DLLFUNC extern int level_oper_bdd(char *);
+DLLFUNC extern Udb *busca_registro(u_int, char *), *busca_bloque(char *, Udb *);
+DLLFUNC extern u_int level_oper_bdd(char *);
 DLLFUNC char *get_visiblehost(aClient *, aClient *);
 DLLFUNC extern char *chan_nick(int);
 DLLFUNC extern char *chan_mask(int);
@@ -82,6 +80,7 @@ DLLFUNC extern int tipo_de_pass(char *, char *, Udb *);
 DLLEXP extern MODVAR int pases;
 DLLEXP extern MODVAR int intervalo;
 DLLEXP extern MODVAR aClient *propaga;
+DLLEXP extern MODVAR char bloques[DBMAX];
 
 #define BorraIpVirtual(x)							\
 	do									\
@@ -117,6 +116,7 @@ DLLEXP extern MODVAR aClient *propaga;
  *	- BDD_ROOT: recibe +oN y privilegios de servidor (/rehash, /restart, etc.)
  * - N::<nick>::desafio <metodo> -> metodo de cifrado de la contraseña. Métodos que acepta:
  * 		{"plain"|"crypt"|"md5"|"sha1"|"sslclientcert"|"ripemd160"}
+ * 		Si no se especifica, se usará el que haya en el bloque S::desafio
  * - N::<nick>::modos <modos> -> contiene los modos de operador que puede utilizar:
  *		ohaAOkNCWqHX
  * - N::<nick>:snomasks <snomask> -> contiene las snomask de operador que puede utilizar:
@@ -150,6 +150,7 @@ DLLEXP extern MODVAR aClient *propaga;
  * - S::clones *<nº clones> -> número de clones permitidos en la red
  * - S::quit_ips <mensaje quit> -> mensaje que se muestra si esta conexión sobrepasa su capacidad otorgada
  * - S::quit_clones <mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos
+ * - S::desafio <metodo> -> Desafío global con el que se cifran las contraseñas
  */
 
 #define E_UDB_NODB 1 /* no existe bloque */
@@ -218,3 +219,5 @@ DLLEXP extern MODVAR aClient *propaga;
 #define S_QIP_TOK "T"
 #define S_QCL "quit_clones"
 #define S_QCL_TOK "Q"
+#define S_DES "desafio"
+#define S_DES_TOK "D"

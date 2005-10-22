@@ -696,7 +696,7 @@ int  is_chanowner(aClient *cptr, aChannel *chptr)
 	{
 		if ((bloq = busca_bloque(C_FUN_TOK, reg)))
 		{
-			if (IsARegNick(cptr) && !strcasecmp(bloq->data_char, cptr->name))
+			if (IsARegNick(cptr) && !compara(bloq->data_char, cptr->name))
 				return 1;
 		}
 	}

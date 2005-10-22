@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.7 2005-03-21 10:36:56 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.8 2005-10-22 14:00:46 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -369,7 +369,8 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 				OPER_AUTO_JOIN_CHANS,
 				NULL
 			};
-			do_cmd(cptr, sptr, "JOIN", 3, chans);
+			if (do_cmd(cptr, sptr, "JOIN", 3, chans) == FLUSH_BUFFER)
+				return FLUSH_BUFFER;
 		}
 		ircd_log(LOG_OPER, "OPER (%s) by (%s!%s@%s)", name, parv[0], sptr->user->username,
 			sptr->sockhost);

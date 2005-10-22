@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.2 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.3 2005-10-22 14:00:46 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -1025,7 +1025,11 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  && MyClient(cptr) && !IsNetAdmin(cptr) && (what == MODE_DEL))
 		  {
 			char errbuf[NICKLEN+50];
+#ifdef UDB
 			ircsprintf(errbuf, "%s es un %s de Red", member->cptr->name, IsBot(member->cptr) ? "Servicio" : "Operador");
+#else
+			ircsprintf(errbuf, "%s is a network service", member->cptr->name);
+#endif
 			sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
 				   modechar, errbuf);
 			break;

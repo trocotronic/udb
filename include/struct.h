@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.9 2005-09-22 20:08:10 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.10 2005-10-22 14:00:43 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -290,6 +290,9 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OPT_NOT_TKLEXT	0x8000
 #define OPT_NICKIP	0x10000
 #define OPT_NOT_NICKIP  0x20000
+#ifdef UDB
+#define OPT_NOT_PMODE   0x40000
+#endif
 
 /* client->flags (32 bits): 28 used, 4 free */
 #define	FLAGS_PINGSENT   0x0001	/* Unreplied ping sent */
@@ -359,7 +362,8 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define PROTO_TKLEXT	0x1000	/* TKL extension: 10 parameters instead of 8 (3.2RC2) */
 #define PROTO_NICKIP	0x2000  /* Send IP addresses in the NICK command */
 #ifdef UDB
-#define PROTO_UDB       0x4000
+#define PROTO_UDB       0x4000 /* soporta UDB */
+#define PROTO_PMODE	0x8000 /* soporta PMODE, no es necesario enviarle los cambios de modo */
 #endif
 
 /* note: client->proto is currently a 'short' (max is 0x8000) */
@@ -839,6 +843,9 @@ struct Server {
 #define SPAMF_AWAY			0x0100 /* a */
 #define SPAMF_TOPIC			0x0200 /* t */
 
+/* Other flags only for function calls: */
+#define SPAMFLAG_NOWARN		0x0001
+
 struct _spamfilter {
 	unsigned short action; /* see BAN_ACT* */
 	regex_t expr;
@@ -1084,6 +1091,7 @@ struct _configflag_tld
 #define BAN_ACT_BLOCK		8
 #define BAN_ACT_DCCBLOCK	9
 #define BAN_ACT_VIRUSCHAN	10
+#define BAN_ACT_WARN		11
 
 
 #define CRULE_ALL		0

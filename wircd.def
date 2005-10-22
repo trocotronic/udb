@@ -197,7 +197,6 @@ EXPORTS
 	WHOWAS
 	WHOWASHASH
 	WSAErrors
-	__ircd_dn_skipname
 	_match
 	add_Command
 	add_CommandX
@@ -294,6 +293,7 @@ EXPORTS
 	close_connection
 	close_connections
 	close_listeners
+	cmdname_by_spamftarget
 	cmdstr
 	cmodej_addentry
 	cmodej_cleanup_structs
@@ -368,7 +368,6 @@ EXPORTS
 	create_snomask
 	create_tkl_except
 	creation
-	cres_mem
 	crule__andor
 	crule__not
 	crule_connected
@@ -412,14 +411,12 @@ EXPORTS
 	default_fdlist
 	del_Command
 	del_ListItem
-	del_async_connects
 	del_dccallow
 	del_from_channel_hash_table
 	del_from_client_hash_table
 	del_from_watch_hash_table
 	del_invite
 	del_listmode
-	del_queries
 	del_silence
 	del_throttling_bucket
 	delete_classblock
@@ -427,7 +424,6 @@ EXPORTS
 	delfrom_fdlist
 	deliver_it
 	dgets
-	dn_skipname
 	do_chanflood
 	do_chanflood_action
 	do_cmd
@@ -447,7 +443,6 @@ EXPORTS
 	encode_ip
 	events
 	exit_client
-	expire_cache
 	extban_conv_param_nuh
 	extban_init
 	extban_modec_conv_param
@@ -501,7 +496,6 @@ EXPORTS
 	flag_add
 	flag_del
 	flinks
-	flush_cache
 	flush_connections
 	flush_fdlist_connections
 	free_ban
@@ -531,18 +525,10 @@ EXPORTS
 	get_history
 	get_mode_str
 	get_modestr
-	get_res
-	get_res_from_reg_9x
-	get_res_from_reg_nt
-	get_res_interfaces_nt
-	get_res_nt
 	get_sno_str
 	get_snostr
 	get_sockerr
 	get_sockhost
-	gethost_byaddr
-	gethost_byname
-	gethost_byname_revquery
 	getrandom16
 	getrandom32
 	getrandom8
@@ -597,17 +583,7 @@ EXPORTS
 	initwhowas
 	int6_to_base64_map
 	ipport_seperate
-	ircd__putlong
-	ircd__putshort
-	ircd_dn_comp
-	ircd_dn_expand
-	ircd_getlong
-	ircd_getshort
 	ircd_log
-	ircd_res
-	ircd_res_init
-	ircd_res_mkquery
-	ircd_res_randomid
 	ircsprintf
 	ircst
 	ircstp
@@ -736,8 +712,6 @@ EXPORTS
 	read_file_ex
 	read_message
 	readcalls
-	regexec
-	regfree
 	register_user
 	rehash
 	rehash_internal
@@ -756,7 +730,6 @@ EXPORTS
 	requiredstuff
 	reread_motdsandrules
 	reset_help
-	resfd
 	restart
 	rfc2time
 	rfctime
@@ -846,7 +819,6 @@ EXPORTS
 	spamf_ugly_vchanoverride
 	spamfilter_getconftargets
 	spamfilter_gettargets
-	spamfilter_inttostring_long
 	spamfilter_target_inttostring
 	start_auth
 	start_of_normal_client_handshake
@@ -865,7 +837,6 @@ EXPORTS
 	tempiConf
 	throttle_can_connect
 	timeofday
-	timeout_query_list
 	tkl_add_line
 	tkl_check_expire
 	tkl_check_local_remove_shun

@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.3 2005-09-22 20:08:04 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.4 2005-10-22 14:00:38 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -123,4 +123,17 @@
 170905111 - Cambio la directriz servidor_emisor por propagador.
 170905112 - La directriz propagador acepta comodines, pero sólo un servidor propagador podrá estar linkado a la red.
 210905113 - Arreglado un fallo que se producía con el propagador cuando era remoto, aviso de MaD (#0000117).
-230905114 - *** Unreal 3.2.3pre1 + UDB 3.2 es
+230905114 - *** Unreal 3.2.4pre1 + UDB 3.2 es
+260905115 - Se modifica el sistema de paso de valores y se quitan todos los casts. Podía causar desbordamiento de pila.
+270905116 - Arreglado un cuelge al cargar bloques que requieren cadenas y sólo tenían enteros, aviso de Arthas~ (#0000121).
+300905117 - Se añade la directriz S::desafio (o S::D) que establece el desafío global con el que las contraseñas se cifran.
+		El desafio individual para cada nick tendrá preferencia sobre el global. Sugerencia de MaD (#0000122).
+031005118 - Arreglado un fallo con el punto anterior.
+091005119 - Arreglado un fallo que no permitía compilar sin soporte UDB.
+151005120 - Añadidos un sistema para parsear variantes de UDB.
+151005121 - Añadida la variante PMODE: no es necesario que le manden los cambios de modos.
+151005122 - Añadida la variante SD: tiene soporte S::D.
+151005123 - Subo a la versión 3.2.4pre2 + UDB 3.2.1.
+161005124 - Arreglado un fallo con el refresco de S::D, aviso de STeaL (#0000127).
+201005125 - Se añaden los modos de usuario en la documentación, sugerencia de thunderz (#0000130).
+221005126 - *** Unreal 3.2.4pre2 + UDB 3.2.1 es
