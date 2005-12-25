@@ -1520,6 +1520,7 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->spamfilter_virus_help_channel = strdup("#help");
 	i->maxdccallow = 10;
 	i->channel_command_prefix = strdup("`!.");
+	i->check_target_nick_bans = 1;
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -6456,6 +6457,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "oper-auto-join")) {
 			ircstrdup(tempiConf.oper_auto_join_chans, cep->ce_vardata);
 		}
+		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
+			tempiConf.check_target_nick_bans = config_checkval(cep->ce_vardata, CFG_YESNO);
+		}
 		else if (!strcmp(cep->ce_varname, "allow-userhost-change")) {
 			if (!stricmp(cep->ce_vardata, "always"))
 				tempiConf.userhost_allowed = UHALLOW_ALWAYS;
@@ -6984,6 +6988,10 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "oper-auto-join")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, oper_auto_join, "oper-auto-join");
+		}
+		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, check_target_nick_bans, "check-target-nick-bans");
 		}
 		else if (!strcmp(cep->ce_varname, "channel-command-prefix")) {
 			CheckNull(cep);
@@ -7970,6 +7978,13 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 
 	if ((cmptr = find_Command(ce->ce_vardata, 0, M_ALIAS)))
 		del_Command(ce->ce_vardata, NULL, cmptr->func);
+	if (find_Command_simple(ce->ce_vardata))
+	{
+		config_warn("%s:%i: El alias '%s' tiene el nombre del comando '%s'. No se cargará.",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			ce->ce_vardata, ce->ce_vardata);
+		return 0;
+	}
 	if ((alias = Find_alias(ce->ce_vardata)))
 		DelListItem(alias, conf_alias);
 	alias = MyMallocEx(sizeof(ConfigItem_alias));
@@ -8018,7 +8033,8 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 			else if (!strcmp(cep->ce_vardata, "command"))
 				alias->type = ALIAS_COMMAND;
 		}
-			
+		else if (!strcmp(cep->ce_varname, "spamfilter"))
+			alias->spamfilter = config_checkval(cep->ce_vardata, CFG_YESNO);
 	}
 	if (BadPtr(alias->nick) && alias->type != ALIAS_COMMAND) {
 		ircstrdup(alias->nick, alias->alias); 
@@ -8195,6 +8211,8 @@ int _test_alias(ConfigFile *conf, ConfigEntry *ce) {
 				errors++;
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "spamfilter"))
+			;
 		else {
 			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
 				"alias", cep->ce_varname);

@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.es.html,v 1.2.2.6 2005-10-22 14:00:40 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.es.html,v 1.2.2.7 2005-12-25 19:13:30 Trocotronic Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -29,7 +29,7 @@ Spanish |
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
   <font size="4">Versi&oacute;n: 3.2.3</font><br>
-  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 13-03-2005</div>
+  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 10-12-2005</div>
 <br>
   <b>Programadores:</b> Stskeeps / codemastr / Syzop / Luke<br>
   <b>Contribuciones:</b> McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
@@ -53,23 +53,23 @@ Spanish |
   ---1.2. <a href="#notesonupgrade">Notas al actualizar entre versiones 3.2</a><br>
   2. <a href="#installation">Instalaci&oacute;n</a><br>
   3. <a href="#features">Caracter&iacute;sticas</a><br>
-  -- 3.1. <a href="#feature_cloaking">Cifrado</a><br>
-  -- 3.2. <a href="#feature_modules">M&oacute;dulos</a><br>
-  -- 3.3. <a href="#feature_snomasks">M&aacute;scaras de usuario </a><br>
-  -- 3.4. <a href="#feature_aliases">Aliases</a><br>
-  -- 3.5. <a href="#feature_helpop">Helpop</a><br>
-  -- 3.6. <a href="#feature_operaccesslevels">Niveles de acceso a operadores</a><br>
-  -- 3.7. <a href="#feature_opercmds">Comandos para operadores </a><br>
-  -- 3.8. <a href="#feature_ssl">SSL</a><br>
-  -- 3.9. <a href="#feature_ipv6">IPv6</a><br>
-  -- 3.10. <a href="#feature_ziplinks">Zip links</a><br>
-  -- 3.11. <a href="#feature_dyndns">Soporte conexi&oacute;n DNS/IP din&aacute;mico</a><br>
-  -- 3.12. <a href="#feature_antiflood">Caracter&iacute;sticas anti-flood</a><br>
-  -- 3.13. <a href="#feature_bantypes">Tipos de ban </a><br>
-  -- 3.14. <a href="#feature_spamfilter">Filtro de spam </a><br>
-  -- 3.15. <a href="#feature_cidr">CIDR</a><br>
-  -- 3.16. <a href="#feature_nickchars">Configuraci&oacute;n de caracteres para nicks</a><br>
-  -- 3.17. <a href="#feature_other">Otras caracter&iacute;sticas</a><br>
+  ---3.1. <a href="#feature_cloaking">Cifrado</a><br>
+  ---3.2. <a href="#feature_modules">M&oacute;dulos</a><br>
+  ---3.3. <a href="#feature_snomasks">M&aacute;scaras de usuario </a><br>
+  ---3.4. <a href="#feature_aliases">Aliases</a><br>
+  ---3.5. <a href="#feature_helpop">Helpop</a><br>
+  ---3.6. <a href="#feature_operaccesslevels">Niveles de acceso a operadores</a><br>
+  ---3.7. <a href="#feature_opercmds">Comandos para operadores </a><br>
+  ---3.8. <a href="#feature_ssl">SSL</a><br>
+  ---3.9. <a href="#feature_ipv6">IPv6</a><br>
+  ---3.10. <a href="#feature_ziplinks">Zip links</a><br>
+  ---3.11. <a href="#feature_dyndns">Soporte conexi&oacute;n DNS/IP din&aacute;mico</a><br>
+  ---3.12. <a href="#feature_antiflood">Caracter&iacute;sticas anti-flood</a><br>
+  ---3.13. <a href="#feature_bantypes">Tipos de ban </a><br>
+  ---3.14. <a href="#feature_spamfilter">Filtro de spam </a><br>
+  ---3.15. <a href="#feature_cidr">CIDR</a><br>
+  ---3.16. <a href="#feature_nickchars">Configuraci&oacute;n de caracteres para nicks</a><br>
+  ---3.17. <a href="#feature_other">Otras caracter&iacute;sticas</a><br>
   4. <a href="#configuringyourunrealircdconf">Configurando su fichero unrealircd.conf</a><br>
   ---4.1. <a href="#configurationfileexplained">Explicaci&oacute;n del archivo</a><br>
   ---4.2. <a href="#meblock"> Bloque me  -=- (M:Line)</a><br>
@@ -185,6 +185,8 @@ Windows:<br>
 <ul>
 <li>Linux (2.2.*, 2.4.*, 2.6.*)
 <li>FreeBSD (4.*, 5.*)
+<li>NetBSD (2.*)
+<li>OpenBSD (3.7, 3.8)
 <li>Solaris (9, 10)
 </ul>
 <li><b>Windows version:</b>
@@ -203,7 +205,7 @@ Windows:<br>
 </ul>
   <br>
   Si tiene Unreal3.2 trabajando correctamente en otros sistemas,
-  env&iacute;e los detalles a <a href="mailto:coders@lists.unrealircd.com">coders@lists.unrealircd.com<br>
+  env&iacute;e los detalles a <a href="mailto:coders@lists.unrealircd.org">coders@lists.unrealircd.org<br>
   </a> </p>
 <p><b>Instrucciones de instalaci&oacute;n</b><br>
 Linux:<br>
@@ -1898,12 +1900,17 @@ link hub.mynet.com {
 <p>Sintaxis [alias est&aacute;ndar]:<br>
 <pre>
 alias &lt;nombre&gt; {
- target &lt;destino&gt;;
+ 	target &lt;destino&gt;;
 	type &lt;tipo&gt;;
+	spamfilter &lt;yes|no&gt;;
 };</pre>
 </p>
 <p>(Nota: puede ver m&aacute;s archivos de alias est&aacute;ndars que lleva UnrealIRCd en este <a href="#includedirective">enlace</a>)</p>
-<p>Este bloque (est&aacute;ndar) le permite redireccionar comandos a usuarios, generlamente a bots como por ejemplo /chanserv para enviarle privados. <b>alias::</b> especifica el nombre del comando, por ejemplo chanserv. <b>alias::target</b> el nick o canal al que se le enviar&aacute; el mensaje y puede omitirse. <b>alias::type</b> define el tipo de alias: services (el usuario est&aacute; en el servidor de servicios), stats (en el de estad&iacute;sticas), normal (en un servidor normal) y channel (el target es un canal). Este bloque tiene otro prop&oacute;sito detallado a continuaci&oacute;n.</p>
+<p>Este bloque (est&aacute;ndar) le permite redireccionar comandos a usuarios, generlamente a bots como por ejemplo /chanserv para enviarle privados. 
+<b>alias::</b> especifica el nombre del comando, por ejemplo chanserv. <b>alias::target</b> el nick o canal al que se le enviar&aacute; el mensaje y puede omitirse. 
+<b>alias::type</b> define el tipo de alias: services (el usuario est&aacute; en el servidor de servicios), stats (en el de estad&iacute;sticas), normal (en un servidor normal) y channel (el target es un canal). 
+Si alias::spamfilter (opcional) está puesto en 'yes', entonces ser&aacute; procesado por spamfilters (por defecto 'no').<br>
+Este bloque tiene otro prop&oacute;sito detallado a continuaci&oacute;n.</p>
 <p>Sintaxis [alias de comandos]:<br>
 <pre>
 alias &lt;nombre&gt; {
@@ -1916,6 +1923,7 @@ alias &lt;nombre&gt; {
 		...
 	};
 	type command;
+	spamfilter &lt;yes|no&gt;;
 };</pre>
 </p>
 <p>Este uso es m&aacute;s extenso y tiene m&aacute;s posibilidades. Por ejemplo, puede crear aliases como /identify. <b>alias::</b> es el mismo que el anterior: el nombre del comando. <b>alias::format</b> especifica la expresi&oacute;n regular que debe coincidir con el texto enviado. Si lo hace, se usan las subentradas. As&iacute; puede tener varios alias::format para seguir distintas acciones seg&uacute;n la coincidencia, a partir de sus subentradas. <b>alias::format::target</b> es el nick o canal de destino. <b>alias::format::type</b> es el tipo de alias. <b>alias::format::parameters</b> es lo que se enviar&aacute; como par&aacute;metro al alias. Para especificar un par&aacute;metro que se enviar&aacute; al nick, use % seguido del n&uacute;mero de par&aacute;metro. Por ejemplo, %1 enviar&aacute; el primer par&aacute;metro. Para especificar todos los par&aacute;metros a partir de uno, use %n- donde n es el n&uacute;mero de par&aacute;metro. Por ejemplo, %2- enviar&iacute;a todos los par&aacute;metros a partir del segundo, inclu&iacute;do. Adem&aacute;s, puede usarse %n para que sea reemplazado por el nick que ejecuta el comando. Para m&aacute;s informaci&oacute;n consulte doc/example.conf.</p>
@@ -2196,6 +2204,8 @@ set {
   Si est&aacute; en 'yes' (o '1') s&oacute;lo los usuarios invitados por el filtro de spam pueden entrar en ese canal, a excepci&oacute;n de los operadores.</p>
  <p><font class="set">set::spamfilter::except &lt;target(s)&gt;</font><br>
   Estos &quot;target(s)&quot; se omiten del filtro de spam (no se toma ninguna acci&oacute;n). Puede especificar varios separ&aacute;ndolos con comas. Ej: except &quot;#help,#spamreport&quot;;.</p>
+ <p><font class="set">set::check-target-nick-bans &lt;yes|no&gt;</font><br>
+  Si un usuario se cambia de nick, comprueba si el nuevo nick se relaciona con algún ban. Si es así, no permite el cambio de nick. Por defecto 'yes'.</p>
   <u>*** S&oacute;lo para compilaciones con soporte UDB ***</u>
   <p><font class="set">set::udb::propagador &lt;servidor&gt;</font><br>
   Nombre del servidor que insertar&aactue; y borrar&aactue; registros por la red (acepta comodines). Normalmente ser&aactue; el servidor de servicios. Aunque pueda aceptar comodines, sólo podrán estar conectado un sólo propagador. Si otro linka, le dará una colisión de propagadores.</p>

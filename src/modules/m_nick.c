@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.3 2005-10-22 14:00:46 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.4 2005-12-25 19:13:36 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -754,6 +754,14 @@ DLLFUNC CMD_FUNC(m_nick)
 				{
 					sendto_one(sptr,
 					    err_str(ERR_BANNICKCHANGE),
+					    me.name, parv[0],
+					    mp->chptr->chname);
+					return 0;
+				}
+				if (CHECK_TARGET_NICK_BANS && !is_skochanop(sptr, mp->chptr) && is_banned_with_nick(sptr, mp->chptr, BANCHK_NICK, nick))
+				{
+					sendto_one(sptr,
+					    ":%s 437 %s %s :No puedes cambiarte el nick a uno baneado",
 					    me.name, parv[0],
 					    mp->chptr->chname);
 					return 0;

@@ -848,10 +848,6 @@ void sendto_serv_butone_token_opt(aClient *one, int opt, char *prefix, char *com
 			continue;
 		if ((opt & OPT_NOT_NICKIP) && (cptr->proto & PROTO_NICKIP))
 			continue;
-#ifdef UDB
-		if ((opt & OPT_NOT_PMODE) && (cptr->proto & PROTO_PMODE))
-			continue;
-#endif
 
 		if (IsToken(cptr))
 		{

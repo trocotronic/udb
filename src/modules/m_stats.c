@@ -52,7 +52,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.8 2005-10-22 14:00:47 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.9 2005-12-25 19:13:36 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -1392,6 +1392,8 @@ int stats_set(aClient *sptr, char *para)
 	if (SPAMFILTER_EXCEPT)
 		sendto_one(sptr, ":%s %i %s :spamfilter::except: %s", me.name, RPL_TEXT,
 			sptr->name, SPAMFILTER_EXCEPT);
+	sendto_one(sptr, ":%s %i %s :check-target-nick-bans: %s", me.name, RPL_TEXT,
+		sptr->name, CHECK_TARGET_NICK_BANS ? "yes" : "no");
 	sendto_one(sptr, ":%s %i %s :hosts::global: %s", me.name, RPL_TEXT,
 	    sptr->name, oper_host);
 	sendto_one(sptr, ":%s %i %s :hosts::admin: %s", me.name, RPL_TEXT,

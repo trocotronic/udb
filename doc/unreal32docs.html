@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.html,v 1.1.4.6 2005-10-22 14:00:41 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.html,v 1.1.4.7 2005-12-25 19:13:31 Trocotronic Exp $ -->
 
 <body>
 English | <a href="unreal32docs.de.html">German</a> | 
@@ -28,7 +28,7 @@ English | <a href="unreal32docs.de.html">German</a> |
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
   <font size="4">Version: 3.2.3</font><br>
-  <b>Last doc update:</b> 2005-03-13</div>
+  <b>Last doc update:</b> 2005-10-11</div>
 <br>
   <b>Head Coders:</b> Stskeeps / codemastr / Syzop / Luke<br>
   <b>Contributors:</b> McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
@@ -183,6 +183,8 @@ Windows:<br>
 <ul>
 <li>Linux (2.2.*, 2.4.*, 2.6.*)
 <li>FreeBSD (4.*, 5.*)
+<li>NetBSD (2.*)
+<li>OpenBSD (3.7, 3.8)
 <li>Solaris (9, 10)
 </ul>
 <li><b>Windows version:</b>
@@ -201,7 +203,7 @@ Windows:<br>
 </ul>
   <br>
   If you have Unreal3.2 working correctly under other operating systems, please 
-  send the details to <a href="mailto:coders@lists.unrealircd.com">coders@lists.unrealircd.com<br>
+  send the details to <a href="mailto:coders@lists.unrealircd.org">coders@lists.unrealircd.org<br>
   </a> </p>
 <p><b>Installation Instructions</b><br>
 Linux:<br>
@@ -1971,6 +1973,7 @@ link hub.mynet.com {
 alias &lt;name&gt; {
 	target &lt;nick-to-forward-to&gt;;
 	type &lt;type-of-alias&gt;;
+	spamfilter &lt;yes|no&gt;;
 };</pre></p>
 <p>(Note: also see <a href="#includedirective">here</a> about the standard alias files UnrealIRCd has)</p>
 <p>The alias block [standard alias] allows you to forward a command to a user, 
@@ -1980,8 +1983,9 @@ alias &lt;name&gt; {
   forward to, alias::target can be left out. The alias::type specifies the type 
   of alias, valid types are services (the user is on the services server), stats 
   (the user is on the stats server), normal (the user is a normal user on 
-  any server), and channel (the target is a channel name). The alias block also has another
-  purpose which is explained below.</p>
+  any server), and channel (the target is a channel name). If alias::spamfilter (optional)
+  is set to 'yes', then the spamfilters will be checked (default is 'no').<br>
+  The alias block also has another purpose which is explained below.</p>
 <p>Syntax [command alias]:<br>
 <pre>
 alias &lt;name&gt; {
@@ -1994,6 +1998,7 @@ alias &lt;name&gt; {
 		...
 	};
 	type command;
+	spamfilter &lt;yes|no&gt;;
 };</pre></p>
 <p>When the alias block is used in this format, it allows you a much broader range 
   of usage. For example you can create aliases such as /identify. The alias:: 
@@ -2371,6 +2376,9 @@ set {
  <p><font class="set">set::spamfilter::except &lt;target(s)&gt;</font><br>
   These targets are exempt from spam filtering (no action will be taken),
   can be single target or comma seperated list.. Ex: except "#help,#spamreport"</p>
+ <p><font class="set">set::check-target-nick-bans &lt;yes|no&gt;</font><br>
+  Whenever the user changes his/her nick, check if the NEW nick would be
+  banned. If so, do not allow the nickchange. Default is yes.</p>
 <p></p> </div>
 <p><b><font size="+2">5 &#8211; Additional Files<a name="addtlfiles"></a>
   </font></b></p><div class="desc">

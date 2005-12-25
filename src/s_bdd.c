@@ -124,6 +124,7 @@ void alta_hash()
 #else
 #define PMAX MAX_PATH
 #endif
+/* tokeniza los 4 bloques */
 int actualiza_dataver2()
 {
 	char *archivos[] = {
@@ -258,10 +259,60 @@ int actualiza_dataver2()
 	}
 	return 0;
 }
+/* quita el registro de devel y desplaza los que hubiere */
+int actualiza_dataver3()
+{
+	FILE *fp, *tmp;
+	char *c, buf[8192];
+	if (!(fp = fopen(DB_DIR "nicks.udb", "rb")))
+		return 1;
+	if (!(tmp = fopen(DB_DIR "temporal", "wb")))
+		return 1;
+	while (fgets(buf, sizeof(buf), fp))
+	{
+		if ((c = strchr(buf, ' ')))
+		{
+			if (*(c-2) == ':' && *(c-1) == *(N_OPE_TOK)) /* lo tenemos! */
+			{
+				int val;
+				sscanf(c, " %*c%i\n", &val);
+				if (val & 0x1)
+					val &= ~0x1;
+				if (val & 0x2)
+				{
+					val &= ~0x2;
+					val |= 0x1;
+				}
+				if (val & 0x4)
+					val &= ~0x4;
+				if (val & 0x8)
+				{
+					val &= ~0x8;
+					val |= 0x2;
+				}
+				if (val & 0x10)
+				{
+					val &= ~0x10;
+					val |= 0x4;
+				}
+				*c = '\0';
+				ircsprintf(buf, "%s %c%i\n", buf, CHAR_NUM, val);
+			}
+			fwrite(buf, 1, strlen(buf), tmp);
+		}
+	}
+	fclose(fp);
+	fclose(tmp);
+	unlink(DB_DIR "nicks.udb");
+	rename(DB_DIR "temporal", DB_DIR "nicks.udb");
+	unlink(DB_DIR "temporal");
+	actualiza_hash(nicks);
+	return 0;
+}	
 void bdd_init()
 {
 	FILE *fh;
-	int i;
+	int i, ver;
 #ifdef _WIN32
 	mkdir(DB_DIR);
 #else
@@ -286,11 +337,15 @@ void bdd_init()
 	alta_hash();
 	if ((fh = fopen(DB_DIR "crcs", "a")))
 		fclose(fh);
-	if (!saca_dataver())
+	switch ((ver = saca_dataver()))
 	{
-		actualiza_dataver2();
-		set_dataver(2);
+		case 0:
+		case 1:
+			actualiza_dataver2();
+		case 2:
+			actualiza_dataver3();
 	}
+	set_dataver(3);
 	carga_bloques();
 #ifdef DEBUGMODE
 	printea(ips, 0);
@@ -456,6 +511,34 @@ int borra_registro_de_hash(Udb *registro, int donde, char *clave)
 	}
 	return 0;
 }
+int complow(char a1, char b1)
+{
+	char a2, b2, a3, b3;
+	a2 = a1+32;
+	b2 = b1+32;
+	a3 = a1-32;
+	b3 = b1-32;
+	if (a1 == b1)
+		return 0;
+	else if (a1 == b2)
+		return 0;
+	else if (a1 == b3)
+		return 0;
+	else if (a2 == b1)
+		return 0;
+	else if (a2 == b2)
+		return 0;
+	else if (a2 == b3)
+		return 0;
+	else if (a3 == b1)
+		return 0;
+	else if (a3 == b2)
+		return 0;
+	else if (a3 == b3)
+		return 0;
+	return b1-a1;
+}
+	
 /* esta función hace lo mismo que strcasecmp pero soporta la ñ */
 int compara(const char *s1, const char *s2)
 {
@@ -463,7 +546,7 @@ int compara(const char *s1, const char *s2)
 	const char *rb = s2;
 	if (!s1 || !s2)
 		return 1;
-	while (((*ra == 'Ñ' || *ra == 'ñ') && (*rb == 'Ñ' || *rb == 'ñ')) || tolower(*ra) == tolower(*rb)) 
+	while (!complow(*ra, *rb) || tolower(*ra) == tolower(*rb)) 
 	{
 		if (!*ra++)
 			return 0;
@@ -479,7 +562,7 @@ Udb *busca_udb_en_hash(char *clave, u_int donde, Udb *lugar)
 	hashv = hash_nick_name(clave) % MAX_HASH;
 	for (aux = hash[donde][hashv]; aux; aux = aux->hsig)
 	{
-		if ((*(clave+1) == '\0' && aux->id == *clave) || !compara(clave, aux->item))
+		if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
 			return aux;
 	}
 	return lugar;
@@ -497,7 +580,7 @@ Udb *busca_bloque(char *clave, Udb *bloque)
 		return NULL;
 	for (aux = bloque->down; aux; aux = aux->mid)
 	{
-		if ((*(clave+1) == '\0' && aux->id == *clave) || !compara(clave, aux->item))
+		if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
 			return aux;
 	}
 	return NULL;
@@ -912,8 +995,8 @@ void dale_cosas(int pass, aClient *sptr, Udb *reg)
 	if (MyClient(sptr))
 	{
 		send_umode(sptr->from, sptr, viejos, SEND_UMODES, umodebuf);
-		sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
-		sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
+		//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
+		//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
 	}
 }
 void quitale_cosas(aClient *sptr, Udb *reg)
@@ -932,8 +1015,8 @@ void quitale_cosas(aClient *sptr, Udb *reg)
 		quitale_swhois(sptr, reg);
 		quitale_snomasks(sptr, reg);
 		send_umode(sptr->from, sptr, viejos, SEND_UMODES, umodebuf);
-		sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
-		sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
+		//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
+		//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
 	}
 }
 void quitale_dns(char *ip)
@@ -1121,8 +1204,8 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 		{
 			char umodebuf[128];
 			send_umode(sptr->from, sptr, viejos, SEND_UMODES, umodebuf);
-			sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
-			sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
+			//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
+			//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
 		}
 	}
 	else if (tipo == BDD_IPS)
@@ -1255,8 +1338,21 @@ void borra_registro_especial(int tipo, Udb *reg)
 			quitale_modos(sptr, reg, NULL);
 		else if ((mira_id(reg->id, N_SWO_TOK) || !strcmp(N_SWO, reg->item)))
 			quitale_swhois(sptr, reg);
+		else if (mira_id(reg->id, N_SUS_TOK) || !strcmp(reg->item, N_SUS))
+		{
+			u_long viejos = sptr->umodes;
+			sptr->umodes &= ~UMODE_SUSPEND;
+			if (MyClient(sptr) && IsPerson(sptr))
+			{
+				char umodebuf[128];
+				send_umode(sptr->from, sptr, viejos, SEND_UMODES, umodebuf);
+				//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_UMODE2, sptr->name, MSG_UMODE2, TOK_UMODE2, "%s", umodebuf);
+				//sendto_serv_butone_token_opt(&me, OPT_NOT_PMODE | OPT_NOT_UMODE2, sptr->name, MSG_MODE, TOK_MODE, "%s %s", sptr->name, umodebuf);
+			}
+		}
 		else if (!strcasecmp(sptr->name, reg->item))
 			quitale_cosas(sptr, reg);
+		
 	}
 	else if (tipo == BDD_IPS)
 	{
@@ -2151,7 +2247,8 @@ CMD_FUNC(m_dbq)
 			sendto_one(sptr, err_str(ERR_NOSUCHSERVER), me.name, sptr->name, parv[1]);
 			return 0;
 		}
-		sendto_serv_butone(cptr, ":%s DBQ %s %s", parv[0], parv[1], parv[2]);
+		if (strcmp(me.name, parv[1])) /* solo propagamos si el servidor no es exactamente el nuestro */
+			sendto_serv_butone(cptr, ":%s DBQ %s %s", parv[0], parv[1], parv[2]);
 		if (match(parv[1], me.name))
 			return 0;
 		parv[1] = parv[2];

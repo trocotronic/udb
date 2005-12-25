@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.5 2005-03-21 10:36:51 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.6 2005-12-25 19:13:36 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -248,18 +248,11 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
 		auser = acptr->user;
 
-		if (index(parv[0], '.'))
-			sendto_snomask_normal(SNO_KILLS,
-			    "*** Notice -- Recibido mensaje kill para %s!%s@%s de %s Path: %s!%s",
-			    acptr->name, auser->username,
-			    IsHidden(acptr) ? auser->virthost : auser->realhost,
-			    parv[0], inpath, path);
-		else
-			sendto_snomask_normal(SNO_KILLS,
-			    "*** Notice -- Recibido mensaje kill para %s!%s@%s de %s Path: %s!%s",
-			    acptr->name, auser->username,
-			    IsHidden(acptr) ? auser->virthost : auser->realhost,
-			    parv[0], inpath, path);
+		sendto_snomask_normal(SNO_KILLS,
+		    "*** Notice -- Recivido mensaje KILL para %s!%s@%s de %s Mensaje: %s!%s",
+		    acptr->name, auser->username,
+		    IsHidden(acptr) ? auser->virthost : auser->realhost,
+		    parv[0], inpath, path);
 #if defined(USE_SYSLOG) && defined(SYSLOG_KILL)
 		if (IsOper(sptr))
 			syslog(LOG_DEBUG, "KILL From %s For %s Path %s!%s",

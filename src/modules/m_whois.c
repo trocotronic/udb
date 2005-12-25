@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.10 2005-10-22 14:00:47 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.11 2005-12-25 19:13:36 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -324,12 +324,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					strlcat(buf, "ROOT de los servicios y", sizeof buf);
 				else if (level >= BDD_ADMIN)
 					strlcat(buf, "ADMINistrador", sizeof buf);
-				else if (level >= BDD_DEVEL)
-					strlcat(buf, "DEVELoper", sizeof buf);
 				else if (level >= BDD_OPER)
 					strlcat(buf, "OPERador de los servicios", sizeof buf);
-				else if (level >= BDD_PREO)
-					strlcat(buf, "PREOPERador de los servicios", sizeof buf);
 				else
 					strlcat(buf, "Que coño es?", sizeof buf);
 				if (buf[0])

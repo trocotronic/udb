@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.11 2005-10-22 14:00:43 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.12 2005-12-25 19:13:33 Trocotronic Exp $
  */
 
 /*
@@ -188,6 +188,7 @@ extern int is_chan_op(aClient *, aChannel *);
 extern int has_voice(aClient *, aChannel *);
 extern int is_chanowner(aClient *, aChannel *);
 extern Ban *is_banned(aClient *, aChannel *, int);
+extern Ban *is_banned_with_nick(aClient *, aChannel *, int, char *);
 extern int parse_help(aClient *, char *, char *);
 
 extern void ircd_log(int, char *, ...) __attribute__((format(printf,2,3)));

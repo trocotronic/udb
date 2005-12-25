@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.8 2005-10-22 14:00:47 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.9 2005-12-25 19:13:36 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -360,8 +360,8 @@ CMD_FUNC(m_protoctl)
 					return exit_client(cptr, sptr, &me, "ERROR: Propagador no coincide");
 				for (parm = strtok(NULL, ","); parm; parm = strtok(NULL, ","))
 				{
-					if (!strcmp(parm, "PMODE"))
-						cptr->proto |= PROTO_PMODE;
+					//if (!strcmp(parm, "PMODE"))
+					//	cptr->proto |= PROTO_PMODE;
 				}
 			}
 			else

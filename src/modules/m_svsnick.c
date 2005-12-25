@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.5 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.6 2005-12-25 19:13:36 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -93,75 +93,71 @@ DLLFUNC int MOD_UNLOAD(m_svsnick)(int module_unload)
 */
 int  m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
-        aClient *acptr;
+aClient *acptr;
 #ifdef UDB
 	int val = 0;
 	Udb *reg;
 	char buf[BUFSIZE], *c;
 #endif
 
-        if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
-		return -1;        /* This looks like an error anyway -Studded */
-        if (!hunt_server_token(cptr, sptr, MSG_SVSNICK, TOK_SVSNICK, "%s %s :%s", 1, parc,
-		parv) != HUNTED_ISME)
-        {
-		if (do_nick_name(parv[2]) == 0)
-			return 0;
+	if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
+		return -1; /* This looks like an error anyway -Studded */
+
+	if (hunt_server_token(cptr, sptr, MSG_SVSNICK, TOK_SVSNICK, "%s %s :%s", 1, parc, parv) != HUNTED_ISME)
+		return 0; /* Forwarded, done */
+
+	if (do_nick_name(parv[2]) == 0)
+		return 0;
 #ifdef UDB
 		if ((c = strchr(parv[2], ':')))
 			*c = '\0';
 		if ((c = strchr(parv[2], '!')))
 			*c = '\0';
 #endif
-                if ((acptr = find_person(parv[1], NULL)))
-                {
-                        if (find_client(parv[2], NULL)) /* Collision */
-                                return exit_client(cptr, acptr, sptr,
-                                    "Nickname collision due to Services enforced "
-                                    "nickname change, your nick was overruled");
+
+	if (!(acptr = find_person(parv[1], NULL)))
+		return 0; /* User not found, bail out */
+
+	if (find_client(parv[2], NULL)) /* Collision */
+		return exit_client(cptr, acptr, sptr,
+		                   "Nickname collision due to Services enforced "
+		                   "nickname change, your nick was overruled");
 #ifdef UDB                                
-			quitale_cosas(acptr, NULL);
+	quitale_cosas(acptr, NULL);
 #else
-                        acptr->umodes &= ~UMODE_REGNICK;
+
+	acptr->umodes &= ~UMODE_REGNICK;
 #endif
-                        acptr->lastnick = TS2ts(parv[3]);
-                        sendto_common_channels(acptr, ":%s NICK :%s", parv[1],
-                            parv[2]);
-                        if (IsPerson(acptr))
-                                add_history(acptr, 1);
-                        sendto_serv_butone_token(NULL, parv[1], MSG_NICK,
-                            TOK_NICK, "%s :%ld", parv[2], TS2ts(parv[3]));
-                        if (acptr->name[0])
-                        {
-				(void)del_from_client_hash_table(acptr->name, acptr);
-                                if (IsPerson(acptr))
-                                        hash_check_watch(acptr, RPL_LOGOFF);
-                        }
-                        if (MyClient(acptr))
-                        {
-				sendto_snomask(SNO_NICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s", 
-					acptr->name, acptr->user->username, acptr->user->realhost, parv[2]);
-				
-                                RunHook2(HOOKTYPE_LOCAL_NICKCHANGE, acptr, parv[2]);
-                        }
-                        (void)strlcpy(acptr->name, parv[2], sizeof acptr->name);
-                        (void)add_to_client_hash_table(parv[2], acptr);
-                        if (IsPerson(acptr))
-                                hash_check_watch(acptr, RPL_LOGON);
+	acptr->lastnick = TS2ts(parv[3]);
+	sendto_common_channels(acptr, ":%s NICK :%s", parv[1], parv[2]);
+	add_history(acptr, 1);
+	sendto_serv_butone_token(NULL, parv[1], MSG_NICK, TOK_NICK,
+	                         "%s :%ld", parv[2], TS2ts(parv[3]));
+
+	(void)del_from_client_hash_table(acptr->name, acptr);
+	hash_check_watch(acptr, RPL_LOGOFF);
+
+	sendto_snomask(SNO_NICKCHANGE,
+		"*** Notice -- %s (%s@%s) cambia su nick a %s", 
+		acptr->name, acptr->user->username, acptr->user->realhost, parv[2]);
+	RunHook2(HOOKTYPE_LOCAL_NICKCHANGE, acptr, parv[2]);
+
+	strlcpy(acptr->name, parv[2], sizeof acptr->name);
+	add_to_client_hash_table(parv[2], acptr);
+	hash_check_watch(acptr, RPL_LOGON);
 #ifdef UDB
-			if ((reg = busca_registro(BDD_NICKS, parv[2])))
-			{
-				if (!busca_bloque(N_SUS_TOK, reg))
-					val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
-				else
-					val = 1;
-			}
-			if (strcasecmp(parv[1], parv[2]))
-				dale_cosas(val, acptr, reg);
-			if (IsHidden(acptr))
-				acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
+	if ((reg = busca_registro(BDD_NICKS, parv[2])))
+	{
+		if (!busca_bloque(N_SUS_TOK, reg))
+			val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
+		else
+			val = 1;
+	}
+	if (strcasecmp(parv[1], parv[2]))
+		dale_cosas(val, acptr, reg);
+	if (IsHidden(acptr))
+		acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
 #endif	
-                }
-        }
-        return 0;
+
+	return 0;
 }

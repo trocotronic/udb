@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.3 2005-10-22 14:00:46 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.4 2005-12-25 19:13:35 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -372,21 +372,30 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 	Udb *reg, *bloq;
 	char *s = "";
 	int f = 0, udbflags = 0;
-	if (MyClient(sptr) && (reg = busca_registro(BDD_CHANS, chptr->chname)))
+	if (MyClient(sptr))
 	{
-		bloq = busca_bloque(C_SUS_TOK, reg);
-		if ((f = is_chanowner(sptr, chptr)) && !bloq)
+		if ((reg = busca_registro(BDD_CHANS, chptr->chname)))
 		{
-			udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
-			s = ".@";
-		}
-		else if (fakefund == 2)
-		{
-			udbflags |= (CHFL_CHANOP | CHFL_CHANPROT);
-			s = "$@";
+			bloq = busca_bloque(C_SUS_TOK, reg);
+			if ((f = is_chanowner(sptr, chptr)) && !bloq)
+			{
+				udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
+				s = ".@";
+			}
+			else if (fakefund == 2)
+			{
+				udbflags |= (CHFL_CHANOP | CHFL_CHANPROT);
+				s = "$@";
+			}
+			else
+				udbflags |= CHFL_DEOPPED;
 		}
 		else
-			udbflags |= CHFL_DEOPPED;
+		{
+			udbflags = flags;
+			if (flags & CHFL_CHANOP)
+				s = "@";
+		}
 	}
 #endif	
 	/*

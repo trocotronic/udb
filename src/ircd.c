@@ -586,12 +586,11 @@ extern TS check_pings(TS currenttime)
 					    reason : "sin razón");
 				if (bconf->reason) {
 					if (IsPerson(cptr))
-						snprintf(banbuf,
-						    sizeof banbuf - 1,
-						    "Usuario baneado (%s)",
-						    bconf->reason);
-					snprintf(banbuf, sizeof banbuf - 1,
-					    "Baneado (%s)", bconf->reason);
+						snprintf(banbuf, sizeof banbuf - 1,
+						         "Usuario baneado (%s)", bconf->reason);
+					else
+						snprintf(banbuf, sizeof banbuf - 1,
+						         "Baneado (%s)", bconf->reason);
 					(void)exit_client(cptr, cptr, &me,
 					    banbuf);
 				} else {

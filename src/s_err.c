@@ -428,7 +428,11 @@ static char *replies[] = {
 /* 375    RPL_MOTDSTART */ ":%s 375 %s :- %s Mensaje del día - ",
 /* 376    RPL_ENDOFMOTD */ ":%s 376 %s :Fin de /MOTD",
 /* 377 */ NULL, /* aircd, austhex */
+#ifdef UDB
 /* 378    RPL_WHOISHOST */ ":%s 378 %s %s :Dirección VIRTUAL %s",
+#else
+/* 378    RPL_WHOISHOST */ ":%s 378 %s %s :conecta desde *@%s %s",
+#endif
 /* 379    RPL_WHOISMODES */ ":%s 379 %s %s :utiliza los modos [%s %s]",
 /* 380 */ NULL, /* aircd, austhex */
 /* 381    RPL_YOUREOPER */ ":%s 381 %s :Eres un IRCop",

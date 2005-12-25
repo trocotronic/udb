@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.10 2005-10-22 14:00:43 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.11 2005-12-25 19:13:33 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -290,9 +290,6 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OPT_NOT_TKLEXT	0x8000
 #define OPT_NICKIP	0x10000
 #define OPT_NOT_NICKIP  0x20000
-#ifdef UDB
-#define OPT_NOT_PMODE   0x40000
-#endif
 
 /* client->flags (32 bits): 28 used, 4 free */
 #define	FLAGS_PINGSENT   0x0001	/* Unreplied ping sent */
@@ -363,7 +360,6 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define PROTO_NICKIP	0x2000  /* Send IP addresses in the NICK command */
 #ifdef UDB
 #define PROTO_UDB       0x4000 /* soporta UDB */
-#define PROTO_PMODE	0x8000 /* soporta PMODE, no es necesario enviarle los cambios de modo */
 #endif
 
 /* note: client->proto is currently a 'short' (max is 0x8000) */
@@ -1339,6 +1335,7 @@ struct _configitem_alias {
 	ConfigItem_alias_format *format;
 	char *alias, *nick;
 	AliasType type;
+	unsigned int spamfilter:1;
 };
 
 struct _configitem_alias_format {

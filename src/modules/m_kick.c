@@ -52,7 +52,7 @@ DLLFUNC int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_kick)
   = {
 	"m_kick",
-	"$Id: m_kick.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_kick.c,v 1.1.4.7 2005-12-25 19:13:35 Trocotronic Exp $",
 	"command /kick", 
 	"3.2-b8-1",
 	NULL 
@@ -162,7 +162,7 @@ CMD_FUNC(m_kick)
 					if (!IsNetAdmin(sptr))
 					{
 						char errbuf[NICKLEN+10];
-						ircsprintf(errbuf, "%s es +q", who->name);
+						ircsprintf(errbuf, "%s es +q (protegido)", who->name);
 						sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), 
 							   me.name, sptr->name, "KICK", 
 							   errbuf);
@@ -240,7 +240,7 @@ CMD_FUNC(m_kick)
 							ircsprintf(errbuf, "%s es fundador de canal", 
 								   who->name);
 						else
-							ircsprintf(errbuf, "%s is a channel admin", 
+							ircsprintf(errbuf, "%s es un admin de canal", 
 								   who->name);
 						sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND),
 							   me.name, sptr->name, "KICK",

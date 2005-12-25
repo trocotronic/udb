@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_part);
 ModuleHeader MOD_HEADER(m_part)
   = {
 	"m_part",
-	"$Id: m_part.c,v 1.1.4.2 2005-10-22 14:00:46 Trocotronic Exp $",
+	"$Id: m_part.c,v 1.1.4.3 2005-12-25 19:13:36 Trocotronic Exp $",
 	"command /part", 
 	"3.2-b8-1",
 	NULL 
@@ -105,6 +105,8 @@ DLLFUNC CMD_FUNC(m_part)
 		{
 			if (!strcasecmp(STATIC_PART, "yes") || !strcmp(STATIC_PART, "1"))
 				commentx = NULL;
+			else if (!strcasecmp(STATIC_PART, "no") || !strcmp(STATIC_PART, "0"))
+				; /* keep original reason */
 			else
 				commentx = STATIC_PART;
 		}

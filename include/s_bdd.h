@@ -26,8 +26,8 @@
 #else
 #define DB_DIR "database/"
 #endif
-#define DBMAX 128
-#define UDB_VER "UDB3.2.1"
+#define DBMAX 64 /* hay de sobras */
+#define UDB_VER "UDB3.2.2"
 typedef struct _udb Udb;
 struct _udb
 {
@@ -46,7 +46,8 @@ struct _udb
 	   - down al ultimo registro introducido
 	   - data_char al total MD5 de su archivo
 	   - item al path del archivo
-	   - id contiene dos numeros de 16 bits: los 8 bits altos contienen su id, y los 8 bits bajos, su letra.
+	   - id contiene id
+	   - data_long contiene el tamaño en bytes del archivo
 	   */
 };
 /* bloques actuales */
@@ -90,11 +91,9 @@ DLLEXP extern MODVAR char bloques[DBMAX];
 		(x)->user->virthost = NULL;					\
 	}while(0)
 
-#define BDD_PREO 0x1
-#define BDD_OPER 0x2
-#define BDD_DEVEL 0x4
-#define BDD_ADMIN 0x8
-#define BDD_ROOT 0x10
+#define BDD_OPER 0x1
+#define BDD_ADMIN 0x2
+#define BDD_ROOT 0x4
 
 #define CHAR_NUM '*' /* caracter para indicar que se trata de un entero largo */
 
@@ -106,11 +105,9 @@ DLLEXP extern MODVAR char bloques[DBMAX];
  * - N::<nick>::forbid <motivo> -> razón de su prohibición (si este bloque está presente no se permite su uso)
  * - N::<nick>::suspendido <motivo> -> razón de su suspenso (si este bloque está presente recibe el flag +S)
  * - N::<nick>::oper *<bits> -> flags de operador (preoper, oper, devel, etc.). Es un número:
- *		BDD_PREO 0x1
- *		BDD_OPER 0x2
- *		BDD_DEVEL 0x4
- *		BDD_ADMIN 0x8
- *		BDD_ROOT 0x10
+ *		BDD_OPER 0x1
+ *		BDD_ADMIN 0x2
+ *		BDD_ROOT 0x4
  * 	- BDD_OPER: recibe automáticamente el flag +h
  *	- BDD_ADMIN: recibe automáticamente los flags +oa privilegios de administración
  *	- BDD_ROOT: recibe +oN y privilegios de servidor (/rehash, /restart, etc.)
