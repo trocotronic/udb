@@ -87,7 +87,7 @@ ARG="$ARG--enable-dynamic-linking "
 ARG="$ARG $EXTRAPARA "
 CONF="./configure $ARG"
 echo $CONF
-$CONF
+$CONF || exit 1
 if [  "$CRYPTOIRCD" = "1" ] ; then
 if [ ! -f server.req.pem ]; then
 export OPENSSLPATH
@@ -305,7 +305,7 @@ SHUNNOTICES=""
 NOOPEROVERRIDE=""
 DISABLEUSERMOD=""
 OPEROVERRIDEVERIFY=""
-UDB=""
+UDB="1"
 EXTRAPARA=""
 if [ "`eval echo -n 'a'`" = "-n a" ] ; then
         c="\c"
@@ -699,7 +699,7 @@ done
 
 TEST=""
 while [ -z "$TEST" ] ; do
-    if [ "$UDB" = "" ] ; then
+    if [ "$UDB" = "1" ] ; then
 	TEST="Yes"
     else
 	TEST="No"
@@ -726,7 +726,6 @@ while [ -z "$TEST" ] ; do
 	    ;;
     esac
 done
-
 
 TEST=""
 while [ -z "$TEST" ] ; do

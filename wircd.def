@@ -589,6 +589,7 @@ EXPORTS
 	ircstp
 	ircvsprintf
 	is_banned
+	is_banned_with_nick
 	is_chan_op
 	is_chanowner
 	is_chanownprotop
@@ -635,7 +636,6 @@ EXPORTS
 	m_umode
 	m_users
 	m_version
-	m_watch
 	make_ban
 	make_class
 	make_client

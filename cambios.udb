@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.4 2005-10-22 14:00:38 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.5 2005-12-25 19:46:08 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -137,3 +137,16 @@
 161005124 - Arreglado un fallo con el refresco de S::D, aviso de STeaL (#0000127).
 201005125 - Se añaden los modos de usuario en la documentación, sugerencia de thunderz (#0000130).
 221005126 - *** Unreal 3.2.4pre2 + UDB 3.2.1 es
+271005127 - Arreglado un fallo al hacer dbq sobre el servidor local, aviso de thunderz (#0000137).
+281005128 - Cambiado un mensaje al echar un usuario con +q, sugerencia de thunderz (#0000138).
+011105129 - Arreglado un fallo con el modo +S y al desuspender.
+011105130 - Arreglado un fallo con el whois y sin soporte UDB.
+041105131 - Arreglado un fallo en el Config, aviso de Arthas- (#0000160).
+111105132 - Se arregla un fallo al introducir nicks con un solo caracter, aviso de KirO (#0000162).
+121105133 - Se quita la variante PMODE puesto que no funciona en servidores remotos, aviso de STeaL (#0000154).
+131105134 - Se quita el nivel BDD_DEVEL, puesto que no sirve para nada.
+181105135 - Se quita el nivel BDD_PREO, puesto que tampoco sirve para nada.
+181105136 - Por ese cambio, subo la versión de la bdd a la 3, con su función de compatibilización.
+111205137 - Arreglado un fallo de sincronización con la primera @ de los canales que no están en el bloque C.
+111205138 - Subo a la versión 3.2.4pre3 + UDB 3.2.2.
+251205139 - *** Unreal 3.2.4pre3 + UDB 3.2.2 es

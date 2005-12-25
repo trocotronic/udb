@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.12 2005-10-22 14:00:38 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.13 2005-12-25 19:46:09 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -911,3 +911,35 @@
   you want to support CVS and/or want some more control.
 - Fixed crash bug (due to new resolver) if not using 1 general *@* / *@* allow block,
   reported by Daniel.
+- Fixed issue that could cause an alias to be added that would override a command.
+- Fixed OpenBSD crash on /REHASH. Thanks to Peter Laur (OpenBSD.se) for providing us
+  a shell account to trace this issue down.
+- Couple of source code cleanups (svsnick, a *line msg, kill, and some useless l_commands
+  code), suggested by Nazzy and Requi3m.
+- Fixed extbans no longer working properly in CVS, fix provided by Nazzy (#0002681).
+- Made it so you no longer can change your nick to a banned one in a channel, suggested
+  by vonitsanet (#0002388), partial patch provided by Nazzy.
+  This option can be turned off by setting set::check-target-nick-bans to 'no'.
+- Removed useless (unused) WATCH code that was still present in the core.
+- Made it so coadmins can use /ADCHAT (makes sense, since they already *received*
+  adchats). Reported by RandomNumber (#0002557).
+- Fixed serious flood of notices to opers if link::options::dnscache was present.
+  Reported by firstof9.
+- Added proper "not enough parameters" message for /SETNAME and cleaned up some whitespace
+  in the function, reported by Robby22 (#0002696).
+- Fixed set::static-part set to 'no' not working properly. Reported by Robby22 (#0002698).
+- Fixed crash in new resolver, reported by firstof9.
+- [CVS Only] Refixed name<->ip mapping check in new resolver, reported by Darko.
+- Reverting "Changed the way we build most of the .so's" feature, this caused m_*.so
+  to be build incorrectly. So now back at normal compile speed :p.
+- Added option to apply spamfilters to aliases as well (such as /MS, etc). To do so,
+  you have to put 'spamfilter yes;' in every alias block you want to get filtered.
+  This is so you can have for example /MS filtered (due to heavy spam), while keeping
+  /NS and /CS unfiltered. Reported by Homer (#0002496).
+- The memoserv aliases (/MS and /MEMOSERV) now have spamfiltering enabled by default.
+- Made the "strict aliasing"-warning-disabler use $CC instead of gcc.
+- Made ./Config better react to errors (no longer print a "everything is a big success"
+  kind of message when in fact everything went wrong).
+- Made ./Config (configure) exit on openssl or zlib not found errors, instead of
+  silently continueing and then causing trouble later on. Also now printing _a bit_
+  more helpful error message.
