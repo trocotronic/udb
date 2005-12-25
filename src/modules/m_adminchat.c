@@ -53,7 +53,7 @@ DLLFUNC int m_admins(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_adminchat)
   = {
 	"adminchat",	/* Name of module */
-	"$Id: m_adminchat.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_adminchat.c,v 1.1.1.2 2005-12-25 19:13:35 Trocotronic Exp $", /* Version */
 	"command /adchat", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -108,7 +108,7 @@ DLLFUNC int m_admins(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		return 0;
 	}
 #ifdef ADMINCHAT
-	if (MyClient(sptr) && !IsAdmin(sptr))
+	if (MyClient(sptr) && !IsAdmin(sptr) && !IsCoAdmin(sptr))
 #else
 	if (MyClient(sptr))
 #endif

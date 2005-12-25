@@ -52,7 +52,7 @@ DLLFUNC int m_svswatch(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svswatch)
   = {
 	"svswatch",	/* Name of module */
-	"$Id: m_svswatch.c,v 1.1.1.3 2005-03-21 10:37:08 Trocotronic Exp $", /* Version */
+	"$Id: m_svswatch.c,v 1.1.1.4 2005-12-25 19:13:36 Trocotronic Exp $", /* Version */
 	"command /svswatch", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -105,7 +105,8 @@ CMD_FUNC(m_svswatch)
 	{
 		parv[0] = parv[1];
 		parv[1] = parv[2];
-		(void)m_watch(acptr, acptr, 2, parv);
+		parv[2] = NULL;
+		do_cmd(acptr, acptr, "WATCH", 2, parv);
 	}
 	else
 		sendto_one(acptr, ":%s SVSWATCH %s :%s", parv[0], parv[1], parv[2]);
