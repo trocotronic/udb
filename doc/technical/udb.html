@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>UDB - 3.2.1 - Documentaci&oacute;n oficial</title>
+<title>UDB - 3.2.2 - Documentaci&oacute;n oficial</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <style type="text/css">
  pre { font: "courier new"; font-style: normal;}
@@ -10,12 +10,12 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.4 2005-12-25 19:13:33 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.5 2005-12-25 19:21:25 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
   <font size="4"><a href="http://www.rallados.net">http://www.rallados.net</a></font><br>
-  <font size="4">Versi&oacute;n: 3.2.1</font><br>
+  <font size="4">Versi&oacute;n: 3.2.2</font><br>
   <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 12-11-2005</div>
 <br>
   <b>Programador:</b> Trocotronic<br>
@@ -78,7 +78,7 @@ Una de las formas para distribuir esa información es hacerlo por bloques, permit
 Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por ítems y valores (numéricos y alfanuméricos).
 Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
 Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
-Versión actual: <B>3.2.1</B><BR /><BR />
+Versión actual: <B>3.2.2</B><BR /><BR />
 <A name="bloques"></A><BR /><B>Bloques</B><BR />
 Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
 Todos los valores que estén precedidos por el símbolo \'*\' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
@@ -272,13 +272,13 @@ Si no se utiliza, el servidor seguirá pendiente de los datos en la red y no se p
 <BR />
 <A name="negociacion"></A><BR /><B>Negociación</B><BR />
 En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
-Lo primero que se manda es la cabecera PROTOCTL UDB3.2.1=&lt;parámetro1,parámetro2,etc>, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.2.1=params TOKEN VL.<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.2.2=&lt;parámetro1,parámetro2,etc>, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.2.2=params TOKEN VL.<BR />
 Los parámetros son configuraciones propias del UDB que requieren que sean las mismas en todos los servidores. En caso de no serlo, no se podrá linkar.<BR />
 Parámetros ordenados por orden de aparición:<BR />
 1- Propagador: nombre del servidor que puede insertar y borrar registros en la red (acepta comodines). Cualquier registro que provenga de otro servidor no será insertado o borrado y no se propagará. Aunque 
 pueda aceptar comodines, sólo podrán estar conectado un sólo propagador. Si otro linka, le dará una colisión de propagadores.<BR />
 2- SD (<i>opcional</i>): tiene soporte S::D.
-Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.2.1=*.servicios.colossus,SD VL NOQUIT...<BR />
+Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.2.2=*.servicios.colossus,SD VL NOQUIT...<BR />
 Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
 sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
 La negociación y consulta del estado de bloques se inicia con el envío de un INF. El servidor de destino debe ser solamente el servidor al que se linka (no usar '*').<BR />
