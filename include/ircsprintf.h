@@ -1,7 +1,7 @@
 /*
  * sprintf_irc.h
  *
- * $Id: ircsprintf.h,v 1.1.1.3 2005-03-21 10:36:18 Trocotronic Exp $
+ * $Id: ircsprintf.h,v 1.1.1.4 2006-02-15 22:06:16 Trocotronic Exp $
  */
 
 #ifndef IRCSPRINTF_H

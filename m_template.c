@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_%COMMAND%);
 ModuleHeader MOD_HEADER(m_%COMMAND%)
   = {
 	"m_%COMMAND%",
-	"$Id: m_template.c,v 1.1.1.9 2005-03-21 10:36:03 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.10 2006-02-15 22:06:13 Trocotronic Exp $",
 	"command /%COMMAND%", 
 	"3.2-b8-1",
 	NULL 
