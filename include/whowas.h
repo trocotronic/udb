@@ -29,7 +29,7 @@
  * frozen beta revision 2.6.1
  *
  * th+hybrid rcs version
- * $Id: whowas.h,v 1.1.1.3 2005-03-21 10:36:22 Trocotronic Exp $
+ * $Id: whowas.h,v 1.1.1.4 2006-02-15 22:06:16 Trocotronic Exp $
  */
 
 #ifndef	__whowas_include__

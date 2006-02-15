@@ -52,7 +52,7 @@ DLLFUNC int m_globops(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_globops)
   = {
 	"m_globops",
-	"$Id: m_globops.c,v 1.1.4.2 2005-03-21 10:36:47 Trocotronic Exp $",
+	"$Id: m_globops.c,v 1.1.4.3 2006-02-15 22:06:18 Trocotronic Exp $",
 	"command /globops", 
 	"3.2-b8-1",
 	NULL 

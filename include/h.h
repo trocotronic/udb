@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.12 2005-12-25 19:13:33 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.13 2006-02-15 22:06:16 Trocotronic Exp $
  */
 
 /*
@@ -746,7 +746,8 @@ extern MODVAR void (*tkl_stats)(aClient *cptr, int type, char *para);
 extern MODVAR void (*tkl_synch)(aClient *sptr);
 extern MODVAR int (*m_tkl)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 extern MODVAR int (*place_host_ban)(aClient *sptr, int action, char *reason, long duration);
-extern MODVAR int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags);
+extern MODVAR int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags, aTKline **rettk);
+extern MODVAR int (*dospamfilter_viruschan)(aClient *sptr, aTKline *tk, int type);
 /* /Efuncs */
 extern MODVAR aMotd *opermotd, *svsmotd, *motd, *botmotd, *smotd;
 extern MODVAR int max_connection_count;
@@ -780,3 +781,5 @@ extern void sendtxtnumeric(aClient *to, char *pattern, ...);
 extern void unrealdns_gethostbyname_link(char *name, ConfigItem_link *conf);
 extern void unrealdns_delasyncconnects(void);
 extern int is_autojoin_chan(char *chname);
+extern void unreal_free_hostent(struct hostent *he);
+extern int match_esc(const char *mask, const char *name);

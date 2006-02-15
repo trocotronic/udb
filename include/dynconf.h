@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.8 2005-12-25 19:13:33 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.9 2006-02-15 22:06:16 Trocotronic Exp $
  */
 
 
@@ -146,6 +146,8 @@ struct zConfiguration {
 	char spamfilter_vchan_deny;
 	SpamExcept *spamexcept;
 	char *spamexcept_line;
+	int maxbans;
+	int maxbanlength;
 	aNetwork network;
 };
 
@@ -249,6 +251,9 @@ extern MODVAR aConfiguration iConf;
 #define SPAMFILTER_EXCEPT		iConf.spamexcept_line
 #define CHECK_TARGET_NICK_BANS	iConf.check_target_nick_bans
 
+#define MAXBANS		iConf.maxbans
+#define MAXBANLENGTH	iConf.maxbanlength
+
 /* Used for duplicate checking */
 struct SetCheck {
 	unsigned has_show_opermotd:1;
@@ -310,6 +315,8 @@ struct SetCheck {
 	unsigned has_ident_read_timeout:1;
 	unsigned has_default_bantime:1;
 	unsigned has_who_limit:1;
+	unsigned has_maxbans:1;
+	unsigned has_maxbanlength:1;
 	unsigned has_silence_limit:1;
 #ifdef NEWCHFLOODPROT
 	unsigned has_modef_default_unsettime:1;

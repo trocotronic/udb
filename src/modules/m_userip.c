@@ -51,7 +51,7 @@ DLLFUNC int m_userip(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_userip)
   = {
 	"m_userip",
-	"$Id: m_userip.c,v 1.1.4.2 2005-03-21 10:37:11 Trocotronic Exp $",
+	"$Id: m_userip.c,v 1.1.4.3 2006-02-15 22:06:21 Trocotronic Exp $",
 	"command /userip", 
 	"3.2-b8-1",
 	NULL 

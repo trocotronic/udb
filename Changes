@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.13 2005-12-25 19:46:09 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.14 2006-02-15 22:06:12 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -943,3 +943,90 @@
 - Made ./Config (configure) exit on openssl or zlib not found errors, instead of
   silently continueing and then causing trouble later on. Also now printing _a bit_
   more helpful error message.
+- Made the link::options::quarantine actually do something... People that get global
+  oper privileges on quarantined servers will be instantly killed. Bit ugly perhaps, but
+  then it actually does what it should (prevent opers on quarantine from getting GLOBAL
+  oper privileges). This "fixes" #2510, #2163 and #1968.
+- Fixes for an amd64 crash problem, reported by Peter Laur (OpenBSD.se).
+- Redid some net synching code to make it more efficient (#2716).
+- Fixed spamfilter crash problem: the action 'viruschan' is now no longer incompatible
+  with target 'user'. Reported by Monk (#0002570).
+- Fixed invalid servername in quarantine kill, reported by pinstrate (#0002743).
+- Fixed bug in chinese-* charset implementation that would cause crashes, reported
+  and patch supplied by Xuefer (#0002744).
+- Added new charsys languages: belarussian-w1251 and ukrainian-w1251. Patch provided
+  by Bock (#0002724).
+- Fixed memory leak in new resolver.
+- Made the charsys mismatch during linking a warning instead of an error (temp. fix,
+  until a good solution is implemented without false positives).
+- Crashbug fix for above
+- Fixed some more memleaks, thanks to valgrind.
+- Updated the list of donators.
+- Fixed (well, workaround) win32 /RESTART bug that caused it to popup a window instead
+  of actually restarting the server properly (#0002734).
+- If you now use /(G)ZLINE usermask@something instead of /(G)ZLINE *@something you get
+  an error, since specifying usermask should not be done and is useless, since a (G)ZLINE
+  takes place BEFORE ident lookups.
+- Did the same for /(G)ZLINE *@hostmask (should be *@ipmask), this already was a warning
+  in 3.2.3, and is an error now in 3.2.4.
+- Little /STATS v tweak: should display 'v' in output, not 'V'. Reported by Robby22 (#2700).
+- Fixed complex command aliases not working properly, patch from Nazzy (#2722).
+- Made it so banned users cannot change the topic, suggested by aquanight and Stealth (#2233).
+- Made the "max bans per channel" setting dynamic. This can be changed by setting
+  set::maxbans in the configfile, note that you probably also want to enlarge set::maxbanlength
+  as well (see docs) or else you will hit that limit first.
+- Changed the default maxbanlength from 1K to 2K, which means people can set more bans because
+  in pracitce the 60 (maxbans) limit was never met because the maxbanlimit was set so low.
+- Empty (but existing) include files no longer cause an error. Reported by w00t (#0002460).
+- Nick Character System: Silently not advertising danish if using latin1, circumventing link
+  problems if using latin1.
+- Removed small comment from docs, which no longer applies (sorry translators ;p).
+- Updated /CREDITS (forums/mainsite hosting and update of current active supporters).
+- Updated makefile.win32: apparently libcurl.dll is now libcurl_imp.dll (import library)
+- Updated unrealinst.iss: made it easier for me to have 2 curl versions, this is so we can
+  ship the SSL version of unreal with a curl that supports SSL (https, etc).
+- Preperations for pre-1 (version change, etc)
+- Updated wircd.def (for developers).
+- Added doc/help.ru.conf, translated by Slyder.
+** internal 3.2.4-pre1 release **
+- set::maxbans / set::maxbanlength were reported as duplicates when they were not, reported
+  by Jason and trystanscott (#0002753).
+- Made it so bans on normal users will prevent them from speaking with +mu, reported by Nazzy.
+- Made set::maxbanlength also count the "to be set" ban in, otherwise you could exceed the
+  limit by (max) NICKLEN+USERNAME+HOSTNAME+2, reported by Trocotronic (#0002762).
+- Switched over to an older match() routine based on hybrid, this one is a bit less optimized
+  but is actually understandable and has less bugs. This fixes +b ~c:#c\*t not properly
+  matching #c*t, reported by Jason (#0002752). Initial results look good, but this needs
+  some good testing ;).
+- Removed some old config.h stuff + clarified some text, reported by Jason (#2765, #2766).
+** internal 3.2.4-pre2 release **
+- Made it so a set::maxbanlength and/or set::maxbans of 0 denies all bans properly, and
+  fixes the first-ban-can-be-as-long-as-you-want bug, both reported by Trocotronic (#2762).
+- Fixed SVS2SNO not always notifying the user of the snomask change, reported by decoder
+  (#0002767).
+- Curl users using https/ftps/etc: UnrealIRCd now ships with a 'curl-ca-bundle.crt' which
+  contains the (root) certificates of most major Certificate Authorities. It is basically
+  the default curl ca-bundle.crt plus cacert's certificates.
+  The 'curl-ca-bundle.crt' will be copied to the installation dir if needed.
+  It will from now on be used by Unreal for all remote includes (curl) related certificates.
+  If you want to use https but don't want to buy a certificate, we suggest you to apply for
+  a free certificate at CACert (www.CACert.org). Or, alternatively, add your own certificate
+  (PEM encoded) to curl-ca-bundle.crt, see 'SSLCERTS' in the curl package for more info.
+** public 3.2.4-rc1 release **
+- Fixed(?) bug due to match() rewrite: we now use our old rules with escaping again, due to
+  the switchover we were accidently using different ones which caused funny kill messages
+  like "You were killed by a.b.c (a!a.b.c (SOMENICK[N\A](?) <- d.e.f))." This also broke
+  some bans in pre2/rc1. Bug reported by HERZ (#0002772).
+- Fixed localhost crash (if no dns record for 127.0.0.1), reported by Trocotronic (#2773).
+** public 3.2.4-rc2 release **
+- Sometimes if an oper was connected trough SSL and had the junk snomask (+s +j) set it
+  would cause a crash. Reported by chasingsol (#0002777).
+- Updated help.ru.conf (corrections by CS-Help / Bock)
+- Updated example.bg.conf (by Peace)
+- Added Dutch unreal32docs.nl.html, translated/maintained by Mark.
+- Redid glob matching. Escaping is now ripped out for normal bans (as it should be), this
+  means no longer weird issues with +b *\* etc not banning nicks with \ in it.
+  ExtBan ~c/~r get special treatment and will use our match_esc [match with escaping]
+  routine, that way you can ban channels such as "#f*ck" via "+b ~c:#f\*ck".
+  Fix triggered by bugreport of vonitsanet (#0002782).
+** public 3.2.4-rc3 release **

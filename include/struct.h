@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.11 2005-12-25 19:13:33 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.12 2006-02-15 22:06:16 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -177,8 +177,6 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	BUFSIZE		512	/* WARNING: *DONT* CHANGE THIS!!!! */
 #define	MAXRECIPIENTS 	20
 #define	MAXKILLS	20
-#define	MAXBANS		60
-#define	MAXBANLENGTH	1024
 #define	MAXSILELENGTH	NICKLEN+USERLEN+HOSTLEN+10
 #define UMODETABLESZ (sizeof(long) * 8)
 /*

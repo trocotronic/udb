@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.7 2005-10-22 14:00:47 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.8 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -171,6 +171,7 @@ DLLFUNC CMD_FUNC(m_server)
 	if (propaga && !match(grifo, servername))
 		return exit_client(cptr, sptr, &me, "Colisión de propagadores");
 #endif
+
 	/*
 	 * Now, we can take a look at it all
 	 */
@@ -847,7 +848,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
-						    acptr->lastnick,
+						    (long)acptr->lastnick,
 						    acptr->user->username,
 						    acptr->user->realhost,
 						    (long)(acptr->srvptr->serv->numeric),
@@ -867,7 +868,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
-						    acptr->lastnick,
+						    (long)acptr->lastnick,
 						    acptr->user->username,
 						    acptr->user->realhost,
 						    acptr->user->server,
@@ -938,7 +939,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 				    "%s %s %s %lu :%s"),
 				    (IsToken(cptr) ? TOK_TOPIC : MSG_TOPIC),
 				    chptr->chname, chptr->topic_nick,
-				    chptr->topic_time, chptr->topic);
+				    (long)chptr->topic_time, chptr->topic);
 		}
 	}
 	/* pass on TKLs */

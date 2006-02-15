@@ -53,7 +53,7 @@ DLLFUNC int m_setident(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_setident)
   = {
 	"setident",	/* Name of module */
-	"$Id: m_setident.c,v 1.1.1.2 2005-03-21 10:37:01 Trocotronic Exp $", /* Version */
+	"$Id: m_setident.c,v 1.1.1.3 2006-02-15 22:06:20 Trocotronic Exp $", /* Version */
 	"/setident", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

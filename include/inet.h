@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: inet.h,v 1.1.1.3 2005-03-21 10:36:17 Trocotronic Exp $
+ * $Id: inet.h,v 1.1.1.4 2006-02-15 22:06:16 Trocotronic Exp $
  *
  *	@(#)inet.h	5.4 (Berkeley) 6/1/90
  */

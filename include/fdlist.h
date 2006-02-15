@@ -1,7 +1,7 @@
 #ifndef _IRCD_DOG3_FDLIST
 #define _IRCD_DOG3_FDLIST
 
-/* $Id: fdlist.h,v 1.1.1.3 2005-03-21 10:36:17 Trocotronic Exp $ */
+/* $Id: fdlist.h,v 1.1.1.4 2006-02-15 22:06:16 Trocotronic Exp $ */
 
 typedef struct fdstruct {
 	int  entry[MAXCONNECTIONS + 2];

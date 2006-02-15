@@ -52,7 +52,7 @@ DLLFUNC int m_sapart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sapart)
   = {
 	"m_sapart",
-	"$Id: m_sapart.c,v 1.1.4.7 2005-03-21 10:36:59 Trocotronic Exp $",
+	"$Id: m_sapart.c,v 1.1.4.8 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /sapart", 
 	"3.2-b8-1",
 	NULL 

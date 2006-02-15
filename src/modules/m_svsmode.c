@@ -64,7 +64,7 @@ DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.5 2005-03-21 10:37:05 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.6 2006-02-15 22:06:20 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 

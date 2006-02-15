@@ -58,7 +58,7 @@ DLLFUNC int  m_private(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.8 2005-10-22 14:00:46 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.9 2006-02-15 22:06:19 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -270,7 +270,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 
 				if (MyClient(sptr))
 				{
-					ret = dospamfilter(sptr, text, (notice ? SPAMF_USERNOTICE : SPAMF_USERMSG), acptr->name, 0);
+					ret = dospamfilter(sptr, text, (notice ? SPAMF_USERNOTICE : SPAMF_USERMSG), acptr->name, 0, NULL);
 					if (ret < 0)
 						return ret;
 				}
@@ -453,7 +453,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 
 				if (MyClient(sptr))
 				{
-					ret = dospamfilter(sptr, text, notice ? SPAMF_CHANNOTICE : SPAMF_CHANMSG, chptr->chname, 0);
+					ret = dospamfilter(sptr, text, notice ? SPAMF_CHANNOTICE : SPAMF_CHANMSG, chptr->chname, 0, NULL);
 					if (ret < 0)
 						return ret;
 				}
@@ -784,7 +784,7 @@ int size_string, ret;
 
 	strlcpy(realfile, ctcp, size_string+1);
 
-	if ((ret = dospamfilter(sptr, realfile, SPAMF_DCC, target, 0)) < 0)
+	if ((ret = dospamfilter(sptr, realfile, SPAMF_DCC, target, 0, NULL)) < 0)
 		return ret;
 
 	if ((fl = dcc_isforbidden(sptr, realfile)))

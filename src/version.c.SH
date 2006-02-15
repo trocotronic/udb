@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.6 2005-09-22 20:08:12 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.7 2006-02-15 22:06:18 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -44,7 +44,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.6 2005-09-22 20:08:12 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.7 2006-02-15 22:06:18 Trocotronic Exp $
  */
 
 /*
@@ -108,7 +108,14 @@ char *unrealcredits[] =
 	"|S| - irc.chatuniverse.net, CommTech Inc. - www.commtechusa.com,",
 	"CatNet IRC - irc.catslair.org, IcE-IRC - irc.ice-irc.de,",
 	"Kevin Devaux, Jackal - www.fyrebird.net, Lax - insiderZ.DE,",
-	"The_devil - chat.snyggast.se", 
+	"The_devil - chat.snyggast.se, Deltaanime Network - deltaanime.net,",
+	"CatNet IRC network - irc.catslair.org, A-Buz.com - a-buz.com,",
+	"LimonCenter Networks - www.limoncenter.com, Jean-Pierre Fournier,",
+	"AloneInTheDark - irc.sleepwalkers.org, El_barto - irc.ircdit.net,",
+	"Pyrexnetworks - www.pyrexnetworks.com, zunnie - www.MP-Gaming.NET,",
+	"All My Data - www.amdwebhost.com, Wulfie - irc.soundsnwaves.net,",
+	"eCoupons.com - www.ecoupons.com, MauritZ - irc.MindForge.org",
+	"Voodoohosting - www.voodoohosting.com",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",
@@ -121,12 +128,14 @@ char *unrealcredits[] =
 	"Digital Intensity Webhosting - http://www.digital-intensity.net",
 	"- Creating and donating hosting for the first UnrealIRCd forums",
 	"HawkSites Webhosting - http://www.hawksites.com",
-	"- Donating hosting for the new forums",
+	"- Donating hosting for the forums",
+	"UGCentral - http://www.ugcentral.com/",
+	"- Donating current hosting of the forums and the main site",
 	" ",
 	"Thanks go to all current mirror & DNS hosters. We really value",
 	"your donations.",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=[Supporters]=-=-=-=-=-=-=-=-=-=-=-=-=-=",
-	"apt, fez, JK, HERZ, ThePlayer, Zerwas, Sinus, SciFi",
+	"aquanight, Bricker, Dukat, HERZ, jewles, Nazzy, SciFi, Stealth, w00t",
 	" ",
 	"Thanks to former supporters and anyone who has helped without",
 	"officially joining the staff.",

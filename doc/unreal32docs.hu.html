@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.hu.html,v 1.2.2.7 2005-12-25 19:13:32 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.hu.html,v 1.2.2.8 2006-02-15 22:06:15 Trocotronic Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -24,12 +24,14 @@
 <a href="unreal32docs.es.html">Spanish</a> | 
 Hungarian | 
 <a href="unreal32docs.fr.html">French</a> | 
-<a href="unreal32docs.gr.html">Greek</a>
+<a href="unreal32docs.gr.html">Greek</a> | 
+<a href="unreal32docs.nl.html">Dutch</a> | 
+<a href="unreal32docs.ru.html">Russian</a>
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com/">http://www.unrealircd.com</a></font><br>
-  <font size="4">Verzió: 3.2.3</font><br>
-  <b>Utolsó dokumentáció módosítás:</b> 2005-10-11</div>
+  <font size="4">Verzió: 3.2.4</font><br>
+  <b>Utolsó dokumentáció módosítás:</b> 2006-01-17</div>
 <br>
   <b>Fõ fejlesztõk:</b> Stskeeps / codemastr / Syzop / Luke<br>
   <b>Munkatársak:</b> McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
@@ -598,6 +600,9 @@ Egy táblázat az összes választási lehetõségrõl:<br>
 <tr><td>greek</td><td>Görög karakterek</td><td>iso8859-7</td></tr>
 <tr><td>turkish</td><td>Török karakterek</td><td>iso8859-9</td></tr>
 <tr><td>russian-w1251</td><td>Orosz karakterek</td><td>windows-1251</td></tr>
+<tr><td>belarussian-w1251</td><td>Fehérorosz karakterek</td><td>windows-1251</td></tr>
+<tr><td>ukrainian-w1251</td><td>Ukrán karakterek</td><td>windows-1251</td></tr>
+<tr><td><b>windows-1251</b></td><td>russian-w1251, belarussian-w1251, ukrainian-w1251</td><td>windows-1251</td></tr>
 <tr><td>hebrew</td><td>Héber karakterek</td><td>iso8859-8-I/windows-1255</td></tr>
 <tr><td>chinese-simp</td><td>Egyszerûsített kínai</td><td>Több-bájtos: GBK/GB2312</td></tr>
 <tr><td>chinese-trad</td><td>Hagyományos kínai</td><td>Több-bájtos: GBK</td></tr>
@@ -1946,7 +1951,8 @@ link &lt;szervernév&gt; {
  gazdanevek (például dyndns.org) esetén.</td></tr>
 <tr><td><b>nohostcheck</b></td><td> ne érvényesítse a távoli gazdanevet (link::hostname); használd ezt gyakran változó
  gazdanevek (például dyndns.org) esetén.</td></tr>
-<tr><td><b>quarantine</b></td><td> az operátorok ezen a szerveren helyi operátorokként funkcionálnak</td></tr>
+<tr><td><b>quarantine</b></td><td> a szerver operátorai nem kaphatnak GLOBÁLIS jogosultságokat
+(ki lesznek lõve), teszt linkekre meg hasonlókra szokás használni</td></tr>
 </table>
 </p>
 <p>Példa:</p>
@@ -2205,6 +2211,14 @@ set {
 <p><font class="set">set::silence-limit &lt;határ&gt;;</font><br>
   Beállítja a SILENCE lista bejegyzéseinek legnagyobb megengedett számát. Ha ez a direktíva nincs jelen,
   15 lesz beállítva.</p>
+<p><font class="set">set::maxbans &lt;határ&gt;;</font><br>
+  Beállítja, hogy csatornánként legfeljebb hány kitiltás (+b) megengedett. Az alapértelmezés 60.
+  Ha ezen változtatsz, ne felejts ránézni a maxbanlength direktívára is (lásd alább)!</p>
+<p><font class="set">set::maxbanlength &lt;határ&gt;;</font><br>
+  Hasonló a fentihez, de ez a kitiltások karaktereinek számára összesen határoz meg felsõ határt,
+  vagyis tulajdonképpen korlátozást tesz arra, kb. mekkora lehet az a legnagyobb mennyiségû memória,
+  amit a kitiltások csatornánként lefoglalhatnak. Az alapértelmezés 2048 (bájt). A set::maxbans
+  60-as alapértékével ez átlagosan 2048:60=34 karaktert enged kitiltásonként.</p>
 <p><font class="set">set::oper-only-stats &lt;flaglista&gt;;</font><br>
   Megad egy elválasztójelek nélküli, stats flagekbõl álló felsorolást, amely meghatározza, mely stats flageket
   használhatnak csak operátorok. Hagyd ki ezt az értéket, hogy engedélyezd a felhasználóknak az összes

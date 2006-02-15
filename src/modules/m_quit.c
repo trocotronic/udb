@@ -52,7 +52,7 @@ DLLFUNC int m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_quit)
   = {
 	"quit",	/* Name of module */
-	"$Id: m_quit.c,v 1.1.1.5 2005-10-22 14:00:47 Trocotronic Exp $", /* Version */
+	"$Id: m_quit.c,v 1.1.1.6 2006-02-15 22:06:19 Trocotronic Exp $", /* Version */
 	"command /quit", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -118,7 +118,7 @@ DLLFUNC int  m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		if (blocked)
 			ocomment = parv[0];
 #endif
-		n = dospamfilter(sptr, ocomment, SPAMF_QUIT, NULL, 0);
+		n = dospamfilter(sptr, ocomment, SPAMF_QUIT, NULL, 0, NULL);
 		if (n == FLUSH_BUFFER)
 			return n;
 		if (n < 0)

@@ -60,7 +60,7 @@ DLLFUNC int m_chgident(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgident)
   = {
 	"chgident",	/* Name of module */
-	"$Id: m_chgident.c,v 1.1.1.4 2005-03-21 10:36:44 Trocotronic Exp $", /* Version */
+	"$Id: m_chgident.c,v 1.1.1.5 2006-02-15 22:06:18 Trocotronic Exp $", /* Version */
 	"/chgident", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

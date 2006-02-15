@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_watch);
 ModuleHeader MOD_HEADER(m_watch)
   = {
 	"m_watch",
-	"$Id: m_watch.c,v 1.1.4.1 2005-03-21 10:37:12 Trocotronic Exp $",
+	"$Id: m_watch.c,v 1.1.4.2 2006-02-15 22:06:21 Trocotronic Exp $",
 	"command /watch", 
 	"3.2-b8-1",
 	NULL 

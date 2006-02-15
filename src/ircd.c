@@ -614,7 +614,7 @@ extern TS check_pings(TS currenttime)
 		}
 		if (loop.do_bancheck_spamf_away && IsPerson(cptr) && cptr->user->away)
 		{
-			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL, SPAMFLAG_NOWARN) == FLUSH_BUFFER)
+			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL, SPAMFLAG_NOWARN, NULL) == FLUSH_BUFFER)
 				continue;
 		}
 		/*
@@ -1209,8 +1209,13 @@ int InitwIRCD(int argc, char *argv[])
 	}
 #endif
 
+	/* HACK! This ifndef should be removed when the restart-on-w32-brings-up-dialog bug
+	 * is fixed. This is just an ugly "ignore the invalid parameter" thing ;). -- Syzop
+	 */
+#ifndef _WIN32
 	if (argc > 0)
 		return bad_command();	/* This should exit out */
+#endif
 #ifndef _WIN32
 	fprintf(stderr, "%s", unreallogo);
 	fprintf(stderr, "                           v%s\n", VERSIONONLY);

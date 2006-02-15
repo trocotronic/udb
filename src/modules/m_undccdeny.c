@@ -52,7 +52,7 @@ DLLFUNC int m_undccdeny(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_undccdeny)
   = {
 	"m_undccdeny",
-	"$Id: m_undccdeny.c,v 1.1.4.2 2005-03-21 10:37:10 Trocotronic Exp $",
+	"$Id: m_undccdeny.c,v 1.1.4.3 2006-02-15 22:06:20 Trocotronic Exp $",
 	"command /undccdeny", 
 	"3.2-b8-1",
 	NULL 

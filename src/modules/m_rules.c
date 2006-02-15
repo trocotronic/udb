@@ -52,7 +52,7 @@ DLLFUNC int m_rules(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_rules)
   = {
 	"m_rules",
-	"$Id: m_rules.c,v 1.1.4.2 2005-03-21 10:36:58 Trocotronic Exp $",
+	"$Id: m_rules.c,v 1.1.4.3 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /rules", 
 	"3.2-b8-1",
 	NULL 

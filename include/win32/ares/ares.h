@@ -1,4 +1,4 @@
-/* $Id: ares.h,v 1.2.2.1 2005-11-01 22:24:40 Trocotronic Exp $ */
+/* $Id: ares.h,v 1.2.2.2 2006-02-15 22:06:16 Trocotronic Exp $ */
 
 /* Copyright 1998 by the Massachusetts Institute of Technology.
  *

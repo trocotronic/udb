@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.4 2005-12-25 19:13:35 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.5 2006-02-15 22:06:18 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -234,7 +234,7 @@ Ban *banned;
 #ifdef UDB
 	 if (IsHOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
 #else
-       	 if (IsOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
+        if (IsOper(sptr) && (chptr->mode.mode & MODE_SECRET ||
 #endif
             chptr->mode.mode & MODE_PRIVATE) && !is_autojoin_chan(chptr->chname))
                 return (ERR_OPERSPVERIFY);
@@ -438,7 +438,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 		   a SJOIN bug --stskeeps */
 		sendto_serv_butone_token_opt(cptr, OPT_SJ3|OPT_SJB64,
 			me.name, MSG_SJOIN, TOK_SJOIN,
-			"%B %s :%s%s ", chptr->creationtime, 
+			"%B %s :%s%s ", (long)chptr->creationtime, 
 #ifdef UDB
 			chptr->chname, s, sptr->name);
 #else
@@ -546,7 +546,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 				"%s %s %s %lu", chptr->chname, modebuf, parabuf, 
 				chptr->creationtime);
 #ifndef UDB					
-				sendto_one(sptr, ":%s MODE %s %s %s", me.name, chptr->chname, modebuf, parabuf);
+			sendto_one(sptr, ":%s MODE %s %s %s", me.name, chptr->chname, modebuf, parabuf);
 #endif	
 		}
 #ifdef UDB

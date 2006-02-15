@@ -57,7 +57,7 @@ DLLFUNC int m_nospoof(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_pingpong)
   = {
 	"pingpong",	/* Name of module */
-	"$Id: m_pingpong.c,v 1.1.1.4 2005-03-21 10:36:57 Trocotronic Exp $", /* Version */
+	"$Id: m_pingpong.c,v 1.1.1.5 2006-02-15 22:06:19 Trocotronic Exp $", /* Version */
 	"ping, pong and nospoof", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

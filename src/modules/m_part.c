@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_part);
 ModuleHeader MOD_HEADER(m_part)
   = {
 	"m_part",
-	"$Id: m_part.c,v 1.1.4.3 2005-12-25 19:13:36 Trocotronic Exp $",
+	"$Id: m_part.c,v 1.1.4.4 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /part", 
 	"3.2-b8-1",
 	NULL 
@@ -112,7 +112,7 @@ DLLFUNC CMD_FUNC(m_part)
 		}
 		if (commentx)
 		{
-			n = dospamfilter(sptr, commentx, SPAMF_PART, parv[1], 0);
+			n = dospamfilter(sptr, commentx, SPAMF_PART, parv[1], 0, NULL);
 			if (n == FLUSH_BUFFER)
 				return n;
 			if (n < 0)

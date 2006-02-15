@@ -52,7 +52,7 @@ DLLFUNC int m_admin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_admin)
   = {
 	"m_admin",
-	"$Id: m_admin.c,v 1.1.4.2 2005-03-21 10:36:41 Trocotronic Exp $",
+	"$Id: m_admin.c,v 1.1.4.3 2006-02-15 22:06:18 Trocotronic Exp $",
 	"command /admin", 
 	"3.2-b8-1",
 	NULL 

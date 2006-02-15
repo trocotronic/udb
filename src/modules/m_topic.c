@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.5 2005-10-22 14:00:47 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.6 2006-02-15 22:06:20 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -241,14 +241,21 @@ DLLFUNC CMD_FUNC(m_topic)
 
 #endif
 				}
-			}				
+			} else
+			if (MyClient(sptr) && !is_chan_op(sptr, chptr) && !is_halfop(sptr, chptr) && is_banned(sptr, chptr, BANCHK_MSG))
+			{
+				char buf[512];
+				ircsprintf(buf, "No puede cambiar el topic de %s mientras esté baneado", chptr->chname);
+				sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
+				return -1;
+			}
 			/* ready to set... */
 			if (MyClient(sptr))
 			{
 				Hook *tmphook;
 				int n;
 				
-				if ((n = dospamfilter(sptr, topic, SPAMF_TOPIC, chptr->chname, 0)) < 0)
+				if ((n = dospamfilter(sptr, topic, SPAMF_TOPIC, chptr->chname, 0, NULL)) < 0)
 					return n;
 
 				for (tmphook = Hooks[HOOKTYPE_PRE_LOCAL_TOPIC]; tmphook; tmphook = tmphook->next) {

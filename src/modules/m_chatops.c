@@ -52,7 +52,7 @@ DLLFUNC int m_chatops(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chatops)
   = {
 	"m_chatops",
-	"$Id: m_chatops.c,v 1.1.4.2 2005-03-21 10:36:43 Trocotronic Exp $",
+	"$Id: m_chatops.c,v 1.1.4.3 2006-02-15 22:06:18 Trocotronic Exp $",
 	"command /chatops", 
 	"3.2-b8-1",
 	NULL 

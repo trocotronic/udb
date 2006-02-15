@@ -12,7 +12,7 @@
  .set { font-weight: bold; }
  .desc { margin-left: 15px; }
  pre { font: "times new roman"; font-style: normal;}
-</style><!-- $Id: unreal32docs.fr.html,v 1.1.4.5 2005-12-25 19:13:30 Trocotronic Exp $ --></head>
+</style><!-- $Id: unreal32docs.fr.html,v 1.1.4.6 2006-02-15 22:06:14 Trocotronic Exp $ --></head>
 
 
 
@@ -23,11 +23,13 @@
 <a href="unreal32docs.hu.html">Hungarian</a> | 
 French | 
 <a href="unreal32docs.gr.html">Greek</a> | 
+<a href="unreal32docs.nl.html">Dutch</a> | 
+<a href="unreal32docs.ru.html">Russian</a>
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com/">http://www.unrealircd.com</a></font><br>
-  <font size="4">Version: 3.2.3</font><br>
-  <b>Derni&egrave;re mise &agrave; jour de la documentation:</b> 2005-10-11</div>
+  <font size="4">Version: 3.2.4</font><br>
+  <b>Derni&egrave;re mise &agrave; jour de la documentation:</b> 2006-01-17</div>
 <br>
   <b>Head Coders:</b> Stskeeps / codemastr / Syzop / Luke<br>
   <b>Contributors:</b> McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
@@ -578,6 +580,7 @@ Certains modules peuvent ajouter d'autres types de ban &eacute;tendus.<br>
   <table border="1">
   <tr><td><b>Nom:</b></td><td><b>Description:</b></td><td><b>Jeu de caract&egrave;res /encodage:</b></td></tr>
   <tr><td>catalan</td><td>Caract&egrave;res catalans</td><td>iso8859-1 (latin1)</td></tr>
+  <tr><td>danish</td><td>Caract&egrave;res danois</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>dutch</td><td>Caract&egrave;res n&eacute;erlandais</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>french</td><td>Caract&egrave;res fran&ccedil;ais</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>german</td><td>Caract&egrave;res allemands</td><td>iso8859-1 (latin1)</td></tr>
@@ -586,7 +589,7 @@ Certains modules peuvent ajouter d'autres types de ban &eacute;tendus.<br>
   <tr><td>italian</td><td>Caract&egrave;res italiens</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>spanish</td><td>Caract&egrave;res espagnols</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>swedish</td><td>Caract&egrave;res su&eacute;dois</td><td>iso8859-1 (latin1)</td></tr>
-  <tr><td><b>latin1</b></td><td>N&eacute;erlandais, fran&ccedil;ais, allemand, suisse-allemand, espagnol, 
+  <tr><td><b>latin1</b></td><td>N&eacute;erlandais, fran&ccedil;ais, danois, allemand, suisse-allemand, espagnol, 
   catalan,islandais,italien, su&eacute;dois</td><td>iso8859-1 (latin1)</td></tr>
   <tr><td>hungarian</td><td>Caract&egrave;res hongrois</td><td>iso8859-2 (latin2), windows-1250</td></tr>
   <tr><td>polish</td><td>Caract&egrave;res polonais</td><td>iso8859-2 (latin2)</td></tr>
@@ -599,6 +602,9 @@ Certains modules peuvent ajouter d'autres types de ban &eacute;tendus.<br>
   <tr><td>greek</td><td>Caract&egrave;res grecques</td><td>iso8859-7</td></tr>
   <tr><td><b>turkish</b></td><td>Caract&egrave;res turques</td><td>iso8859-9</td></tr>
   <tr><td>russian-w1251</td><td>Caract&egrave;res russes</td><td>windows-1251</td></tr>
+  <tr><td>belarussian-w1251</td><td>Caract&egrave;res belarusses</td><td>windows-1251</td></tr>
+  <tr><td>ukrainian-w1251</td><td>Caract&egrave;res ukrainiens</td><td>windows-1251</td></tr>
+  <tr><td><b>windows-1251</b></td><td>russian-w1251, belarussian-w1251, ukrainian-w1251</td><td>windows-1251</td></tr>
   <tr><td>hebrew</td><td>Caract&egrave;res hébreux</td><td>iso8859-8-I/windows-1255</td></tr>
   <tr><td>chinese-simp</td><td>Chinois simplifi&eacute;</td><td>Multibyte: GBK/GB2312</td></tr>
   <tr><td>chinese-trad</td><td>Chinois traditionnel</td><td>Multibyte: GBK</td></tr>
@@ -606,12 +612,14 @@ Certains modules peuvent ajouter d'autres types de ban &eacute;tendus.<br>
   <tr><td><b>chinese</b></td><td>Chinois-*</td><td>Multibyte: GBK</td></tr>
   <tr><td><b>gbk</b></td><td>Chinois-*</td><td>Multibyte: GBK</td></tr>
   </table>
-  Notez s'il vous pla&icirc;t que certaines combinaisons peuvent poser des probl&egrave;mes.
+  <p>Note 1 : Notez s'il vous pla&icirc;t que certaines combinaisons peuvent poser des probl&egrave;mes.
   Par exemple, combiner latin* et chinese-* ne pourra &ecirc;tre support&eacute; par l'IRCd et
   UnrealIRCd affichera une erreur.
   Mixer d'autres charsets pourra poser des probl&egrave;mes d'affichage, donc Unreal affichera un 
-  message d'avertissement si vous essayez de mixer latin1/latin2/greek.<br><br>
-  	 
+  message d'avertissement si vous essayez de mixer latin1/latin2/greek/autres groupes incompatibles.</p>
+  <p>NOTE 2 : Le casemapping (si certains caract&egrave;res minuscules se rapportent &agrave; un caract&egrave;re grave) est fait en accord avec l'US-ASCII, ceci signifique que o" et O" ne seront pas reconnu comme le 'm&ecirc;me caract&egrave;re' et par cons&eacute;quent quelqu'un peut avoir un pseudo avec B"ar et quelqu'un d'autre BA"r au m&ecirc;me moment. Ceci est une limitation du syst&egrave;me courant et des IRCds standards que ne pourra &ecirc;tre r&eacute;solu pour l'instant. Les gens doivent &ecirc;tre au courant de cette limitation. Notez que cette limitation a toujours &eacute;t&eacute; appliqu&eacute;e aux salons sur lesquels presque tous les symboles permis par le casemapping US-ASCII fonctionnaient.</p>
+  <p>NOTE 3 : Les caract&egrave;res basiques de pseudo (a-z A-Z 0-9 [ \ ] ^ _ - { | }) sont toujours permis/inclus.</p>
+ 
   Exemple 1, pour les personnes d'Europe de l'ouest:<br>
   <pre>set { allowed-nickchars {  latin1; }; };</pre>
   Exemple 2, si vous avez principalement des utilisateurs chinois et voulez autoriser les 
@@ -1882,7 +1890,7 @@ deny channel {
  pour des serveurs dont l'host change souvent (comme dyndns.org)</td></tr>
 <tr><td><b>nohostcheck</b></td><td> ne pas valider l'host distant (link::hostname), utilisez cela pour des 
  serveurs dont l'host change souvent (comme dyndns.org)</td></tr>
-<tr><td><b>quarantine</b></td><td> les opers sur ce serveur conserveront le status de locop.</td></tr>
+<tr><td><b>quarantine</b></td><td> les opers sur ce serveur ne pourront pas accéder au status de globop (ils seront killés), utilisés pour tester des serveurs et autres.</td></tr>
 </tbody></table>
 </p>
 <p>Exemple:</p>
@@ -2133,6 +2141,11 @@ spamfilter {
 <p><font class="set">set::silence-limit &lt;limit&gt;;</font><br>
   D&eacute;fini le maximum d'entr&eacute;es dans la SILENCE list. 
   Si la directive n'est pas sp&eacute;cifi&eacute;e, une limite de 15 sera appliqu&eacute;e.</p>
+<p><font class="set">set::maxbans &lt;limit&gt;;</font><br>
+  Fixe un limite pour le nombre maximum de ban (+b) autorisés par salon. La valeur par d&eacute;faut est 60.
+  Si vous la chang&eacute;, prennez &eacute;galement attention au maxbanlength (voir ci-apr&egrave;s)!</p>
+<p><font class="set">set::maxbanlength &lt;limit&gt;;</font><br>
+  Similaire &agrave; au pr&eacute;c&eacute;dent, mais fixe le nombre maximum de caract&egrave;res pour tous les bans ajoutés l'un &agrave; l'autre, donc pratiquement, ceci fixe une limite sur la quantit&eacute; (semi-)maximum de m&eacute;moire que tous les bans sur un salon peuvent prendre. La valeur par d&eacute;faut est 2048 (bytes). Avec une valeur par d&eacute;faut pour le set::maxbans de 60 ceci permet 2048:60=34 caract&egrave;res par ban en moyenne.</p>
 <p><font class="set">set::oper-only-stats &lt;stats-list&gt;;</font><br>
   Sp&eacute;cifie une liste de flags stats sans s&eacute;parateur qui d&eacute;fini les flags stats 
   que seuls les op&eacute;rateurs pourront utiliser. Ne donnez pas de valeur si vous 

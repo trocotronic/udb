@@ -29,12 +29,12 @@ RC=rc
 #
 #
 #To enable ziplinks uncomment the next line:
-#USE_ZIPLINKS=1
+USE_ZIPLINKS=1
 #
 #If your zlib library and include files are not in your compiler's
 #default locations, specify the locations here:
-#ZLIB_INC_DIR="c:\dev\zlib"
-#ZLIB_LIB_DIR="c:\dev\zlib\dll32"
+ZLIB_INC_DIR="c:\dev\zlib"
+ZLIB_LIB_DIR="c:\dev\zlib\dll32"
 #
 #
 ###### END ZIPLINKS ######
@@ -44,12 +44,12 @@ RC=rc
 #
 #
 #To enable SSL uncomment the next line:
-#USE_SSL=1
+USE_SSL=1
 #
 #If your OpenSSL library and include files are not in your compiler's
 #default locations, specify the locations here:
-#OPENSSL_INC_DIR="c:\openssl\include"
-#OPENSSL_LIB_DIR="c:\openssl\lib"
+OPENSSL_INC_DIR="c:\openssl\include"
+OPENSSL_LIB_DIR="c:\openssl\lib"
 #
 #
 ######### END SSL ########
@@ -75,7 +75,7 @@ UDB=1
 !IFDEF USE_REMOTEINC
 CURLCFLAGS=/D USE_LIBCURL
 CURLOBJ=SRC/URL.OBJ
-CURLLIB=libcurl.lib
+CURLLIB=libcurl_imp.lib
 !IFDEF LIBCURL_INC_DIR
 LIBCURL_INC=/I "$(LIBCURL_INC_DIR)"
 !ENDIF

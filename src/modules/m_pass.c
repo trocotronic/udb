@@ -52,7 +52,7 @@ DLLFUNC int m_pass(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_pass)
   = {
 	"m_pass",
-	"$Id: m_pass.c,v 1.1.4.3 2005-03-21 10:36:57 Trocotronic Exp $",
+	"$Id: m_pass.c,v 1.1.4.4 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /pass", 
 	"3.2-b8-1",
 	NULL 

@@ -53,7 +53,7 @@ DLLFUNC int m_svslusers(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svslusers)
   = {
 	"m_svslusers",
-	"$Id: m_svslusers.c,v 1.1.1.3 2005-03-21 10:37:05 Trocotronic Exp $",
+	"$Id: m_svslusers.c,v 1.1.1.4 2006-02-15 22:06:20 Trocotronic Exp $",
 	"command /svslusers", 
 	"3.2-b8-1",
 	NULL 

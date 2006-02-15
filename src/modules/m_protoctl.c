@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.9 2005-12-25 19:13:36 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.10 2006-02-15 22:06:19 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -323,11 +323,10 @@ CMD_FUNC(m_protoctl)
 			/* Compare... */
 			if (strcmp(s+10, langsinuse))
 			{
-				sendto_one(cptr, "ERROR :My nick charset='%s', yours='%s'",
-					langsinuse, s+10);
-				sendto_realops("Link error %s: Nick charset no corresponde, el nuestro='%s', el vuestro='%s'",
+				sendto_realops("\002Advertencia!\002 El servidor %s no tiene el mismo bloque set::allowed-nickchars (o se trata de "
+							"una versión del UnrealIRCd distinta). Esto puede ocasionar problemas. Charset local: '%s', remoto: '%s'",
 					get_client_name(cptr, FALSE), langsinuse, s+10);
-				return exit_client(cptr, cptr, &me, "Nick charset no corresponde");
+				/* return exit_client(cptr, cptr, &me, "Nick charset no corresponde"); */
 			}
 		}
 		/*

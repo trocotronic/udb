@@ -16,19 +16,22 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.html,v 1.1.4.7 2005-12-25 19:13:31 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.html,v 1.1.4.8 2006-02-15 22:06:15 Trocotronic Exp $ -->
 
 <body>
-English | <a href="unreal32docs.de.html">German</a> | 
+English | 
+<a href="unreal32docs.de.html">German</a> | 
 <a href="unreal32docs.es.html">Spanish</a> | 
 <a href="unreal32docs.hu.html">Hungarian</a> | 
 <a href="unreal32docs.fr.html">French</a> | 
-<a href="unreal32docs.gr.html">Greek</a>
+<a href="unreal32docs.gr.html">Greek</a> | 
+<a href="unreal32docs.nl.html">Dutch</a> | 
+<a href="unreal32docs.ru.html">Russian</a>
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
-  <font size="4">Version: 3.2.3</font><br>
-  <b>Last doc update:</b> 2005-10-11</div>
+  <font size="4">Version: 3.2.4</font><br>
+  <b>Last doc update:</b> 2006-01-17</div>
 <br>
   <b>Head Coders:</b> Stskeeps / codemastr / Syzop / Luke<br>
   <b>Contributors:</b> McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
@@ -596,6 +599,9 @@ A table of all possible choices:<br>
 <tr><td>greek</td><td>Greek characters</td><td>iso8859-7</td></tr>
 <tr><td>turkish</td><td>Turkish characters</td><td>iso8859-9</td></tr>
 <tr><td>russian-w1251</td><td>Russian characters</td><td>windows-1251</td></tr>
+<tr><td>belarussian-w1251</td><td>Belarussian characters</td><td>windows-1251</td></tr>
+<tr><td>ukrainian-w1251</td><td>Ukrainian characters</td><td>windows-1251</td></tr>
+<tr><td><b>windows-1251</b></td><td>russian-w1251, belarussian-w1251, ukrainian-w1251</td><td>windows-1251</td></tr>
 <tr><td>hebrew</td><td>Hebrew characters</td><td>iso8859-8-I/windows-1255</td></tr>
 <tr><td>chinese-simp</td><td>Simplified Chinese</td><td>Multibyte: GBK/GB2312</td></tr>
 <tr><td>chinese-trad</td><td>Tradditional Chinese</td><td>Multibyte: GBK</td></tr>
@@ -1944,7 +1950,8 @@ link &lt;server-name&gt; {
  changing host (like dyndns.org)</td></tr>
 <tr><td><b>nohostcheck</b></td><td> don't validate the remote host (link::hostname), use this if it's an often
  changing host (like dyndns.org)</td></tr>
-<tr><td><b>quarantine</b></td><td> opers on this server will maintain locop status</td></tr>
+<tr><td><b>quarantine</b></td><td> opers on this server cannot get GLOBAL oper privileges
+(they will get killed), used for test links and such</td></tr>
 </table>
 </p>
 <p>Example:</p>
@@ -2203,6 +2210,14 @@ set {
 <p><font class="set">set::silence-limit &lt;limit&gt;;</font><br>
   Sets the limit on the maximum SILENCE list entries. If this directive is not specified,
   a limit of 15 is set.</p>
+<p><font class="set">set::maxbans &lt;limit&gt;;</font><br>
+  Sets the limit on the maximum amount of bans (+b) allowed per channel. The default is 60.
+  If you change this, be sure to also take a look at maxbanlength (see next)!</p>
+<p><font class="set">set::maxbanlength &lt;limit&gt;;</font><br>
+  Similar to above, but sets the maximum amount of characters for all bans added up
+  together, so basically this puts up a limit on the (semi-)maximum amount of memory
+  all channel bans on a channel can take. The default is 2048 (bytes). With the default
+  set::maxbans of 60 this allows 2048:60=34 characters per ban on average.</p>
 <p><font class="set">set::oper-only-stats &lt;stats-list&gt;;</font><br>
   Specifies a list of stats flags with no separators that defines stats flags 
   only opers can use. Leave this value out to allow users to use all flags, or 

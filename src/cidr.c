@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- * $Id: cidr.c,v 1.1.1.3 2005-03-21 10:36:26 Trocotronic Exp $ 
+ * $Id: cidr.c,v 1.1.1.4 2006-02-15 22:06:17 Trocotronic Exp $ 
  */
 
 #include "struct.h"

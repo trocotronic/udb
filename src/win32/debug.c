@@ -248,7 +248,7 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 /* Initializes the exception handler */
 void InitDebug(void) 
 {
-	SetUnhandledExceptionFilter(&ExceptionFilter);
+	//SetUnhandledExceptionFilter(&ExceptionFilter);
 }
 
 

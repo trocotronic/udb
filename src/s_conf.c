@@ -942,8 +942,9 @@ ConfigFile *config_load(char *filename)
 	}
 	if (!sb.st_size)
 	{
-		close(fd);
-		return NULL;
+		/* Workaround for empty files */
+		cfptr = config_parse(filename, " ");
+		return cfptr;
 	}
 	buf = MyMalloc(sb.st_size+1);
 	if (buf == NULL)
@@ -1521,6 +1522,8 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->maxdccallow = 10;
 	i->channel_command_prefix = strdup("`!.");
 	i->check_target_nick_bans = 1;
+	i->maxbans = 60;
+	i->maxbanlength = 2048;
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -6446,6 +6449,12 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "who-limit")) {
 			tempiConf.who_limit = atol(cep->ce_vardata);
 		}
+		else if (!strcmp(cep->ce_varname, "maxbans")) {
+			tempiConf.maxbans = atol(cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "maxbanlength")) {
+			tempiConf.maxbanlength = atol(cep->ce_vardata);
+		}
 		else if (!strcmp(cep->ce_varname, "silence-limit")) {
 			tempiConf.silence_limit = atol(cep->ce_vardata);
 			if (loop.ircd_booted)
@@ -6976,6 +6985,14 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "who-limit")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, who_limit, "who-limit");
+		}
+		else if (!strcmp(cep->ce_varname, "maxbans")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, maxbans, "maxbans");
+		}
+		else if (!strcmp(cep->ce_varname, "maxbanlength")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, maxbanlength, "maxbanlength");
 		}
 		else if (!strcmp(cep->ce_varname, "silence-limit")) {
 			CheckNull(cep);
