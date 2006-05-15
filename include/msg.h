@@ -18,7 +18,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: msg.h,v 1.1.1.6 2005-09-22 20:08:09 Trocotronic Exp $
+ *   $Id: msg.h,v 1.1.1.7 2006-05-15 19:49:42 Trocotronic Exp $
  */
 
 #ifndef	__msg_include__
@@ -312,8 +312,6 @@ extern int m_error();
 extern int m_dns();
 extern int m_info(), m_summon();
 extern int m_users(), m_version();
-extern int m_names();
-extern int m_service();
 extern int m_dalinfo();
 extern int m_credits();
 extern int m_license();
