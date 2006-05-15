@@ -43,6 +43,14 @@ extern char *extraflags;
 extern BOOL IsService;
 void CleanUp(void);
 
+/* crappy, but safe :p */
+typedef BOOL (WINAPI *MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
+										CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+										CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+										CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+										);
+
+
 /* Runs a stack trace 
  * Parameters:
  *  e - The exception information
@@ -197,9 +205,13 @@ __inline char *GetException(DWORD code)
 LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e) 
 {
 	MEMORYSTATUS memStats;
-	char file[512], text[1024];
+	char file[512], text[1024], minidumpf[512];
 	FILE *fd;
 	time_t timet = time(NULL);
+#ifndef NOMINIDUMP
+	HANDLE hDump;
+	HMODULE hDll = NULL;
+#endif
 
 	sprintf(file, "wircd.%d.core", getpid());
 	fd = fopen(file, "w");
@@ -231,6 +243,50 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 			    "coders@lists.unrealircd.org.", getpid());
 	fclose(fd);
 
+#ifndef NOMINIDUMP
+	hDll = LoadLibrary("DBGHELP.DLL");
+	if (hDll)
+	{
+		MINIDUMPWRITEDUMP pDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDll, "MiniDumpWriteDump");
+		if (pDump)
+		{
+			MINIDUMP_EXCEPTION_INFORMATION ExInfo;
+			sprintf(minidumpf, "wircd.%d.mdmp", getpid());
+			hDump = CreateFile(minidumpf, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hDump != INVALID_HANDLE_VALUE)
+			{
+				ExInfo.ThreadId = GetCurrentThreadId();
+				ExInfo.ExceptionPointers = e;
+				ExInfo.ClientPointers = 0;
+
+				if (pDump(GetCurrentProcess(), GetCurrentProcessId(), hDump, MiniDumpNormal, &ExInfo, NULL, NULL))
+				{
+					sprintf(text, "UnrealIRCd ha encontrado un error fatal. La información de depuración ha"
+						" sido guardada en wircd.%d.core y %s, por favor envíe un email con estos 2 archivos a coders@lists.unrealircd.org",
+						getpid(), minidumpf);
+				}
+				CloseHandle(hDump);
+			}
+#if 0
+			sprintf(minidumpf, "wircd.%d.full.mdmp", getpid());
+			hDump = CreateFile(minidumpf, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hDump != INVALID_HANDLE_VALUE)
+			{
+				ExInfo.ThreadId = GetCurrentThreadId();
+				ExInfo.ExceptionPointers = e;
+				ExInfo.ClientPointers = 0;
+
+				if (pDump(GetCurrentProcess(), GetCurrentProcessId(), hDump, MiniDumpWithFullMemory, &ExInfo, NULL, NULL))
+				{
+					strcat(text, " [extended debuginfo is available too]");
+				}
+				CloseHandle(hDump);
+			}
+#endif
+		}
+	}
+#endif
+	
 	if (!IsService)
 		MessageBox(NULL, text, "Fatal Error", MB_OK);
 	else 
@@ -248,7 +304,9 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 /* Initializes the exception handler */
 void InitDebug(void) 
 {
-	//SetUnhandledExceptionFilter(&ExceptionFilter);
+#ifndef NOCORE
+	SetUnhandledExceptionFilter(&ExceptionFilter);
+#endif
 }
 
 

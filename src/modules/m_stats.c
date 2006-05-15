@@ -52,7 +52,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.9 2005-12-25 19:13:36 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.10 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -468,8 +468,12 @@ DLLFUNC CMD_FUNC(m_stats)
 		else
 			stat->func(sptr, NULL);
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, parv[0], stat->flag);
-		sendto_snomask(SNO_EYES, "Stats \'%c\' solicitada por %s (%s@%s)",
-			stat->flag, sptr->name, sptr->user->username, GetHost(sptr));
+		if (!IsULine(sptr))
+			sendto_snomask(SNO_EYES, "Stats \'%c\' solicitada por %s (%s@%s)",
+				stat->flag, sptr->name, sptr->user->username, GetHost(sptr));
+		else
+			sendto_snomask(SNO_JUNK, "Stats \'%c\' solicitada por %s (%s@%s) [ulined]",
+				stat->flag, sptr->name, sptr->user->username, GetHost(sptr));
 	}
 	else
 	{

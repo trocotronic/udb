@@ -56,7 +56,7 @@ typedef struct {
 #ifdef _WIN32
 static StreamIO *streamp;
 LRESULT SSLPassDLG(HWND hDlg, UINT Message, WPARAM wParam, LPARAM lParam) {
-	StreamIO *stream = NULL;
+	StreamIO *stream;
 	switch (Message) {
 		case WM_INITDIALOG:
 			return TRUE;
@@ -189,7 +189,7 @@ void init_ctx_server(void)
 			| (iConf.ssl_options & SSLFLAG_FAILIFNOCERT ? SSL_VERIFY_FAIL_IF_NO_PEER_CERT : 0), ssl_verify_callback);
 	SSL_CTX_set_session_cache_mode(ctx_server, SSL_SESS_CACHE_OFF);
 
-	if (SSL_CTX_use_certificate_file(ctx_server, SSL_SERVER_CERT_PEM, SSL_FILETYPE_PEM) <= 0)
+	if (SSL_CTX_use_certificate_chain_file(ctx_server, SSL_SERVER_CERT_PEM) <= 0)
 	{
 		ircd_log(LOG_ERROR, "Failed to load SSL certificate %s", SSL_SERVER_CERT_PEM);
 		exit(3);

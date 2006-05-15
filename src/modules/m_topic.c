@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.6 2006-02-15 22:06:20 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.7 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -94,11 +94,13 @@ DLLFUNC int MOD_UNLOAD(m_topic)(int module_unload)
 */
 DLLFUNC CMD_FUNC(m_topic)
 {
-	aChannel *chptr = NullChn;
-	char *topic = NULL, *name, *tnick = NULL;
-	TS   ttime = 0;
-	int  topiClen = 0;
-	int  nicKlen = 0;
+aChannel *chptr = NullChn;
+char *topic = NULL, *name, *tnick = NULL;
+TS   ttime = 0;
+int  topiClen = 0;
+int  nicKlen = 0;
+int ismember; /* cache: IsMember() */
+long flags = 0; /* cache: membership flags */
 
 	if (parc < 2)
 	{
@@ -123,9 +125,14 @@ DLLFUNC CMD_FUNC(m_topic)
 			    me.name, parv[0], name);
 			return 0;
 		}
+		
+		ismember = IsMember(sptr, chptr); /* CACHE */
+		if (ismember)
+			flags = get_access(sptr, chptr); /* CACHE */
+		
 		if (parc > 2 || SecretChannel(chptr))
 		{
-			if (!IsMember(sptr, chptr) && !IsServer(sptr)
+			if (!ismember && !IsServer(sptr)
 			    && !IsOper(sptr) && !IsULine(sptr))
 			{
 				sendto_one(sptr, err_str(ERR_NOTONCHANNEL),
@@ -145,9 +152,9 @@ DLLFUNC CMD_FUNC(m_topic)
 
 		if (!topic)	/* only asking  for topic  */
 		{
-			if ((chptr->mode.mode & MODE_OPERONLY && !IsAnOper(sptr) && !IsMember(sptr, chptr)) ||
-			    (chptr->mode.mode & MODE_ADMONLY && !IsAdmin(sptr) && !IsMember(sptr, chptr)) ||
-			    (is_banned(sptr,chptr,BANCHK_JOIN) && !IsAnOper(sptr) && !IsMember(sptr, chptr))) {
+			if ((chptr->mode.mode & MODE_OPERONLY && !IsAnOper(sptr) && !ismember) ||
+			    (chptr->mode.mode & MODE_ADMONLY && !IsAdmin(sptr) && !ismember) ||
+			    (is_banned(sptr,chptr,BANCHK_JOIN) && !IsAnOper(sptr) && !ismember)) {
 				sendto_one(sptr, err_str(ERR_NOTONCHANNEL), me.name, parv[0], name);
 				return 0;
 			}
@@ -176,6 +183,10 @@ DLLFUNC CMD_FUNC(m_topic)
 				/* setting a topic */
 				topiClen = strlen(topic);
 				nicKlen = strlen(tnick);
+#ifdef UDB
+			if (!chptr->topic || strncmp(chptr->topic, topic, MIN(TOPICLEN, topiClen)))
+			{
+#endif
 
 				if (chptr->topic)
 					MyFree(chptr->topic);
@@ -195,6 +206,13 @@ DLLFUNC CMD_FUNC(m_topic)
 				chptr->topic_nick = MyMalloc(nicKlen + 1);
 				strncpyzt(chptr->topic_nick, tnick,
 				    nicKlen + 1);
+				sendto_channel_butserv(chptr, sptr,
+				    ":%s TOPIC %s :%s (%s)", parv[0],
+				    chptr->chname, chptr->topic,
+				    chptr->topic_nick);
+#ifdef UDB
+			}
+#endif
 
 				chptr->topic_time = ttime;
 				RunHook4(HOOKTYPE_TOPIC, cptr, sptr, chptr, topic);
@@ -203,10 +221,6 @@ DLLFUNC CMD_FUNC(m_topic)
 				    TOK_TOPIC, "%s %s %lu :%s",
 				    chptr->chname, chptr->topic_nick,
 				    chptr->topic_time, chptr->topic);
-				sendto_channel_butserv(chptr, sptr,
-				    ":%s TOPIC %s :%s (%s)", parv[0],
-				    chptr->chname, chptr->topic,
-				    chptr->topic_nick);
 			}
 		}
 		else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
@@ -248,7 +262,16 @@ DLLFUNC CMD_FUNC(m_topic)
 				ircsprintf(buf, "No puede cambiar el topic de %s mientras esté baneado", chptr->chname);
 				sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
 				return -1;
+			} else
+			if (MyClient(sptr) && (flags == 0) && (chptr->mode.mode & MODE_MODERATED))
+			{
+				char buf[512];
+				/* With +m and -t, only voice and higher may change the topic */
+				ircsprintf(buf, "Se requiere voz (+v) o mayor para cambiar el topic de %s (canal en +m)", chptr->chname);
+				sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
+				return -1;
 			}
+			
 			/* ready to set... */
 			if (MyClient(sptr))
 			{

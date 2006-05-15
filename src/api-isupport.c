@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: api-isupport.c,v 1.1.4.3 2005-09-22 20:08:10 Trocotronic Exp $
+ * $Id: api-isupport.c,v 1.1.4.4 2006-05-15 19:49:43 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -151,6 +151,7 @@ void isupport_init(void)
 	IsupportAdd(NULL, "MAXCHANNELS", my_itoa(MAXCHANNELSPERUSER));
 	IsupportAdd(NULL, "HCN", NULL);
 	IsupportAdd(NULL, "SAFELIST", NULL);
+	IsupportAdd(NULL, "NAMESX", NULL);
 	if (cmdstr)
 		IsupportAdd(NULL, "CMDS", cmdstr);
 }

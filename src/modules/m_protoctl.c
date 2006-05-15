@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.10 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.11 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -133,7 +133,12 @@ CMD_FUNC(m_protoctl)
 			equal[0] = '\0';
 		}
 */
-		if (strcmp(s, "NOQUIT") == 0)
+		if (!strcmp(s, "NAMESX"))
+		{
+			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
+			SetNAMESX(cptr);
+		}
+		else if (strcmp(s, "NOQUIT") == 0)
 		{
 #ifndef PROTOCTL_MADNESS
 			if (remove)
@@ -268,6 +273,13 @@ CMD_FUNC(m_protoctl)
 			    proto, cptr->name));
 			SetVHP(cptr);
 		}
+		else if (strcmp(s, "CLK") == 0)
+		{
+			Debug((DEBUG_ERROR,
+			    "Chose protocol %s for link %s",
+			    proto, cptr->name));
+			SetCLK(cptr);
+		}
 		else if (strcmp(s, "SJ3") == 0)
 		{
 #ifndef PROTOCTL_MADNESS
@@ -340,7 +352,7 @@ CMD_FUNC(m_protoctl)
 #ifdef UDB
  		else if (strncmp(s, "UDB", 3) == 0)
 		{
-			if (strncmp(s, UDB_VER, strlen(UDB_VER)) == 0)
+			if (strncmp(s, UDB_VER, 6) == 0)
 			{
 				char *c = NULL, *parm;
 #ifndef PROTOCTL_MADNESS
@@ -355,7 +367,7 @@ CMD_FUNC(m_protoctl)
 				if (!(c = strchr(s, '=')))
 					return exit_client(cptr, sptr, &me, "Faltan datos UDB");
 				parm = strtok(c+1, ",");
-				if (!parm || (match(grifo, parm) && match(parm, parm)))
+				if (!parm || strcasecmp(grifo, parm))
 					return exit_client(cptr, sptr, &me, "ERROR: Propagador no coincide");
 				for (parm = strtok(NULL, ","); parm; parm = strtok(NULL, ","))
 				{

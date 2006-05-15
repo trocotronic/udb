@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.11 2005-12-25 19:13:36 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.12 2006-05-15 19:49:46 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -313,7 +313,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	    			sendto_one(sptr, rpl_str(RPL_WHOISBOT), me.name, parv[0], name, ircnetwork);
 
 			if (IsSuspended(acptr))
-	    			sendto_one(sptr, rpl_str(RPL_WHOISSUPEND), me.name, parv[0],
+	    			sendto_one(sptr, rpl_str(RPL_WHOISSUSPEND), me.name, parv[0],
 				name);
 			
 			if (level_oper_bdd(acptr->name) && !hideoper)

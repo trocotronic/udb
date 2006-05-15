@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.5 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.6 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -307,7 +307,6 @@ DLLFUNC CMD_FUNC(m_nick)
 	}
 	if (MyClient(sptr)) /* local client changin nick afterwards.. */
 	{
-		char spamfilter_user[NICKLEN + USERLEN + HOSTLEN + REALLEN + 64];
 		int xx;
 		ircsprintf(spamfilter_user, "%s!%s@%s:%s",
 			nick, sptr->user->username, sptr->user->realhost, sptr->info);
@@ -665,7 +664,7 @@ DLLFUNC CMD_FUNC(m_nick)
 				if (!(bline = busca_bloque(N_FOR_TOK, reg))) /* esto no debería pasar nunca */
 				{
 					sendto_one(sptr->from,
-						":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.rallados.net.",
+						":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com.",
 						botname, sptr->name, nick);
 				}
 				sendto_one(sptr->from, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
@@ -704,7 +703,7 @@ DLLFUNC CMD_FUNC(m_nick)
 				if (!(bline = busca_bloque(N_SUS_TOK, reg))) /* esto no debería pasar */
 				{
 					sendto_one(sptr->from,
-						":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.rallados.net.",
+						":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.redyc.com.",
 						botname, sptr->name, nick);
 				}
 				sendto_one(sptr->from, ":%s NOTICE %s :*** Este nick está SUSPENDido", botname, sptr->name);
@@ -927,7 +926,7 @@ DLLFUNC CMD_FUNC(m_nick)
 	}
 #endif
 #ifdef UDB
-	if (sptr != acptr)
+	if (IsPerson(sptr) && sptr != acptr)
 		dale_cosas(val, sptr, reg);
 	if (IsHidden(sptr))
 		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
@@ -1020,22 +1019,20 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 			    -3 ? mo :
 			    "You are not authorized to connect to this server");
 		}
+
 		if (sptr->hostp)
 		{
-			/* No control-chars or ip-like dns replies... I cheat :)
-			   -- OnyxDragon */
-			for (tmpstr = sptr->sockhost; *tmpstr > ' ' &&
-			    *tmpstr < 127; tmpstr++);
-			if (*tmpstr || !*user->realhost
-			    || isdigit(*(tmpstr - 1)))
-				strncpyzt(sptr->sockhost,
-				    (char *)Inet_ia2p((struct IN_ADDR*)&sptr->ip), sizeof(sptr->sockhost));	/* Fix the sockhost for debug jic */
-			strncpyzt(user->realhost, sptr->sockhost,
-			    sizeof(sptr->sockhost));
+			/* reject ascci < 32 and ascii >= 127 (note: upper resolver might be even more strict) */
+			for (tmpstr = sptr->sockhost; *tmpstr > ' ' && *tmpstr < 127; tmpstr++);
+			
+			/* if host contained invalid ASCII _OR_ the DNS reply is an IP-like reply
+			 * (like: 1.2.3.4), then reject it and use IP instead.
+			 */
+			if (*tmpstr || !*user->realhost || (isdigit(*sptr->sockhost) && isdigit(*tmpstr - 1)))
+				strncpyzt(sptr->sockhost, (char *)Inet_ia2p((struct IN_ADDR*)&sptr->ip), sizeof(sptr->sockhost));
 		}
-		else		/* Failsafe point, don't let the user define their
-				   own hostname via the USER command --Cabal95 */
-			strncpyzt(user->realhost, sptr->sockhost, HOSTLEN + 1);
+		strncpyzt(user->realhost, sptr->sockhost, sizeof(sptr->sockhost)); /* SET HOSTNAME */
+
 		/*
 		 * I do not consider *, ~ or ! 'hostile' in usernames,
 		 * as it is easy to differentiate them (Use \*, \? and \\)
@@ -1184,9 +1181,9 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	if (sptr->srvptr && sptr->srvptr->serv)
 		sptr->srvptr->serv->users++;
 #ifdef UDB
-	user->virthost = (char *)make_virtualhost(sptr, user->realhost, user->virthost, 1);
     	if ((reg = busca_registro(BDD_NICKS, sptr->name)))
     	{
+    		dale_cosas(busca_bloque(N_SUS_TOK, reg) ? 1 : 2, sptr, reg);
     		if ((bloq = busca_bloque(N_SWO_TOK, reg)))
 		{
 			if (sptr->user->swhois)
@@ -1203,9 +1200,12 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 			}
 		}
 	}
+	user->virthost = make_virtualhost(sptr, user->realhost, user->virthost, 1);
 #else
-	user->virthost =
-	    (char *)make_virthost(user->realhost, user->virthost, 1);
+
+	make_virthost(sptr, user->realhost, user->cloakedhost, 0);
+	user->virthost = strdup(user->cloakedhost);
+
 #endif	 	    
 	if (MyConnect(sptr))
 	{

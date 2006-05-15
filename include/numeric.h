@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.6 2005-10-22 14:00:43 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.7 2006-05-15 19:49:42 Trocotronic Exp $
  */
 
 /*
@@ -241,7 +241,7 @@
 #define	RPL_ALIST			 388
 #define	RPL_ENDOFALIST		 389
 #ifdef UDB
-#define RPL_WHOISSUPEND      390 
+#define RPL_WHOISSUSPEND      390 
 #endif
 
 #define RPL_TIME             391

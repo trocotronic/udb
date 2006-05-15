@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.8 2005-10-22 14:00:46 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.9 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -309,8 +309,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 		} else
 		if (IsHidden(sptr) && !sptr->user->virthost) {
 			/* +x has just been set by modes-on-oper and iNAH is off */
-			sptr->user->virthost = (char *)make_virthost(sptr->user->realhost,
-			                                             sptr->user->virthost, 1);
+			sptr->user->virthost = strdup(sptr->user->cloakedhost);
 		}
 
 		if (!IsOper(sptr))

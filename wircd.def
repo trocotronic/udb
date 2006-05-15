@@ -50,6 +50,7 @@ EXPORTS
 	Find_alias
 	Find_ban
 	Find_banEx
+	Find_cgiirc
 	Find_channel_allowed
 	Find_class
 	Find_deny_dcc
@@ -495,6 +496,7 @@ EXPORTS
 	find_throttling_bucket
 	find_tkline_match
 	find_tkline_match_zap
+	find_tkline_match_zap_ex
 	find_user_link
 	findmod_by_bantype
 	flag_add
@@ -533,6 +535,7 @@ EXPORTS
 	get_snostr
 	get_sockerr
 	get_sockhost
+	getcloak
 	getrandom16
 	getrandom32
 	getrandom8
@@ -588,6 +591,7 @@ EXPORTS
 	initstats
 	initwhowas
 	int6_to_base64_map
+	iplist_onlist
 	ipport_seperate
 	ircd_log
 	ircsprintf
@@ -635,7 +639,6 @@ EXPORTS
 	m_license
 	m_module
 	m_motd
-	m_names
 	m_opermotd
 	m_rehash
 	m_restart

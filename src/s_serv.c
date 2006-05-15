@@ -286,12 +286,13 @@ void m_info_send(aClient *sptr)
 	    ":%s %d %s :| Sistema y protocolo UDB, traducción al castellano y extendido a helpers implementado por:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
-	    ":%s %d %s :|          * Trocotronic (trocotronic@rallados.net)", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr,
-	    ":%s %d %s :| Soporte de infrastructura y testeado por:", me.name, RPL_INFO, sptr->name);
+	    ":%s %d %s :|          * Trocotronic (trocotronic@redyc.com)", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Otras colaboraciones:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
 	    ":%s %d %s :|          * MaD (mad@madito.net)", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.rallados.net", me.name, RPL_INFO, sptr->name, 31);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.redyc.com", me.name, RPL_INFO, sptr->name, 31);
 #endif
 	sendto_one(sptr,
 	    ":%s %d %s :-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=", me.name,
@@ -603,6 +604,8 @@ void reread_motdsandrules()
 	opermotd = (aMotd *) read_file(OPATH, &opermotd);
 }
 
+extern void reinit_resolver(aClient *sptr);
+
 /*
 ** m_rehash
 ** remote rehash by binary
@@ -630,7 +633,7 @@ CMD_FUNC(m_rehash)
 	}
 	x = 0;
 
-	if (BadPtr(parv[2])) {
+	if ((parc < 3) || BadPtr(parv[2])) {
 		/* If the argument starts with a '-' (like -motd, -opermotd, etc) then it's
 		 * assumed not to be a server. -- Syzop
 		 */
@@ -686,6 +689,11 @@ CMD_FUNC(m_rehash)
 			{
 				loop.do_garbage_collect = 1;
 				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
+				return 0;
+			}
+			if (!strnicmp("-dns", parv[1], 4))
+			{
+				reinit_resolver(sptr);
 				return 0;
 			}
 			if (!_match("-o*motd", parv[1]))

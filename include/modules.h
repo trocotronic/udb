@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: modules.h,v 1.1.1.8 2006-02-15 22:06:16 Trocotronic Exp $
+ *   $Id: modules.h,v 1.1.1.9 2006-05-15 19:49:42 Trocotronic Exp $
  */
 #ifndef MODULES_H
 #define MODULES_H
@@ -420,6 +420,7 @@ struct _Module
 	unsigned char errorcode;
 	char *tmp_file;
 	unsigned long mod_sys_version;
+	unsigned int compiler_version;
 };
 /*
  * Symbol table
@@ -644,6 +645,7 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 /* Callback types */
 #define CALLBACKTYPE_CLOAK 1
 #define CALLBACKTYPE_CLOAKKEYCSUM 2
+#define CALLBACKTYPE_CLOAK_EX 3
 
 /* Efunction types */
 #define EFUNC_DO_JOIN       				1
@@ -671,6 +673,7 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 #define EFUNC_PLACE_HOST_BAN				23
 #define EFUNC_DOSPAMFILTER					24
 #define EFUNC_DOSPAMFILTER_VIRUSCHAN		25
+#define EFUNC_FIND_TKLINE_MATCH_ZAP_EX		26
 
 /* Module flags */
 #define MODFLAG_NONE	0x0000

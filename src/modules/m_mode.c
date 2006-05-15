@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.4 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.5 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -333,9 +333,8 @@ CMD_FUNC(m_mode)
 			    "*** TS bounce for %s - %lu(ours) %lu(theirs)",
 			    chptr->chname, chptr->creationtime, sendts);
 			bounce_mode(chptr, cptr, parc - 2, parv + 2);
-			return 0;
 		}
-		/* other server will resync soon enough... */
+		return 0;
 	}
 	if (IsServer(sptr) && !sendts && *parv[parc - 1] != '0')
 		sendts = -1;
@@ -738,6 +737,17 @@ void make_mode_str(aChannel *chptr, long oldm, long oldl, int pcount,
 	return;
 }
 
+#ifdef UDB
+static int compare_floodprot_modes(ChanFloodProt *a, ChanFloodProt *b)
+{
+	if (memcmp(a->l, b->l, sizeof(a->l)) ||
+	    memcmp(a->a, b->a, sizeof(a->a)) ||
+	    memcmp(a->r, b->r, sizeof(a->r)))
+		return 1;
+	else
+		return 0;
+}
+#endif
 
 /* do_mode_char
  *  processes one mode character
@@ -772,6 +782,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 	int xxi, xyi, xzi, hascolon;
 	char *xp;
 	int  notsecure;
+#ifdef UDB
+	Udb *reg, *bloq;
+#endif
 	chasing = 0;
 
 	if ((my_access & CHFL_HALFOP) && !is_xchanop(my_access) && !IsULine(cptr)
@@ -1216,6 +1229,28 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		            break;
 		     }
 		  }
+#ifdef UDB
+		if (!bounce && what == MODE_DEL && !IsOper(cptr) && (reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque(C_OPT_TOK, reg)) && (bloq->data_long & BDD_C_OPT_PBAN) && (bloq = busca_bloque(C_FUN_TOK, reg)) && strcasecmp(bloq->data_char, cptr->name))
+		{
+			Ban *ban;
+			int sale = 0;
+			for (ban = chptr->banlist; ban; ban = ban->next)
+			{
+				if (!strcasecmp(ban->banstr, tmpstr)) /* tenemos el ban! */
+				{
+					if (strcasecmp(ban->who, cptr->name)) /* oh, es otro autor! */
+						sale = 1;
+					break;
+				}
+			}
+			if (sale)
+			{
+				sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+					   me.name, cptr->name, 'b', "sólo su autor puede sacar este ban");
+				break;
+			}
+		  }
+#endif
 		  /* For bounce, we don't really need to worry whether
 		   * or not it exists on our server.  We'll just always
 		   * bounce it. */
@@ -1714,9 +1749,13 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 						break;
 					
 				} /* if param[0] == '[' */ 
+#ifdef UDB
+				if (chptr->mode.floodprot && !compare_floodprot_modes(chptr->mode.floodprot, &newf))
+#else
 
 				if (chptr->mode.floodprot &&
 				    !memcmp(chptr->mode.floodprot, &newf, sizeof(ChanFloodProt)))
+#endif
 					break; /* They are identical */
 
 				/* Good.. store the mode (and alloc if needed) */
@@ -2365,8 +2404,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 #ifdef UDB
 		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #else
-		sptr->user->virthost = (char *)make_virthost(sptr->user->realhost,
-		    sptr->user->virthost, 1);
+		sptr->user->virthost = strdup(sptr->user->cloakedhost);
 #endif
 		if (!dontspread)
 			sendto_serv_butone_token_opt(cptr, OPT_VHP, sptr->name,
@@ -2411,7 +2449,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 #ifdef UDB
 		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 0);
 #else
-		sptr->user->virthost = (char *)make_virthost(sptr->user->realhost, sptr->user->virthost, 1);
+		sptr->user->virthost = strdup(sptr->user->cloakedhost);
 #endif
 	}
 	/*

@@ -1,4 +1,4 @@
-/* $Id: ares.h,v 1.2.2.2 2006-02-15 22:06:16 Trocotronic Exp $ */
+/* $Id: ares.h,v 1.2.2.3 2006-05-15 19:49:43 Trocotronic Exp $ */
 
 /* Copyright 1998 by the Massachusetts Institute of Technology.
  *
@@ -19,6 +19,7 @@
 #define ARES__H
 
 #include <sys/types.h>
+
 
 #if defined(_AIX) || defined(NETWARE)
 /* HP-UX systems version 9, 10 and 11 lack sys/select.h and so does oldish
@@ -122,6 +123,14 @@ struct ares_options {
   char *lookups;
 };
 
+/** Public available config (readonly) interface for ares_get_config(). */
+struct ares_config_info {
+	int timeout;
+	int tries;
+	int numservers;
+	char **servers;
+};
+
 struct hostent;
 struct timeval;
 struct sockaddr;
@@ -172,7 +181,7 @@ int ares_parse_ptr_reply(const unsigned char *abuf, int alen, const void *addr,
 void ares_free_string(void *str);
 void ares_free_hostent(struct hostent *host);
 const char *ares_strerror(int code);
-
+int ares_get_config(struct ares_config_info *d, ares_channel c);
 #ifdef  __cplusplus
 }
 #endif

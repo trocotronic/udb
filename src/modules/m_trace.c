@@ -52,7 +52,7 @@ DLLFUNC int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_trace)
   = {
 	"m_trace",
-	"$Id: m_trace.c,v 1.1.4.3 2006-02-15 22:06:20 Trocotronic Exp $",
+	"$Id: m_trace.c,v 1.1.4.4 2006-05-15 19:49:46 Trocotronic Exp $",
 	"command /trace", 
 	"3.2-b8-1",
 	NULL 
@@ -107,8 +107,19 @@ DLLFUNC CMD_FUNC(m_trace)
 
 	if (!IsOper(sptr))
 	{
-		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-		return 0;
+		if (IsAnOper(sptr))
+		{
+			/* local opers may not /TRACE remote servers! */
+			if (strcasecmp(tname, me.name))
+			{
+				sendnotice(sptr, "You can only /TRACE local servers as a locop");
+				sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+				return 0;
+			}
+		} else {
+			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+			return 0;
+		}
 	}
 
 	switch (hunt_server_token(cptr, sptr, MSG_TRACE, TOK_TRACE, ":%s", 1, parc, parv))

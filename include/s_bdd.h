@@ -19,6 +19,8 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id: s_bdd.h,v 1.1.1.10 2006-05-15 19:49:42 Trocotronic Exp $
  */
 
 #ifdef _WIN32
@@ -27,12 +29,12 @@
 #define DB_DIR "database/"
 #endif
 #define DBMAX 64 /* hay de sobras */
-#define UDB_VER "UDB3.2.2"
+#define UDB_VER "UDB3.2.3"
 typedef struct _udb Udb;
 struct _udb
 {
 	char *item; /* si queremos darle un nombre */
-	int id; /* si queremos darle una id */
+	u_int id; /* si queremos darle una id */
 	char *data_char; /* su valor char */
 	u_long data_long; /* su valor numérico */
 	struct _udb *hsig, *up, *mid, *down; /* punteros enlazados bla bla bla */
@@ -132,6 +134,8 @@ DLLEXP extern MODVAR char bloques[DBMAX];
  * - C::<#canal>::suspendido NULL -> no da +oq al fundador, el canal no está en +r
  * - C::<#canal>::pass <contraseña> -> Contraseña del canal para darse +ao. Se usa /join # pass o /invite nick # pass
  * - C::<#canal>::desafio <desafio> -> Desafío de la contraseña del canal
+ * - C::<#canal>::opciones *<opts> -> Fija distintas opciones para el canal.
+ * 		- BDD_C_OPT_PBAN 0x1 -> Si figura esta bit, hay protección de bans: sólo el autor de los bans puede quitarlo (excepto founder y opers).
  *
  * Las ips tienen los siguiente subbloques
  * - I::<ip|host>::clones *<nº clones> -> nº de clones que se permiten desde esa ip
@@ -159,6 +163,7 @@ DLLEXP extern MODVAR char bloques[DBMAX];
 #define E_UDB_RPROG 7 /* resumen en progreso */
 #define E_UDB_NORES 8 /* no había mandado resumen */
 #define E_UDB_FBSRV 9 /* servidor prohibido */
+#define E_UDB_REP 10 /* dato repetido */
 
 #define C_FUN "fundador"
 #define C_FUN_TOK "F"
@@ -176,6 +181,8 @@ DLLEXP extern MODVAR char bloques[DBMAX];
 #define C_PAS_TOK "P"
 #define C_DES "desafio"
 #define C_DES_TOK "D"
+#define C_OPT "opciones"
+#define C_OPT_TOK "O"
 #define N_PAS "pass"
 #define N_PAS_TOK "P"
 #define N_VHO "vhost"
@@ -218,3 +225,5 @@ DLLEXP extern MODVAR char bloques[DBMAX];
 #define S_QCL_TOK "Q"
 #define S_DES "desafio"
 #define S_DES_TOK "D"
+
+#define BDD_C_OPT_PBAN 0x1

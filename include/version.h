@@ -2,7 +2,7 @@
 **
 ** version.h
 ** UnrealIRCd
-** $Id: version.h,v 1.1.1.14 2006-02-15 22:06:16 Trocotronic Exp $
+** $Id: version.h,v 1.1.1.15 2006-05-15 19:49:43 Trocotronic Exp $
 */
 #ifndef __versioninclude
 #define __versioninclude 1
@@ -46,15 +46,15 @@
  * Can be useful if the above 3 versionids are insufficient for you (eg: you want to support CVS).
  * This is updated automatically on the CVS server every Monday. so don't touch it.
  */
-#define UNREAL_VERSION_TIME         200606
+#define UNREAL_VERSION_TIME         200620
 
 #define UnrealProtocol 		2307
 #define PATCH1  		"3"
 #define PATCH2  		".2"
-#define PATCH3  		".4"
+#define PATCH3  		".5pre1"
 #ifdef UDB
 #define PATCH4 			"+UDB"
-#define PATCH5 			"-3.2.2"
+#define PATCH5 			"-3.2.3"
 #define PATCH6			"es"
 #else
 #define PATCH4  		""

@@ -19,6 +19,8 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * $Id: s_bdd.c,v 1.1.1.15 2006-05-15 19:49:43 Trocotronic Exp $
  */
 #include "config.h"
 #include "struct.h"
@@ -56,6 +58,7 @@ u_int BDD_SET = 0;
 Udb ***hash;
 Udb *ultimo = NULL;
 int dataver = 0; /* versión de la database */
+FILE *fcrc = NULL;
 extern char modebuf[BUFSIZE], parabuf[BUFSIZE];
 #define ircstrdup(x,y) do{ if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); }while(0)
 #define atoul(x) strtoul(x, NULL, 10)
@@ -76,9 +79,9 @@ extern void set_channelmodes(char *, struct ChMode *, int);
 #ifdef DEBUGMODE
 void printea(Udb *, int);
 #endif
-void set_dataver(int);
+void set_dataver(u_int);
 int saca_dataver();
-Udb *coge_de_id(int);
+Udb *coge_de_id(u_int);
 extern char *unrealdns_findcache_byaddr(struct IN_ADDR *);
 extern DNSCache *unrealdns_findcache_byaddr_dns(struct IN_ADDR *);
 extern void unrealdns_addtocache(char *, void *, int);
@@ -250,6 +253,7 @@ int actualiza_dataver2()
 				}
 			}
 		}
+		fflush(tmp);
 		fclose(fp);
 		fclose(tmp);
 		unlink(p1);
@@ -301,6 +305,7 @@ int actualiza_dataver3()
 			fwrite(buf, 1, strlen(buf), tmp);
 		}
 	}
+	fflush(tmp);
 	fclose(fp);
 	fclose(tmp);
 	unlink(DB_DIR "nicks.udb");
@@ -335,8 +340,11 @@ void bdd_init()
 	if (!ips)
 		ips = alta_bloque('I', DB_DIR "ips.udb", &BDD_IPS);
 	alta_hash();
-	if ((fh = fopen(DB_DIR "crcs", "a")))
+	if ((fh = fopen(DB_DIR "crcs", "ab")))
+	{
 		fclose(fh);
+		fcrc = fopen(DB_DIR "crcs", "r+b");
+	}
 	switch ((ver = saca_dataver()))
 	{
 		case 0:
@@ -369,11 +377,11 @@ u_long obtiene_hash(Udb *bloq)
 	u_long hashl = 0L;
 	struct stat inode;
 	if ((fp = open(bloq->item, O_RDONLY|O_BINARY|O_CREAT, S_IREAD|S_IWRITE)) == -1)
-		return 0;
+		return 0L;
 	if (fstat(fp, &inode) == -1)
 	{
 		close(fp);
-		return 0;
+		return 0L;
 	}
 	par = MyMalloc(inode.st_size + 1);
 	*(par + inode.st_size) = '\0';
@@ -392,17 +400,15 @@ u_long obtiene_hash(Udb *bloq)
 	MyFree(par);
 	return hashl;
 }
-u_long lee_hash(int id)
+u_long lee_hash(u_int id)
 {
-	FILE *fp;
-	u_long hash = 0L;
+	u_long hash = 0;
 	char lee[9];
-	if (!(fp = fopen(DB_DIR "crcs", "r")) || fseek(fp, 8 * id, SEEK_SET))
+	if (fseek(fcrc, 8 * id, SEEK_SET))
 		return 0L;
 	bzero(lee, 9);
-	fread(lee, 1, 8, fp);
-	fclose(fp);
-	if (!sscanf(lee, "%X", &hash))
+	fread(lee, 1, 8, fcrc);
+	if (!sscanf(lee, "%lX", &hash))
 		return 0L;
 	return hash;
 }
@@ -410,72 +416,64 @@ int saca_dataver()
 {
 	if (!dataver)
 	{
-		FILE *fp;
 		char ver[3];
-		if (!(fp = fopen(DB_DIR "crcs", "r")) || fseek(fp, 72, SEEK_SET))
+		if (fseek(fcrc, 72, SEEK_SET))
 			return 0;
 		bzero(ver, 3);
-		fread(ver, 1, 2, fp);
-		fclose(fp);
+		fread(ver, 1, 2, fcrc);
 		if (!sscanf(ver, "%X", &dataver))
 			return 0;
 		return dataver;
 	}
 	return dataver;
 }
-void set_dataver(int v)
+void set_dataver(u_int v)
 {
 	char ver[3];
-	FILE *fh;
 	bzero(ver, 3);
-	if (!(fh = fopen(DB_DIR "crcs", "r+")) || fseek(fh, 72, SEEK_SET))
+	if (fseek(fcrc, 72, SEEK_SET))
 		return;
 	ircsprintf(ver, "%X", v);
-	fwrite(ver, 1, 2, fh);
-	fclose(fh);
+	fwrite(ver, 1, 2, fcrc);
+	fflush(fcrc);
 }
 int actualiza_hash(Udb *bloque)
 {
 	char lee[9];
-	FILE *fh;
 	u_long lo;
 	bzero(lee, 9);
-	if (!(fh = fopen(DB_DIR "crcs", "r+")) || fseek(fh, 8 * bloque->id, SEEK_SET))
+	if (fseek(fcrc, 8 * bloque->id, SEEK_SET))
 		return -1;
 	lo = obtiene_hash(bloque);
-	ircsprintf(lee, "%X", lo);
-	fwrite(lee, 1, 8, fh);
-	fclose(fh);
+	ircsprintf(lee, "%lX", lo);
+	fwrite(lee, 1, 8, fcrc);
+	fflush(fcrc);
 	return 0;
 }
-time_t lee_gmt(int id)
+time_t lee_gmt(u_int id)
 {
-	FILE *fp;
-	u_long hash = 0L;
 	char lee[11];
-	if (!(fp = fopen(DB_DIR "crcs", "r")) || fseek(fp, BDD_TOTAL * 8 + 10 * id, SEEK_SET))
+	if (fseek(fcrc, BDD_TOTAL * 8 + 10 * id, SEEK_SET))
 		return 0L;
 	bzero(lee, 11);
-	fread(lee, 1, 10, fp);
-	fclose(fp);
+	fread(lee, 1, 10, fcrc);
 	return atoul(lee);
 }
 int actualiza_gmt(Udb *bloque, time_t gm)
 {
 	char lee[11];
-	FILE *fh;
 	time_t hora = gm ? gm : time(0);
 	bzero(lee, 11);
-	if (!(fh = fopen(DB_DIR "crcs", "r+")) || fseek(fh, BDD_TOTAL * 8 + 10 * bloque->id, SEEK_SET))
+	if (fseek(fcrc, BDD_TOTAL * 8 + 10 * bloque->id, SEEK_SET))
 		return -1;
-	ircsprintf(lee, "%ul", hora);
-	fwrite(lee, 1, 10, fh);
-	fclose(fh);
+	ircsprintf(lee, "%lu", hora);
+	fwrite(lee, 1, 10, fcrc);
+	fflush(fcrc);
 	gmts[bloque->id] = hora;
 	return 0;
 }
 /* devuelve el puntero a todo el bloque a partir de su id o letra */
-Udb *coge_de_id(int id)
+Udb *coge_de_id(u_int id)
 {
 	Udb *reg;
 	for (reg = ultimo; reg; reg = reg->mid)
@@ -485,14 +483,14 @@ Udb *coge_de_id(int id)
 	}
 	return NULL;
 }
-void inserta_registro_en_hash(Udb *registro, int donde, char *clave)
+void inserta_registro_en_hash(Udb *registro, u_int donde, char *clave)
 {
 	u_int hashv;
 	hashv = hash_nick_name(clave) % MAX_HASH;
 	registro->hsig = hash[donde][hashv];
 	hash[donde][hashv] = registro;
 }
-int borra_registro_de_hash(Udb *registro, int donde, char *clave)
+int borra_registro_de_hash(Udb *registro, u_int donde, char *clave)
 {
 	Udb *aux, *prev = NULL;
 	u_int hashv;
@@ -511,6 +509,7 @@ int borra_registro_de_hash(Udb *registro, int donde, char *clave)
 	}
 	return 0;
 }
+/*
 int complow(char a1, char b1)
 {
 	char a2, b2, a3, b3;
@@ -539,12 +538,10 @@ int complow(char a1, char b1)
 	return b1-a1;
 }
 	
-/* esta función hace lo mismo que strcasecmp pero soporta la ñ */
-int compara(const char *s1, const char *s2)
+///* esta función hace lo mismo que strcasecmp pero soporta la ñ 
+int compara(char *ra, char *rb)
 {
-	const char *ra = s1;
-	const char *rb = s2;
-	if (!s1 || !s2)
+	if (!ra || !rb)
 		return 1;
 	while (!complow(*ra, *rb) || tolower(*ra) == tolower(*rb)) 
 	{
@@ -555,6 +552,7 @@ int compara(const char *s1, const char *s2)
 	}
 	return (*ra - *rb);
 }
+*/
 Udb *busca_udb_en_hash(char *clave, u_int donde, Udb *lugar)
 {
 	u_int hashv;
@@ -562,7 +560,8 @@ Udb *busca_udb_en_hash(char *clave, u_int donde, Udb *lugar)
 	hashv = hash_nick_name(clave) % MAX_HASH;
 	for (aux = hash[donde][hashv]; aux; aux = aux->hsig)
 	{
-		if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
+		//if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
+		if (!strcasecmp(clave, aux->item))
 			return aux;
 	}
 	return lugar;
@@ -580,7 +579,8 @@ Udb *busca_bloque(char *clave, Udb *bloque)
 		return NULL;
 	for (aux = bloque->down; aux; aux = aux->mid)
 	{
-		if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
+		//if ((*(clave+1) == '\0' && !complow(aux->id, *clave)) || !compara(clave, aux->item))
+		if (!strcasecmp(clave, aux->item))
 			return aux;
 	}
 	return NULL;
@@ -616,7 +616,7 @@ Udb *da_formato(char *form, Udb *reg)
 			*(c+1) = '\0';
 		}
 	}
-	else
+	else if (!BadPtr(reg->item))
 		strcat(form, reg->item);
 	if (reg->down)
 		strcat(form, "::");
@@ -677,10 +677,10 @@ void regenera_claves()
 		}
 	}
 }
-int mira_id(char id, char *tok)
+/*int mira_id(char id, char *tok)
 {
 	return (id == *tok);
-}
+}*/
 void dale_vhost(aClient *sptr)
 {
 	if (!IsARegNick(sptr))
@@ -721,7 +721,7 @@ void dale_modos(aClient *sptr, Udb *reg, char *modos)
 		switch(*cur)
 		{
 			case 'o':
-				if (MyConnect(sptr) && !IsAnOper(sptr))
+				if (MyClient(sptr) && !IsAnOper(sptr))
 				{
 					sendto_one(sptr, rpl_str(RPL_YOUREOPER), me.name, sptr->name);
 					IRCstats.operators++;
@@ -734,17 +734,17 @@ void dale_modos(aClient *sptr, Udb *reg, char *modos)
 				break;
 			case 'h':
 				sptr->umodes |= UMODE_HELPOP;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_HELPOP;
 				break;
 			case 'a':
 				sptr->umodes |= UMODE_SADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_SADMIN;
 				break;
 			case 'A':
 				sptr->umodes |= UMODE_ADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_ADMIN;
 				break;
 			case 'O':
@@ -752,22 +752,22 @@ void dale_modos(aClient *sptr, Udb *reg, char *modos)
 				break;
 			case 'k':
 				sptr->umodes |= UMODE_SERVICES;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_OVERRIDE;
 				break;
 			case 'N':
 				sptr->umodes |= UMODE_NETADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_NETADMIN;
 				break;
 			case 'C':
 				sptr->umodes |= UMODE_COADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_COADMIN;
 				break;
 			case 'W':
 				sptr->umodes |= UMODE_WHOIS;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag |= OFLAG_WHOIS;
 				break;
 			case 'q':
@@ -807,7 +807,7 @@ void quitale_modos(aClient *sptr, Udb *reg, char *modos)
 		switch(*cur)
 		{
 			case 'o':
-				if (MyConnect(sptr) && IsAnOper(sptr))
+				if (MyClient(sptr) && IsAnOper(sptr))
 				{
 #ifndef NO_FDLIST
 					delfrom_fdlist(sptr->slot, &oper_fdlist);
@@ -822,17 +822,17 @@ void quitale_modos(aClient *sptr, Udb *reg, char *modos)
 				break;
 			case 'h':
 				sptr->umodes &= ~UMODE_HELPOP;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_HELPOP;
 				break;
 			case 'a':
 				sptr->umodes &= ~UMODE_SADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_SADMIN;
 				break;
 			case 'A':
 				sptr->umodes &= ~UMODE_ADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_ADMIN;
 				break;
 			case 'O':
@@ -840,22 +840,22 @@ void quitale_modos(aClient *sptr, Udb *reg, char *modos)
 				break;
 			case 'k':
 				sptr->umodes &= ~UMODE_SERVICES;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_OVERRIDE;
 				break;
 			case 'N':
 				sptr->umodes &= ~UMODE_NETADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_NETADMIN;
 				break;
 			case 'C':
 				sptr->umodes &= ~UMODE_COADMIN;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_COADMIN;
 				break;
 			case 'W':
 				sptr->umodes &= ~UMODE_WHOIS;
-				if (MyConnect(sptr))
+				if (MyClient(sptr))
 					sptr->oflag &= ~OFLAG_WHOIS;
 				break;
 			case 'q':
@@ -889,13 +889,13 @@ void dale_oper(aClient *sptr, Udb *reg)
 		if (nivel & BDD_ADMIN)
 		{
 			dale_modos(sptr, reg, "oa");
-			if (MyConnect(sptr))
+			if (MyClient(sptr))
 				sptr->oflag |= (OFLAG_NADMIN | OFLAG_ISGLOBAL | OFLAG_ZLINE);
 		}
 		if (nivel & BDD_ROOT)
 		{
 			dale_modos(sptr, reg, "oN");
-			if (MyConnect(sptr))
+			if (MyClient(sptr))
 				sptr->oflag |= (OFLAG_NADMIN | OFLAG_ISGLOBAL | OFLAG_ZLINE | OFLAG_DIE | OFLAG_RESTART | OFLAG_ADDLINE);
 		}
 	}
@@ -913,14 +913,14 @@ void quitale_oper(aClient *sptr, Udb *reg)
 		if (nivel & BDD_ADMIN)
 		{
 			quitale_modos(sptr, reg, "oa");
-			if (MyConnect(sptr))
+			if (MyClient(sptr))
 				sptr->oflag &= ~(OFLAG_NADMIN | OFLAG_TKL | OFLAG_GZL | OFLAG_OVERRIDE | OFLAG_ZLINE);
 		}
 		
 		if (nivel & BDD_ROOT)
 		{
 			quitale_modos(sptr, reg, "oN");
-			if (MyConnect(sptr))
+			if (MyClient(sptr))
 				sptr->oflag &= ~(OFLAG_DIE | OFLAG_RESTART | OFLAG_ADDLINE);
 		}
 	}
@@ -947,7 +947,7 @@ void quitale_swhois(aClient *sptr, Udb *reg)
 void dale_snomasks(aClient *sptr, Udb *reg)
 {
 	Udb *bloq;
-	if (!MyConnect(sptr) || (!reg && !(reg = busca_registro(BDD_NICKS, sptr->name))))
+	if (!MyClient(sptr) || (!reg && !(reg = busca_registro(BDD_NICKS, sptr->name))))
 		return;
 	if ((bloq = busca_bloque(N_SNO_TOK, reg)) && !BadPtr(bloq->data_char))
 	{
@@ -962,7 +962,7 @@ void dale_snomasks(aClient *sptr, Udb *reg)
 void quitale_snomasks(aClient *sptr, Udb *reg)
 {
 	Udb *bloq;
-	if (MyConnect(sptr) || (!reg && !(reg = busca_registro(BDD_NICKS, sptr->name))))
+	if (MyClient(sptr) || (!reg && !(reg = busca_registro(BDD_NICKS, sptr->name))))
 		return;
 	if ((bloq = busca_bloque(N_SNO_TOK, reg)) && !BadPtr(bloq->data_char))
 	{
@@ -1075,7 +1075,8 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 			chptr->mode.mode |= MODE_RGSTR;
 			strcat(buf, "r");
 		}
-		if (mira_id(reg->id, C_MOD_TOK) || !strcmp(reg->item, C_MOD))
+		//if (mira_id(reg->id, C_MOD_TOK) || !strcmp(reg->item, C_MOD))
+		if (!strcmp(reg->item, C_MOD_TOK))
 		{
 			char *modos = reg->data_char;
 			struct ChMode store;
@@ -1136,27 +1137,35 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 #endif
 			strcat(buf, *modos == '+' ? modos+1 : modos);
 		}
-		else if (mira_id(reg->id, C_TOP_TOK) || !strcmp(reg->item, C_TOP))
+		//else if (mira_id(reg->id, C_TOP_TOK) || !strcmp(reg->item, C_TOP))
+		else if (!strcmp(reg->item, C_TOP_TOK))
 		{
 			int topiclen;
 			int nicklen;
+			char *tmp;
 			if (BadPtr(reg->data_char))
 				return;
 			topiclen = strlen(reg->data_char);
 			nicklen = strlen(botnick);
 			if (topiclen > (TOPICLEN))
 				topiclen = TOPICLEN;
-			if (chptr->topic)
-				MyFree(chptr->topic);
-			chptr->topic = MyMalloc(topiclen + 1);
-			strncpyzt(chptr->topic, reg->data_char, topiclen + 1);
-			chptr->topic_time = TStime();
-			if (chptr->topic_nick)
-				MyFree(chptr->topic_nick);
-			chptr->topic_nick = MyMalloc(nicklen + 1);
-			strncpyzt(chptr->topic_nick, botnick, nicklen + 1);
-			if (chptr->members)
-				sendto_channel_butserv(chptr, &me, ":%s TOPIC %s :%s", botmask, chptr->chname, chptr->topic);
+			tmp = MyMalloc(topiclen + 1);
+			strncpyzt(tmp, reg->data_char, topiclen + 1);
+			if (!chptr->topic || strcmp(tmp, chptr->topic))
+			{
+				if (chptr->topic)
+					MyFree(chptr->topic);
+				chptr->topic = MyMalloc(topiclen + 1);
+				chptr->topic_time = TStime();
+				if (chptr->topic_nick)
+					MyFree(chptr->topic_nick);
+				strncpyzt(chptr->topic, reg->data_char, topiclen + 1);
+				chptr->topic_nick = MyMalloc(nicklen + 1);
+				strncpyzt(chptr->topic_nick, botnick, nicklen + 1);
+				if (chptr->members)
+					sendto_channel_butserv(chptr, &me, ":%s TOPIC %s :%s", botmask, chptr->chname, chptr->topic);
+			}
+			MyFree(tmp);
 		}
 		if (!chptr->creationtime)
 			chptr->creationtime = TStime();
@@ -1165,9 +1174,11 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 	}
 	else if (tipo == BDD_SET)
 	{
-		if (!loop.ircd_rehashing && (mira_id(reg->id, S_CLA_TOK) || !strcmp(reg->item, S_CLA) || mira_id(reg->id, S_SUF_TOK) || !strcmp(reg->item, S_SUF)))
+		//if (!loop.ircd_rehashing && (mira_id(reg->id, S_CLA_TOK) || !strcmp(reg->item, S_CLA) || mira_id(reg->id, S_SUF_TOK) || !strcmp(reg->item, S_SUF)))
+		if (!loop.ircd_rehashing && (!strcmp(reg->item, S_CLA_TOK) || !strcmp(reg->item, S_SUF_TOK)))
 			regenera_claves();
-		else if (mira_id(reg->id, S_DES_TOK) || !strcmp(reg->item, S_DES))
+		//else if (mira_id(reg->id, S_DES_TOK) || !strcmp(reg->item, S_DES))
+		else if (!strcmp(reg->item, S_DES_TOK))
 			globdes = reg;
 	}
 	else if (tipo == BDD_NICKS)
@@ -1185,17 +1196,23 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 			return;
 		viejos = sptr->umodes;
 		sptr->umodes |= UMODE_REGNICK;
-		if (mira_id(reg->id, N_VHO_TOK) || !strcmp(reg->item, N_VHO))
+		//if (mira_id(reg->id, N_VHO_TOK) || !strcmp(reg->item, N_VHO))
+		if (!strcmp(reg->item, N_VHO_TOK))
 			dale_vhost(sptr);
-		else if (mira_id(reg->id, N_MOD_TOK) || !strcmp(reg->item, N_MOD))
+		//else if (mira_id(reg->id, N_MOD_TOK) || !strcmp(reg->item, N_MOD))
+		else if (!strcmp(reg->item, N_MOD_TOK))
 			dale_modos(sptr, reg, reg->data_char);
-		else if (mira_id(reg->id, N_SNO_TOK) || !strcmp(reg->item, N_SNO))
+		//else if (mira_id(reg->id, N_SNO_TOK) || !strcmp(reg->item, N_SNO))
+		else if (!strcmp(reg->item, N_SNO_TOK))
 			dale_snomasks(sptr, reg->up);
-		else if (mira_id(reg->id, N_OPE_TOK) || !strcmp(reg->item, N_OPE))
+		//else if (mira_id(reg->id, N_OPE_TOK) || !strcmp(reg->item, N_OPE))
+		else if (!strcmp(reg->item, N_OPE_TOK))
 			dale_oper(sptr, reg->up);
-		else if (mira_id(reg->id, N_SWO_TOK) || !strcmp(reg->item, N_SWO))
+		//else if (mira_id(reg->id, N_SWO_TOK) || !strcmp(reg->item, N_SWO))
+		else if (!strcmp(reg->item, N_SWO_TOK))
 			dale_swhois(sptr, reg->up);
-		else if (mira_id(reg->id, N_SUS_TOK) || !strcmp(reg->item, N_SUS))
+		//else if (mira_id(reg->id, N_SUS_TOK) || !strcmp(reg->item, N_SUS))
+		else if (!strcmp(reg->item, N_SUS_TOK))
 		{
 			quitale_cosas(sptr, reg->up);
 			sptr->umodes |= UMODE_SUSPEND;
@@ -1210,7 +1227,8 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 	}
 	else if (tipo == BDD_IPS)
 	{
-		if (mira_id(reg->id, I_NOL_TOK) || !strcmp(reg->item, I_NOL))
+		//if (mira_id(reg->id, I_NOL_TOK) || !strcmp(reg->item, I_NOL))
+		if (!strcmp(reg->item, I_NOL_TOK))
 		{
 			char *c;
 			ircsprintf(buf, "*@%s", reg->up->item);
@@ -1251,7 +1269,8 @@ void inserta_registro_especial(int tipo, Udb *reg, int nuevo)
 				}
 			}
 		}
-		else if (!loop.ircd_rehashing && (mira_id(reg->id, I_HOS_TOK) || !strcmp(reg->item, I_HOS)))
+		//else if (!loop.ircd_rehashing && (mira_id(reg->id, I_HOS_TOK) || !strcmp(reg->item, I_HOS)))
+		else if (!loop.ircd_rehashing && !strcmp(reg->item, I_HOS_TOK))
 		{
 			DNSCache *cp;
 			struct IN_ADDR addr;
@@ -1284,7 +1303,8 @@ void borra_registro_especial(int tipo, Udb *reg)
 		}
 		if (!(chptr = get_channel(&me, root->item, !CREATE)))
 			return;
-		if ((mira_id(reg->id, C_MOD_TOK) || !strcmp(C_MOD, reg->item)) || (*reg->item == '#' && (bloq = busca_bloque(C_MOD_TOK, reg))))
+		//if ((mira_id(reg->id, C_MOD_TOK) || !strcmp(C_MOD, reg->item)) || (*reg->item == '#' && (bloq = busca_bloque(C_MOD_TOK, reg))))
+		if (!strcmp(C_MOD_TOK, reg->item) || (*reg->item == '#' && (bloq = busca_bloque(C_MOD_TOK, reg))))
 		{
 #ifdef EXTCMODE
 			extcmode_free_paramlist(chptr->mode.extmodeparam);
@@ -1300,7 +1320,8 @@ void borra_registro_especial(int tipo, Udb *reg)
 			cmodej_delchannelentries(chptr);
 #endif
 		}
-		if ((mira_id(reg->id, C_TOP_TOK)|| !strcmp(C_TOP, reg->item)) || (*reg->item == '#' && (bloq = busca_bloque(C_TOP_TOK, reg))))
+		//if ((mira_id(reg->id, C_TOP_TOK)|| !strcmp(C_TOP, reg->item)) || (*reg->item == '#' && (bloq = busca_bloque(C_TOP_TOK, reg))))
+		if (!strcmp(C_TOP_TOK, reg->item) || (*reg->item == '#' && (bloq = busca_bloque(C_TOP_TOK, reg))))
 		{
 			if (chptr->topic)
 			{
@@ -1328,17 +1349,23 @@ void borra_registro_especial(int tipo, Udb *reg)
 		}
 		if (!sptr)
 			return;
-		if ((mira_id(reg->id, N_VHO_TOK) || !strcmp(N_VHO, reg->item)))
+		//if ((mira_id(reg->id, N_VHO_TOK) || !strcmp(N_VHO, reg->item)))
+		if (!strcmp(reg->item, N_VHO_TOK))
 			quitale_vhost(sptr, reg->up);
-		else if ((mira_id(reg->id, N_SNO_TOK) || !strcmp(N_SNO, reg->item)))
+		//else if ((mira_id(reg->id, N_SNO_TOK) || !strcmp(N_SNO, reg->item)))
+		else if (!strcmp(reg->item, N_SNO_TOK))
 			quitale_snomasks(sptr, reg);
-		else if ((mira_id(reg->id, N_OPE_TOK) || !strcmp(N_OPE, reg->item)))
+		//else if ((mira_id(reg->id, N_OPE_TOK) || !strcmp(N_OPE, reg->item)))
+		else if (!strcmp(reg->item, N_OPE_TOK))
 			quitale_oper(sptr, reg);
-		else if ((mira_id(reg->id, N_MOD_TOK) || !strcmp(N_MOD, reg->item)))
+		//else if ((mira_id(reg->id, N_MOD_TOK) || !strcmp(N_MOD, reg->item)))
+		else if (!strcmp(reg->item, N_MOD_TOK))
 			quitale_modos(sptr, reg, NULL);
-		else if ((mira_id(reg->id, N_SWO_TOK) || !strcmp(N_SWO, reg->item)))
+		//else if ((mira_id(reg->id, N_SWO_TOK) || !strcmp(N_SWO, reg->item)))
+		else if (!strcmp(reg->item, N_SWO_TOK))
 			quitale_swhois(sptr, reg);
-		else if (mira_id(reg->id, N_SUS_TOK) || !strcmp(reg->item, N_SUS))
+		//else if (mira_id(reg->id, N_SUS_TOK) || !strcmp(reg->item, N_SUS))
+		else if (!strcmp(reg->item, N_SUS_TOK))
 		{
 			u_long viejos = sptr->umodes;
 			sptr->umodes &= ~UMODE_SUSPEND;
@@ -1356,16 +1383,19 @@ void borra_registro_especial(int tipo, Udb *reg)
 	}
 	else if (tipo == BDD_IPS)
 	{
-		if ((mira_id(reg->id, I_HOS_TOK) || !strcmp(I_HOS, reg->item)))
+		//if ((mira_id(reg->id, I_HOS_TOK) || !strcmp(I_HOS, reg->item)))
+		if (!strcmp(reg->item, I_HOS_TOK))
 			quitale_dns(reg->up->item);
-		else if ((mira_id(reg->id, I_NOL_TOK) || !strcmp(I_NOL, reg->item)))
+		//else if ((mira_id(reg->id, I_NOL_TOK) || !strcmp(I_NOL, reg->item)))
+		else if (!strcmp(reg->item, I_NOL_TOK))
 			quitale_exc(reg->up->item);
 		else if (!reg->up->up)
 			quitale_ips(reg->item);
 	}
 	else if (tipo == BDD_SET)
 	{
-		if (mira_id(reg->id, S_DES_TOK) || !strcmp(reg->item, S_DES))
+		//if (mira_id(reg->id, S_DES_TOK) || !strcmp(reg->item, S_DES))
+		if (!strcmp(reg->item, S_DES_TOK))
 			globdes = NULL;
 	}
 }
@@ -1395,30 +1425,31 @@ void printea(Udb *bloq, int escapes)
 		printea(bloq->mid, escapes);
 }
 #endif
-void libera_memoria_udb(int tipo, Udb *reg)
+void libera_memoria_udb(u_int tipo, Udb *reg)
 {
 	if (reg->down)
 	{
-		//borra_registro_de_hash(reg->down, tipo, reg->down->item);
+		borra_registro_de_hash(reg->down, tipo, reg->down->item);
 		libera_memoria_udb(tipo, reg->down);
 	}
 	if (reg->mid)
 	{
-		//borra_registro_de_hash(reg->mid, tipo, reg->mid->item);
+		borra_registro_de_hash(reg->mid, tipo, reg->mid->item);
 		libera_memoria_udb(tipo, reg->mid);
 	}
-	borra_registro_de_hash(reg, tipo, reg->item);
+	//borra_registro_de_hash(reg, tipo, reg->item);
 	if (reg->data_char)
 		MyFree(reg->data_char);
 	if (reg->item)
 		MyFree(reg->item);
 	MyFree(reg);
 }
-void borra_registro(int tipo, Udb *reg, int archivo)
+/* Devuelve NULL si hay error. Si no, devuelve el superior */
+Udb *borra_registro(u_int tipo, Udb *reg, int archivo)
 {
 	Udb *aux, *down, *prev = NULL, *up;
 	if (!(up = reg->up)) /* estamos arriba de todo */
-		return;
+		return NULL;
 	borra_registro_de_hash(reg, tipo, reg->item);
 	borra_registro_especial(tipo, reg);
 	if (reg->data_char)
@@ -1447,9 +1478,10 @@ void borra_registro(int tipo, Udb *reg, int archivo)
 		regs[tipo]--;
 	libera_memoria_udb(tipo, reg);
 	if (!up->down)
-		borra_registro(tipo, up, archivo);
+		up = borra_registro(tipo, up, archivo);
+	return up;
 }	
-Udb *inserta_registro(int tipo, Udb *bloque, char *item, char *data_char, u_long data_long, int archivo)
+Udb *inserta_registro(u_int tipo, Udb *bloque, char *item, char *data_char, u_long data_long, int archivo)
 {
 	Udb *reg;
 	if (!bloque || !item)
@@ -1459,12 +1491,12 @@ Udb *inserta_registro(int tipo, Udb *bloque, char *item, char *data_char, u_long
 		reg = crea_registro(bloque);
 		if (!bloque->up)
 			regs[tipo]++;
-		if (*(item+1) == '\0')
+		/*if (*(item+1) == '\0')
 		{
 			reg->id = *item;
 			reg->item = strdup("");
 		}
-		else
+		else*/
 			reg->item = strdup(item);
 		inserta_registro_en_hash(reg, tipo, item);
 	}
@@ -1535,35 +1567,43 @@ char *cifra_ip(char *ipreal)
 	}
 	return cifrada;
 }	
-char *make_virtualhost(aClient *acptr, char *real, char *virtual, int mostrar)
+char *make_virtualhost(aClient *acptr, char *real, char *virt, int mostrar)
 {
 	Udb *reg, *bloq;
-	char x[HOSTLEN+1], *suf = NULL;
+	char *x, *suf = NULL;
 	if (!real)
 		return NULL;
 	if ((reg = busca_registro(BDD_SET, S_SUF_TOK)) && !BadPtr(reg->data_char))
 		suf = reg->data_char;
 	else
 		suf = "virtual";
+	if (BadPtr(acptr->user->cloakedhost))
+		snprintf(acptr->user->cloakedhost, HOSTLEN, "%s.%s", cifra_ip(real), suf);
 	if (IsARegNick(acptr) && (reg = busca_registro(BDD_NICKS, acptr->name)) && (bloq = busca_bloque(N_VHO_TOK, reg)) && !BadPtr(bloq->data_char))
-		strncpyzt(x, bloq->data_char, HOSTLEN);
+	{
+		x = bloq->data_char;
+		acptr->umodes |= UMODE_SETHOST;
+	}
 	else
-		snprintf(x, HOSTLEN, "%s.%s", cifra_ip(real), suf);
-	if (MyClient(acptr) && mostrar && IsHidden(acptr) && virtual && strcmp(virtual, x))
+	{
+		x = acptr->user->cloakedhost;
+		acptr->umodes &= ~UMODE_SETHOST;
+	}
+	if (MyClient(acptr) && mostrar && IsHidden(acptr) && (!virt || strcmp(virt, x)))
 	{
 		char *botname;
 		if ((reg = busca_registro(BDD_SET, S_IPS_TOK)) && !BadPtr(reg->data_char))
 			botname = reg->data_char;
 		else
 			botname = me.name;
-		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s",
-			botname, acptr->name, x);
+		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s", botname, acptr->name, x);		
 	}
-	if (virtual)
-		MyFree(virtual);
+	if (virt)
+		MyFree(virt);
 	return strdup(x);
 }
-void parsea_linea(int tipo, char *cur, int archivo)
+/* 0 ok, 1 error (no se ha insertado/borrado) */
+int parsea_linea(int tipo, char *cur, int archivo)
 {
 	char *ds, *cop, *sp;
 	Udb *bloq;
@@ -1589,17 +1629,20 @@ void parsea_linea(int tipo, char *cur, int archivo)
 		if (BadPtr(ds))
 			goto borra;
 		if (*ds == CHAR_NUM)
-			inserta_registro(tipo, bloq, cur, NULL, atoul(++ds), archivo);
+			bloq = inserta_registro(tipo, bloq, cur, NULL, atoul(++ds), archivo);
 		else
-			inserta_registro(tipo, bloq, cur, ds, 0, archivo);
+			bloq = inserta_registro(tipo, bloq, cur, ds, 0, archivo);
 	}
 	else
 	{
 		borra:
 		if ((bloq = busca_bloque(cur, bloq)))
-			borra_registro(tipo, bloq, archivo);
+			bloq = borra_registro(tipo, bloq, archivo);
 	}
 	MyFree(cop);
+	if (bloq)
+		return 0;
+	return 1;
 }
 void carga_bloque(int tipo)
 {
@@ -1608,7 +1651,9 @@ void carga_bloque(int tipo)
 	char linea[BUFSIZE], *c;
 	FILE *fp;
 	root = coge_de_id(tipo);
-	if ((lee = lee_hash(tipo)) != (obtiene = obtiene_hash(root)))
+	lee = lee_hash(tipo);
+	obtiene = obtiene_hash(root);
+	if (lee != obtiene)
 	{
 		sendto_ops("El bloque %c está corrupto (%lu != %lu)", bloques[tipo], lee, obtiene);
 		if ((fp = fopen(root->item, "wb")))
@@ -1690,6 +1735,7 @@ int trunca_bloque(aClient *cptr, aClient *sptr, Udb *bloq, u_long bytes)
 				MyFree(contenido);
 				return 1;
 			}
+			fflush(fp);
 			fclose(fp);
 			actualiza_hash(bloq);
 			descarga_bloque(id);
@@ -1891,7 +1937,11 @@ CMD_FUNC(m_db)
 			}
 			r += 3;
 			ircsprintf(buf, "%s %s", r, parv[5]);
-			parsea_linea(bloq->id, buf, 1);
+			if (parsea_linea(bloq->id, buf, 1))
+			{
+				sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_REP);
+				return 1;
+			}
 			if (reses[bloq->id] == sptr) /* estamos en un resumen, hay que repropagar los registros */
 			{
 				sendto_serv_butone(cptr, ":%s DB %s INS %s %s %s", propaga->name, parv[1], parv[3], parv[4], parv[5]);
@@ -1941,7 +1991,11 @@ CMD_FUNC(m_db)
 				return 1;
 			}
 			r += 3;
-			parsea_linea(bloq->id, r, 1);
+			if (parsea_linea(bloq->id, r, 1))
+			{
+				sendto_one(cptr, ":%s DB %s ERR DEL %i", me.name, sptr->name, E_UDB_REP);
+				return 1;
+			}
 			if (reses[bloq->id] == sptr) /* estamos en un res */
 			{
 				sendto_serv_butone(cptr, ":%s DB %s DEL %s %s", propaga->name, parv[1], parv[3], parv[4]);
@@ -2160,7 +2214,7 @@ CMD_FUNC(m_ghost)
 		botname = breg->data_char;
 	else
 		botname = me.name;
-	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
+	if (MyClient(sptr) && sptr->user && !IsAnOper(sptr))
 	{
 		if ((sptr->user->flood.udb_c >= pases) && 
 		    (TStime() - sptr->user->flood.udb_t < intervalo))
@@ -2199,7 +2253,7 @@ CMD_FUNC(m_ghost)
 	val = tipo_de_pass(nick, parv[2], reg);
 	if (val < 0)
 	{
-		if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
+		if (MyClient(sptr) && sptr->user && !IsAnOper(sptr))
 		{
 			if ((sptr->user->flood.udb_c >= pases) && 
 			    (TStime() - sptr->user->flood.udb_t < intervalo))
@@ -2296,11 +2350,11 @@ CMD_FUNC(m_dbq)
 				for (aux = bloq->down; aux; aux = aux->mid)
 				{
 					if (aux->data_long)
-						sendto_one(sptr, ":%s 339 %s :DBQ %s::%c %lu", me.name, sptr->name, parv[1], aux->id, aux->data_long);
+						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s %lu", me.name, sptr->name, parv[1], aux->item, aux->data_long);
 					else if (!BadPtr(aux->data_char))
-						sendto_one(sptr, ":%s 339 %s :DBQ %s::%c %s", me.name, sptr->name, parv[1], aux->id, aux->data_char);
+						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s %s", me.name, sptr->name, parv[1], aux->item, aux->data_char);
 					else
-						sendto_one(sptr, ":%s 339 %s :DBQ %s::%c (no tiene datos)", me.name, sptr->name, parv[1], aux->id);
+						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s (no tiene datos)", me.name, sptr->name, parv[1], aux->item);
 				}
 			}
 		}
@@ -2308,7 +2362,7 @@ CMD_FUNC(m_dbq)
 	else
 	{
 		int id = bloq->id;
-		sendto_one(sptr, ":%s 339 %s :%i %i %lu %s %lu %X", me.name, sptr->name, id, regs[id], bloq->data_long, bloq->data_char, lee_gmt(id), lee_hash(id));
+		sendto_one(sptr, ":%s 339 %s :%i %i %lu %s %lu %lX", me.name, sptr->name, id, regs[id], bloq->data_long, bloq->data_char, lee_gmt(id), lee_hash(id));
 	} 
 	MyFree(pos);
 	return 0;

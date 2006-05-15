@@ -68,6 +68,7 @@ int _find_shun(aClient *cptr);
 int _find_spamfilter_user(aClient *sptr, int flags);
 aTKline *_find_qline(aClient *cptr, char *nick, int *ishold);
 int _find_tkline_match_zap(aClient *cptr);
+int _find_tkline_match_zap_ex(aClient *cptr, aTKline **rettk);
 void _tkl_stats(aClient *cptr, int type, char *para);
 void _tkl_synch(aClient *sptr);
 int _m_tkl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
@@ -98,7 +99,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.9 2006-02-15 22:06:20 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.10 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -120,6 +121,7 @@ DLLFUNC int MOD_TEST(m_tkl)(ModuleInfo *modinfo)
 	EfunctionAdd(modinfo->handle, EFUNC_FIND_SPAMFILTER_USER, _find_spamfilter_user);
 	EfunctionAddPVoid(modinfo->handle, EFUNC_FIND_QLINE, TO_PVOIDFUNC(_find_qline));
 	EfunctionAdd(modinfo->handle, EFUNC_FIND_TKLINE_MATCH_ZAP, _find_tkline_match_zap);
+	EfunctionAdd(modinfo->handle, EFUNC_FIND_TKLINE_MATCH_ZAP_EX, _find_tkline_match_zap_ex);
 	EfunctionAddVoid(modinfo->handle, EFUNC_TKL_STATS, _tkl_stats);
 	EfunctionAddVoid(modinfo->handle, EFUNC_TKL_SYNCH, _tkl_synch);
 	EfunctionAdd(modinfo->handle, EFUNC_M_TKL, _m_tkl);
@@ -1460,7 +1462,7 @@ aTKline *_find_qline(aClient *cptr, char *nick, int *ishold)
 }
 
 
-int  _find_tkline_match_zap(aClient *cptr)
+int  _find_tkline_match_zap_ex(aClient *cptr, aTKline **rettk)
 {
 	aTKline *lp;
 	char *cip;
@@ -1468,6 +1470,9 @@ int  _find_tkline_match_zap(aClient *cptr)
 	char msge[1024];
 	ConfigItem_except *excepts;
 	Hook *tmphook;
+
+	if (rettk)
+		*rettk = NULL;
 	
 	if (IsServer(cptr) || IsMe(cptr))
 		return -1;
@@ -1507,11 +1512,18 @@ int  _find_tkline_match_zap(aClient *cptr)
 				    mydummy, MYDUMMY_SIZE), lp->reason);
 #endif
 				strlcpy(zlinebuf, msge, sizeof zlinebuf);
+				if (rettk)
+					*rettk = lp;
 				return (1);
 			}
 		}
 	}
 	return -1;
+}
+
+int  _find_tkline_match_zap(aClient *cptr)
+{
+	return _find_tkline_match_zap_ex(cptr, NULL);
 }
 
 #define BY_MASK 0x1

@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.5 2006-02-15 22:06:18 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.6 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -189,7 +189,6 @@ Ban *banned;
 	if (!BadPtr(key) && IsARegNick(cptr))
 		fakefund = tipo_de_pass(chptr->chname, key, NULL);
 #endif
-
 	for (lp = sptr->user->invited; lp; lp = lp->next)
 		if (lp->value.chptr == chptr)
 			return 0;
@@ -402,9 +401,9 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 	   **  Complete user entry to the new channel (if any)
 	 */
 #ifdef UDB
-		add_user_to_channel(chptr, sptr, flags | udbflags);
+	add_user_to_channel(chptr, sptr, flags | udbflags);
 #else
-		add_user_to_channel(chptr, sptr, flags);
+	add_user_to_channel(chptr, sptr, flags);
 #endif
 	/*
 	   ** notify all other users on the new channel
@@ -566,7 +565,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 #endif
 		parv[0] = sptr->name;
 		parv[1] = chptr->chname;
-		(void)m_names(cptr, sptr, 2, parv);
+		do_cmd(cptr, sptr, "NAMES", 2, parv);
 		RunHook4(HOOKTYPE_LOCAL_JOIN, cptr, sptr,chptr,parv);
 	} else {
 		RunHook4(HOOKTYPE_REMOTE_JOIN, cptr, sptr, chptr, parv); /* (rarely used) */

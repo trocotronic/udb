@@ -51,7 +51,7 @@ DLLFUNC int m_userip(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_userip)
   = {
 	"m_userip",
-	"$Id: m_userip.c,v 1.1.4.3 2006-02-15 22:06:21 Trocotronic Exp $",
+	"$Id: m_userip.c,v 1.1.4.4 2006-05-15 19:49:46 Trocotronic Exp $",
 	"command /userip", 
 	"3.2-b8-1",
 	NULL 
@@ -86,11 +86,14 @@ DLLFUNC CMD_FUNC(m_userip)
 
 	char *p;		/* scratch end pointer */
 	char *cn;		/* current name */
-	char *ip;
+	char *ip, ipbuf[HOSTLEN+1];
 	struct Client *acptr;
 	char response[5][NICKLEN * 2 + CHANNELLEN + USERLEN + HOSTLEN + 30];
 	int  i;			/* loop counter */
 
+	if (!MyClient(sptr))
+		return -1;
+		
 	if (parc < 2)
 	{
 		sendto_one(sptr, rpl_str(ERR_NEEDMOREPARAMS),
@@ -122,7 +125,10 @@ DLLFUNC CMD_FUNC(m_userip)
 #ifdef UDB
 				ip = acptr->user->virthost;
 #else
-				ip = RCallbacks[CALLBACKTYPE_CLOAK]->func.pcharfunc(ip);
+			{
+				make_virthost(sptr, GetIP(sptr), ipbuf, 0);
+				ip = ipbuf;
+			}
 #endif
 
 			ircsprintf(response[i], "%s%s=%c%s@%s",
@@ -131,6 +137,8 @@ DLLFUNC CMD_FUNC(m_userip)
 				? "*" : "",
 			    (acptr->user->away) ? '-' : '+',
 			    acptr->user->username, ip);
+			/* add extra fakelag (penalty) because of all the work we need to do: 1s per entry: */
+			sptr->since += 1;
 		}
 		if (p)
 			p++;

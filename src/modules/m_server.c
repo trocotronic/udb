@@ -53,7 +53,7 @@ DLLFUNC int m_server(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.8 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.9 2006-05-15 19:49:45 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -311,11 +311,8 @@ nohostcheck:
 		strncpyzt(cptr->name, servername, sizeof(cptr->name));
 		cptr->hopcount = hop;
 #ifdef UDB
-		if (!aconf->leafmask) 
-		{
-			if (!(cptr->proto) || !IsUDB(cptr))
-			  return exit_client(cptr, sptr, &me, "Eres un HUB pero no soportas UDB");
-		}
+		if (!(cptr->proto) || !IsUDB(cptr))
+			  return exit_client(cptr, sptr, &me, "Para unirte a esta red debes soportar UDB");
 #endif			
 		/* Add ban server stuff */
 		if (SupportVL(cptr))
@@ -842,9 +839,9 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 					{
 						sendto_one(cptr,
 						    ((cptr->proto & PROTO_SJB64) ?
-						    "%s %s %d %B %s %s %b %lu %s %s %s%s:%s"
+						    "%s %s %d %B %s %s %b %lu %s %s %s%s%s%s:%s"
 						    :
-						    "%s %s %d %lu %s %s %b %lu %s %s %s%s:%s"),
+						    "%s %s %d %lu %s %s %b %lu %s %s %s%s%s%s:%s"),
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
@@ -855,16 +852,19 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    (unsigned long)acptr->user->servicestamp,
 						    (!buf || *buf == '\0' ? "+" : buf),
 						    ((IsHidden(acptr) && (acptr->umodes & UMODE_SETHOST)) ? acptr->user->virthost : "*"),
+						    SupportCLK(cptr) ? getcloak(acptr) : "",
+						    SupportCLK(cptr) ? " " : "",
 						    SupportNICKIP(cptr) ? encode_ip(acptr->user->ip_str) : "",
-					            SupportNICKIP(cptr) ? " " : "", acptr->info);
+					        SupportNICKIP(cptr) ? " " : "",
+					        acptr->info);
 					}
 					else
 					{
 						sendto_one(cptr,
 						    (cptr->proto & PROTO_SJB64 ?
-						    "%s %s %d %B %s %s %s %lu %s %s %s%s:%s"
+						    "%s %s %d %B %s %s %s %lu %s %s %s%s%s%s:%s"
 						    :
-						    "%s %s %d %lu %s %s %s %lu %s %s %s%s:%s"),
+						    "%s %s %d %lu %s %s %s %lu %s %s %s%s%s%s:%s"),
 						    (IsToken(cptr) ? TOK_NICK : MSG_NICK),
 						    acptr->name,
 						    acptr->hopcount + 1,
@@ -875,8 +875,11 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 						    (unsigned long)acptr->user->servicestamp,
 						    (!buf || *buf == '\0' ? "+" : buf),
 						    ((IsHidden(acptr) && (acptr->umodes & UMODE_SETHOST)) ? acptr->user->virthost : "*"),
+						    SupportCLK(cptr) ? getcloak(acptr) : "",
+						    SupportCLK(cptr) ? " " : "",
 						    SupportNICKIP(cptr) ? encode_ip(acptr->user->ip_str) : "",
-					            SupportNICKIP(cptr) ? " " : "", acptr->info);
+					        SupportNICKIP(cptr) ? " " : "",
+					        acptr->info);
 					}
 				}
 				else

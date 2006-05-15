@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.6 2005-12-25 19:13:36 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.7 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -249,7 +249,7 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		auser = acptr->user;
 
 		sendto_snomask_normal(SNO_KILLS,
-		    "*** Notice -- Recivido mensaje KILL para %s!%s@%s de %s Mensaje: %s!%s",
+		    "*** Notice -- Recibido mensaje KILL para %s!%s@%s de %s Mensaje: %s!%s",
 		    acptr->name, auser->username,
 		    IsHidden(acptr) ? auser->virthost : auser->realhost,
 		    parv[0], inpath, path);

@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.5 2005-12-25 19:46:08 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.6 2006-05-15 19:49:39 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -150,3 +150,28 @@
 111205137 - Arreglado un fallo de sincronización con la primera @ de los canales que no están en el bloque C.
 111205138 - Subo a la versión 3.2.4pre3 + UDB 3.2.2.
 251205139 - *** Unreal 3.2.4pre3 + UDB 3.2.2 es
+180206140 - Arreglado un fallo de integer overflow con los hashes.
+180206141 - Ahora se deja el descriptor del crcs abierto porque al linux no le gusta que se abra y se cierre rápidamente.
+180206142 - Después de cada fwrite se hace un fflush para obligar a escribir los buffers porque al linux no le gusta.
+250206143 - Cuando se recibe un topic vía UDB, sólo se propaga por el canal en el caso de que sea distinto al que hubiera.
+250206144 - Añadida una macro para compilar sin archivos CORE (se usa el de windows).
+020406145 - Arreglado un fallo al emitir el modo +f que salía muchas veces por el canal.
+020406146 - Arreglado un cuelgue generado por el borrado de los bloques en hash (raras veces se daba).
+030406147 - Arreglado un fallo grave al sincronizar modos de canales vacíos que están en BDD.
+030406148 - Los topics que son iguales durante un link, no se repropagan por el canal.
+060406149 - Arreglado un fallo muy tonto con el punto anterior, aviso de MaD (#0000181).
+080406150 - Subo a versión 3.2.3.
+120406151 - Añadida la directriz O en el bloque C para guardar configuraciones de canales migrados.
+120406152 - Añadida la configuración PROTBANS (protección de bans): sólo el autor de un ban puede quitar su propio ban.
+130406153 - Quito el tok en id para pasarlo a item.
+130406154 - Quito la función compara.
+170406155 - Arreglado un fallo al conectar operadores.
+220406156 - Adaptado el sistema de vhosts al nuevo de cloaked hosts.
+220406157 - Arreglado un fallo con el vhost y los bans.
+290406158 - Para evitar desincronizaciones en hosts, a partir de ahora sólo pueden unirse a la red aquellos servidores que soporten UDB.
+020506159 - Arreglado un fallo con el raw del nick suspendido.
+040506160 - Creado un nuevo error, E_UDB_REP, para saber si un registro no se ha insertado por duplicidad.
+040506161 - Cuando se pasa el parámetro grifo en el PROTOCTL deben coincidir todos.
+040506162 - Las versiones con el segundo número de versión distinto no pueden linkar. Si el tercero es distinto pero el segundo no, sí.
+		Ej: un servidor 3.2.1 no puede linkar con un 3.3.2 pero sí con un 3.2.3.
+150506163 - *** Unreal 3.2.5pre1 + UDB 3.2.3 es

@@ -70,15 +70,16 @@ int main(int argc, char *argv[]) {
 				 SERVICE_AUTO_START, SERVICE_ERROR_NORMAL, binpath,
 				 NULL, NULL, NULL, NULL, NULL); 
 		if (hService) 
-			printf("Servicio UnrealIRCd NT instalado");
-		else
+		{
+			printf("UnrealIRCd NT Service successfully installed");
+			if (VerInfo.dwMajorVersion >= 5) {
+				SERVICE_DESCRIPTION info;
+				info.lpDescription = "Servidor Internet Relay Chat Server. Permite a los usuarios chatear mediante clientes IRC.";
+				uChangeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &info);
+			}
+			CloseServiceHandle(hService);
+		} else
 			printf("No se puede instalar el Servicio UnrealIRCd NT - %s", show_error(GetLastError()));
-		if (VerInfo.dwMajorVersion == 5) {
-			SERVICE_DESCRIPTION info;
-			info.lpDescription = "IRC Daemon. Permite usuarios para chatear.";
-			uChangeServiceConfig2(hService, SERVICE_CONFIG_DESCRIPTION, &info);
-		}
-		CloseServiceHandle(hService);
 		CloseServiceHandle(hSCManager);
 		return 0;
 	}

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.9 2006-02-15 22:06:16 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.10 2006-05-15 19:49:42 Trocotronic Exp $
  */
 
 
@@ -254,7 +254,7 @@ extern MODVAR aConfiguration iConf;
 #define MAXBANS		iConf.maxbans
 #define MAXBANLENGTH	iConf.maxbanlength
 
-/* Used for duplicate checking */
+/* Used for "is present?" and duplicate checking */
 struct SetCheck {
 	unsigned has_show_opermotd:1;
 	unsigned has_hide_ulines:1;
@@ -357,6 +357,9 @@ struct SetCheck {
 	unsigned has_grifo:1;
 	unsigned has_pass_flood:1;
 #endif
+	int cgiirc_type; /* cheat :( */
+	unsigned has_cgiirc_hosts:1;
+	unsigned has_cgiirc_webpass:1;
 };
 
 

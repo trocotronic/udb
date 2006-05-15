@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.4pre3+UDB 3.2.2es
+AppVerName=UnrealIRCd3.2.4+UDB 3.2.3es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -25,7 +25,9 @@ LicenseFile=.\gpl.rtf
 #else
 LicenseFile=.\gplplusssl.rtf
 #endif
-Compression=lzma
+Compression=lzma/ultra
+SolidCompression=true
+InternalCompressLevel=ultra
 MinVersion=4.0.1111,4.0.1381
 OutputDir=../../
 
@@ -81,8 +83,8 @@ Source: "c:\dev\zlib\dll32\zlibwapi.dll"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef USE_SSL
 #ifdef USE_CURL
 ; curl with ssl support
-Source: "c:\dev\curl-ssl\lib\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "c:\dev\curl-ssl\lib\ca-bundle.crt"; DestDir: "{app}"; DestName: "curl-ca-bundle.crt"; Flags: ignoreversion
+Source: "c:\dev\curl\lib\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\curl-ca-bundle.crt"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 #else
 #ifdef USE_CURL
@@ -91,6 +93,7 @@ Source: "c:\dev\curl\lib\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 #endif
 Source: isxdl.dll; DestDir: {tmp}; Flags: dontcopy
+Source: "..\..\..\dbghelp.dll"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\tmp"
@@ -116,10 +119,10 @@ hWnd,answer: Integer;
 begin
 
     if ((CurPage = wpReady)) then begin
-      dbghelp := ExpandConstant('{sys}\DbgHelp.Dll');
-      output := ExpandConstant('{app}\DbgHelp.Dll');
+//      dbghelp := ExpandConstant('{sys}\DbgHelp.Dll');
+//      output := ExpandConstant('{app}\DbgHelp.Dll');
       msvcrt := ExpandConstant('{sys}\msvcr70.Dll');
-      GetVersionNumbersString(dbghelp,m);
+//      GetVersionNumbersString(dbghelp,m);
     if (NOT FileExists(msvcrt)) then begin
       answer := MsgBox('Unreal necesita MS C Runtime 7.0 para funcionar. ¿Quiere instalarlo?', mbConfirmation, MB_YESNO);
       if answer = IDYES then begin
@@ -133,23 +136,23 @@ begin
       end else
         MsgBox('Esta librería es necesaria. Puede descargarla de http://www.unrealircd.com/downloads/msvcr70.dll', mbInformation, MB_OK);
     end;
-    if (NOT FileExists(output)) then begin
-          if (NOT FileExists(dbghelp)) then
-        m := StringOfChar('0',1);
-      if (StrToInt(m[1]) < 5) then begin
-        answer := MsgBox('Se requiere DbgHelp.dll versión 5.0 o mayor. ¿Quiere instalarla?', mbConfirmation, MB_YESNO);
-        if answer = IDYES then begin
-          tmp := ExpandConstant('{tmp}\dbghelp.dll');
-          isxdl_SetOption('title', 'Descargando DbgHelp.dll');
-          hWnd := StrToInt(ExpandConstant('{wizardhwnd}'));
-          if isxdl_Download(hWnd, dbgurl, tmp) = 0 then begin
-            MsgBox('La descarga e instalación de DbgHelp.Dll han fallado. El archivo tiene que instalarse manualmente. Puede descargarlo de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
-          end else
-            didDbgDl := true;
-        end else
-        MsgBox('Esta librería es necesaria. Puede descargarla de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
-      end;
-    end;
+//    if (NOT FileExists(output)) then begin
+//          if (NOT FileExists(dbghelp)) then
+//        m := StringOfChar('0',1);
+//      if (StrToInt(m[1]) < 5) then begin
+//        answer := MsgBox('Se requiere DbgHelp.dll versión 5.0 o mayor. ¿Quiere instalarla?', mbConfirmation, MB_YESNO);
+//        if answer = IDYES then begin
+//          tmp := ExpandConstant('{tmp}\dbghelp.dll');
+//          isxdl_SetOption('title', 'Descargando DbgHelp.dll');
+//          hWnd := StrToInt(ExpandConstant('{wizardhwnd}'));
+//          if isxdl_Download(hWnd, dbgurl, tmp) = 0 then begin
+//            MsgBox('La descarga e instalación de DbgHelp.Dll han fallado. El archivo tiene que instalarse manualmente. Puede descargarlo de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
+//          end else
+//            didDbgDl := true;
+//        end else
+//        MsgBox('Esta librería es necesaria. Puede descargarla de http://www.unrealircd.com/downloads/DbgHelp.Dll', mbInformation, MB_OK);
+//      end;
+//    end;
   end;
   Result := true;
 end;

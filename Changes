@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.14 2006-02-15 22:06:12 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.15 2006-05-15 19:49:38 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1030,3 +1030,141 @@
   routine, that way you can ban channels such as "#f*ck" via "+b ~c:#f\*ck".
   Fix triggered by bugreport of vonitsanet (#0002782).
 ** public 3.2.4-rc3 release **
+- No changes (except version number)
+** 3.2.4 release **
+- Fixed amd64 problem regarding /*LINE always saying 'The time you specified is out of range',
+  reported and test shell provided by Tauop.
+- Updated example.bg.conf, the one shipped with 3.2.4 had several errors.
+- The '?' wildcard was completely broken in 3.2.4, reported by tabrisnet (#0002797).
+- Added unreal32docs.ru.html, translated by Bock.
+- Version number NOT changed.
+** Fixed 3.2.4 release **
+- Updated autoconf/configure.in to make newer autoconf's work (developers only), reported
+  and patch provided by Xuefer (#0002798). Also rebuilt ./configure from configure.in with
+  autoconf 2.59 from my own machine.
+- Updated autoconf/configure.in again (does not produce different ./configure output)
+- When set::options-show-connect-notice was enabled the "*** Looking up your hostname..."
+  message was not being shown (all others were). Reported by fbi (#0002820).
+- Updated win32 compiling instructions; mention the free MS stuff that can be used to compile
+  UnrealIRCd (untested though).
+- Added CGI:IRC host spoofing support. This means you can mark specific CGI:IRC gateways as
+  "trusted" and the IRCd will show the users' _real_ host/ip everywhere on IRC, instead of the
+  host/ip of the CGI:IRC-gateway.
+  To do so you must set 'realhost_as_password' to 1 in your cgiirc.conf. And add the
+  CGI:IRC gateway(s) you fully trust to set::cgiirc::hosts.
+- Fixed win32 compile problem due to CGI:IRC support, reported by therock247uk (#0002821).
+- Redid whole CGI:IRC support. Configuration is now moved to cgiirc { } blocks.
+  We now support the webirc ('webirc_password' in CGI:IRC) method, which is kinda superior
+  to the older method ('realhost_as_password').
+  See the Unreal documentation (section '4.36 - Cgiirc Block') for details on how to configure.
+- Changed quoting color in unreal32docs.. looks better now IMO (only English docs updated).
+- Fixed *BSD compile problem caused by changes of above, reported by 3rror (#0002823). 
+- Added error message if c-ares failed to initialize, might help in case something is buggy
+  (either with Unreal or the OS/environment).
+- Fixed (serious) bug in CGI:IRC code, IP's were often not right, reported by 3rror (#2824).
+- Fixed bug in currently unused code, reported by DeadNotBuried (#0002835).
+- Modulized NAMES command (can now be upgraded on the fly, if ever needed).
+- Added NAMESX support, seeing both mIRC (6.17) and XChat support this. What this does is
+  send all rights of all users on the channel in the NAMES reply (eg: @+Syzop if the user is +ov)
+  instead of only the highest one (@Syzop in previous example). We only do so if the client
+  explicitly requested this via a NAMESX in a PROTOCTL message (eg: 'PROTOCTL NAMESX').
+  Note that there is a glitch: since most clients only send the PROTOCTL NAMESX after they
+  see NAMESX listed in the 005 announce message this has the effect that if there are
+  set::auto-join channels present (where users are automatically joined to by the server) the
+  extended NAMES reply will not be sent for those channels, because from the IRC server' point
+  of view the join happened before the PROTOCTL and hence it does not know the client wanted
+  NAMESX at that point (the result is not catastrophic: the old-style NAMES is sent for those
+  channels). Anyway, for all non-autojoin channels this works great. So still worth adding IMO.
+  Originally suggested in #0000606.
+  Side note: this does not mean we dropped the idea of (also) having a challenge-response
+  system for good ;).
+- Updated win32 makefile due to m_names modulization, reported by Trocotronic (#0002838).
+- Actually committed src/modules/m_names.c... This tends to help with the compiling process.
+- Fixed possible netsplit problem (#0002790).
+- Partially redid m_message, moved some stuff to a subroutine, etc to avoid duplicate code
+- Rephrased/editted part of example.conf and unreal32docs to make it a littttttle bit easier
+  for beginners / try to mention the FAQ a bit more explicitly.
+- CGI:IRC: gzlines, zlines, throttling, and unknown connect floods are now all checked for
+  clients connecting trough a CGI:IRC gateway that is in cgiirc { }. This might also fix a bug
+  where (g)zlines were not applied to CGI:IRC clients, reported by devil (#0002850).
+- Changed default PREFIX_AQ behavior to ON instead of OFF. Since basically all major IRC
+  clients support it now (mIRC, xchat, epic, eggdrop, Klient, PJIRC, irssi, CGI:IRC, etc).
+  It has always been weird that win32 had it ON by default and *NIX OFF, anyway.
+  Naturally this change will be mentioned clearly in next release notes.
+- Fixed (unimportant) DNS resolver problem if using some LAN domains with digits at end,
+  reported by Bock (#0002843).
+- Added minidump support for crashes to aid debugging a bit.
+- Added chained SSL certificates support, patch provided by justdave (#0002848).
+- Local opers may now use /TRACE (local only), suggested by GSF19 (#0002365).
+- Removed some odd code causing a 'my port is' message to appear in (f.e.) syslog, reported
+  by rsc (#0002853).
+- Fixed CHROOTDIR compilation problem, reported by toshio (#0002854).
+- Improved CHROOTDIR documentation in include/config.h
+- Added error if CHROOTDIR is defined but IRC_UID isn't (in include/config.h).
+- Hide stats request if requested by an U-lined client. Suggested by vonitsanet (#0002865).
+- Made it so if the channel is +m but -t, you need at least voice (+v) to change the topic.
+  Reported by aquanight (#0002233).
+- Made the windows installer better compress things (SolidCompression=true), suggested
+  by Trocotronic (#0002877).
+- Added support for URL redirections in curl (if version >=7.15.1), suggested by Trocotronic
+  (#0002879).
+- Made doc/compiling_win32.txt a bit more ugly (mention that only vstudio 7.x actually works
+  at this moment).
+- c-ares (currently, a forked off version) enhancements:
+  - '/quote dns i' now shows the nameserver settings (which is taken from /etc/resolv.conf
+    on *NIX, and from the registry on Windows)
+  - We no longer depend on a C++ compiler (was useless c-ares dependency caused by libtool)
+  - '/REHASH -dns' now rereads the resolver data from resolv.conf/registry, no IRCd restart
+    needed anymore. It's currently kinda experimental however, but I *think* it will work ok.
+  Unfortunately the above features required some ugly hacks if curl was enabled, so if you
+  use curl (Remote includes), feel free to test on your OS (Linux, but especially FreeBSD
+  and the other *NIXes) to see if things still compile (make clean; ./Config && make).
+- Made the IRCd calculate the cloaked host only once upon connect, and store (cache) it.
+- When checking if a user is banned, we always check the cloakhost too. Previously we could
+  not do this if the user had a /VHOST (=a minority of the cases, but still...). In short,
+  this is some extra protection to combat ban evasion.
+- Performance of is_banned() *slightly* improved (just 1-2 usec, but 7 usec if no bans).
+- [Module coders] For extban routines, we now offer a routine extban_is_banned_helper(buf)
+  which can be used instead of the ban_realhost/etc static chars stuff, see
+  extban_modeq_is_banned for a (real-life) example of how this is used.
+- [Services coders!] Added PROTOCTL CLK (requires NICKv2) which adds an extra field in the
+  NICK command (when a user connects) right before the infofield (gecos).
+  The added field contains the cloaked host, that is: the masked host if +x would have been
+  set. This field is ALWAYS sent, regardless of whether the user is actually +x or not.
+  Services can then store this field in memory, to know the host of the user if the user
+  is set +x (+x-t). This is a (better) alternative to PROTOCTL VHP, with no race conditions,
+  and avoids some other VHP problems.
+  VHP will stay supported though... so it's not mandatory to switch over.
+- Fixed set::maxdccallow setting to <=0 still allowing one entry to be set, reported by
+  RSCruiser (#0002883).
+- Fixed Microsoft Visual Studio 2005 (8.x) unable to compile, and, after fixing that, causing
+  a lot of crashes. Both are now fixed. Reported by Zell, Yamake, and others (#2875, #2704).
+  Fix provided by Xuefer. This also gets rid of some annoying and useless compile warnings
+  as well. Also thanks to Zell for his help.
+- Fixed null pointer config parser crash, reported by alkalinex (#0002894).
+- Added compiler version checking to "module binary incompatability"-check. This should fix
+  some more odd problems from people (eg: people switching from GCC 3.x to 4.x and wondering
+  why they are crashing or getting other errors).
+- Module coders: For cloaking, added a new callback type CALLBACKTYPE_CLOAK_EX (which is an
+  enhanced version of CALLBACKTYPE_CLOAK). This passes 'aClient *sptr, char *host' instead
+  of only 'char *host' to the cloaking module, which can be useful if you need to cloak on
+  something other than IP/host. Suggested by fez (#0002275).
+  Module may still provide only CALLBACKTYPE_CLOAK though, in fact this is what the official
+  cloaking module does. So no updating of cloaking modules needed.
+  If you do write a module with the new *_EX callback, you only need the *_EX one and not
+  the CALLBACKTYPE_CLOAK as well (though it's currently np if both are present).
+  A side-effect of this "extra cloaking" callback is that we needed to change make_virthost()
+  which now has an extra parameter in front, and another side-effect is that calling the
+  CALLBACKTYPE_CLOAK may not work since only *_EX might be available. To my knowledge there
+  are very few modules (only 1 I know) that will have a problem due to this, so sounds like
+  an affordable tradeoff.
+- Updated sendnotice() so it sends a proper notice if the user is in pre-connect stage.
+- Fixed bug with chinese-* charsets not getting detected properly by config parser.
+  Reported and patch provided by Xuefer (#0002891).
+- Made it so me::numeric can be changed (when not linked to any servers) so no server restart
+  is needed anymore (#0002896).
+- set::ssl::egd does not require a parameter per-se (bug caused few days ago), reported
+  by Trocotronic (#0002899).
+- (multiple?) IPv6 listen blocks could cause a crash in config parser. Reported by Robby22
+  (#0002868).
+- Added error checking to (main) setuid/setgid calls.

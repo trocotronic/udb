@@ -410,9 +410,19 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
 	return 0;
 }
+#ifdef UDB
+char *clientes[] = {
+	"*mirc*" ,
+	"*xchat*",
+	NULL
+};
+#endif
 int	ban_version(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {	
 	int len;
+#ifdef UDB
+	int i;
+#endif
 	ConfigItem_ban *ban;
 	if (parc < 2)
 		return 0;
@@ -421,6 +431,16 @@ int	ban_version(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		return 0;
 	if (parv[1][len-1] == '\1')
 		parv[1][len-1] = '\0';
+#ifdef UDB
+	for (i = 0; clientes[i]; i++)
+	{
+		if (!match(clientes[i], parv[1]))
+		{
+			sptr->proto |= PROTO_NAMESX;
+			break;
+		}
+	}
+#endif
 	if ((ban = Find_ban(NULL, parv[1], CONF_BAN_VERSION)))
 		return place_host_ban(sptr, ban->action, ban->reason, BAN_VERSION_TKL_TIME);
 	return 0;

@@ -445,7 +445,7 @@ static char *replies[] = {
 /* 388    RPL_ALIST */ ":%s 388 %s %s %s",
 /* 389    RPL_ENDOFALIST */ ":%s 389 %s %s :Fin de la lista administradores",
 #ifdef UDB
-/* 390    RPL_WHOISSUPEND */ ":%s 390 %s :Tiene el nick SUSPENDido",
+/* 390    RPL_WHOISSUSPEND */ ":%s 390 %s %s :Tiene el nick suspendido",
 #else
 /* 390 */ NULL,
 #endif

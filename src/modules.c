@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.12 2006-02-15 22:06:17 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.13 2006-05-15 19:49:43 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -107,6 +107,7 @@ int (*m_tkl)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 int (*place_host_ban)(aClient *sptr, int action, char *reason, long duration);
 int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags, aTKline **rettk);
 int (*dospamfilter_viruschan)(aClient *sptr, aTKline *tk, int type);
+int  (*find_tkline_match_zap_ex)(aClient *cptr, aTKline **rettk);
 
 
 static const EfunctionsList efunction_table[MAXEFUNCTIONS] = {
@@ -136,7 +137,7 @@ static const EfunctionsList efunction_table[MAXEFUNCTIONS] = {
 /* 23 */	{"place_host_ban", (void *)&place_host_ban},
 /* 24 */	{"dospamfilter", (void *)&dospamfilter},
 /* 25 */	{"dospamfilter_viruschan", (void *)&dospamfilter_viruschan},
-/* 26 */	{NULL, NULL},
+/* 26 */	{"find_tkline_match_zap_ex", (void *)&find_tkline_match_zap_ex},
 /* 27 */	{NULL, NULL},
 /* 28 */	{NULL, NULL}
 };
@@ -258,6 +259,26 @@ int parse_modsys_version(char *version)
 	return 0;
 }
 
+void make_compiler_string(char *buf, unsigned int ver)
+{
+unsigned int maj, min, plevel;
+
+	if (ver == 0)
+	{
+		strcpy(buf, "0");
+		return;
+	}
+	
+	maj = ver >> 16;
+	min = (ver >> 8) & 0xff;
+	plevel = ver & 0xff;
+	
+	if (plevel == 0)
+		sprintf(buf, "%d.%d", maj, min);
+	else
+		sprintf(buf, "%d.%d.%d", maj, min, plevel);
+}
+
 /*
  * Returns an error if insucessful .. yes NULL is OK! 
 */
@@ -274,12 +295,14 @@ char  *Module_Create(char *path_)
 	int             (*Mod_Load)();
 	int             (*Mod_Unload)();
 	char    *Mod_Version;
+	unsigned int *compiler_version;
 	static char 	errorbuf[1024];
 	char 		*path, *tmppath;
 	ModuleHeader    *mod_header = NULL;
 	int		ret = 0;
 	Module          *mod = NULL, **Mod_Handle = NULL;
 	char *expectedmodversion = our_mod_version;
+	unsigned int expectedcompilerversion = our_compiler_version;
 	long modsys_ver = 0;
 	Debug((DEBUG_DEBUG, "Attempting to load module from %s",
 	       path_));
@@ -324,6 +347,19 @@ char  *Module_Create(char *path_)
 			remove(tmppath);
 			return errorbuf;
 		}
+		irc_dlsym(Mod, "compiler_version", compiler_version);
+		if (compiler_version && ( ((*compiler_version) & 0xffff00) != (expectedcompilerversion & 0xffff00) ) )
+		{
+			char theyhad[64], wehave[64];
+			make_compiler_string(theyhad, *compiler_version);
+			make_compiler_string(wehave, expectedcompilerversion);
+			snprintf(errorbuf, sizeof(errorbuf),
+			         "Este módulo se compiló con GCC %s, el core se compiló con GCC %s. SOLUCIÓN: Recompile su UnrealIRcd y todos sus módulos con 'make clean; ./Config -quick && make'.",
+			         theyhad, wehave);
+			irc_dlclose(Mod);
+			remove(tmppath);
+			return errorbuf;
+		}
 		irc_dlsym(Mod, "Mod_Header", mod_header);
 		if (!mod_header)
 		{
@@ -361,6 +397,8 @@ char  *Module_Create(char *path_)
 		mod = (Module *)Module_make(mod_header, Mod);
 		mod->tmp_file = strdup(tmppath);
 		mod->mod_sys_version = modsys_ver;
+		mod->compiler_version = compiler_version ? *compiler_version : 0;
+
 		irc_dlsym(Mod, "Mod_Init", Mod_Init);
 		if (!Mod_Init)
 		{
@@ -976,6 +1014,7 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		sendto_one(sptr, ":%s NOTICE %s :*** No modules loaded", me.name, sptr->name);
 		return 1;
 	}
+	
 	for (mi = Modules; mi; mi = mi->next)
 	{
 		tmp[0] = '\0';
@@ -1551,7 +1590,7 @@ int callbacks_check(void)
 {
 int i;
 
-	if (!num_callbacks(CALLBACKTYPE_CLOAK) || !num_callbacks(CALLBACKTYPE_CLOAKKEYCSUM))
+	if ((!num_callbacks(CALLBACKTYPE_CLOAK) && !num_callbacks(CALLBACKTYPE_CLOAK_EX)) || !num_callbacks(CALLBACKTYPE_CLOAKKEYCSUM))
 	{
 #ifndef _WIN32
 		config_error("ERROR: No cloaking module loaded. (hint: you probably want to load cloak.so)");

@@ -445,10 +445,10 @@ int del_listmode(Ban **list, aChannel *chptr, char *banid)
  * Moved to struct.h
  */
 
-/* Those 3 pointers can be used by extended ban modules so they
- * don't have to do 3 make_nick_user_host()'s all the time:
+/* Those pointers can be used by extended ban modules so they
+ * don't have to do 4 make_nick_user_host()'s all the time:
  */
-char *ban_realhost = NULL, *ban_virthost = NULL, *ban_ip = NULL;
+char *ban_realhost = NULL, *ban_virthost = NULL, *ban_cloakhost, *ban_ip = NULL;
 
 /** is_banned - Check if a user is banned on a channel.
  * @param sptr   Client to check (can be remote client)
@@ -473,43 +473,39 @@ Ban *is_banned_with_nick(aClient *sptr, aChannel *chptr, int type, char *nick)
 {
 	Ban *tmp, *tmp2;
 	char *s;
-	static char realhost[NICKLEN + USERLEN + HOSTLEN + 6];
-	static char virthost[NICKLEN + USERLEN + HOSTLEN + 6];
-	static char     nuip[NICKLEN + USERLEN + HOSTLEN + 6];
+	static char realhost[NICKLEN + USERLEN + HOSTLEN + 24];
+	static char cloakhost[NICKLEN + USERLEN + HOSTLEN + 24];
+	static char virthost[NICKLEN + USERLEN + HOSTLEN + 24];
+	static char     nuip[NICKLEN + USERLEN + HOSTLEN + 24];
 	int dovirt = 0, mine = 0;
 	Extban *extban;
 
-	if (!IsPerson(sptr))
+	if (!IsPerson(sptr) || !chptr->banlist)
 		return NULL;
 
 	ban_realhost = realhost;
-	ban_ip = ban_virthost = NULL;
-
-	if (MyConnect(sptr)) {
+	ban_ip = ban_virthost = ban_cloakhost = NULL;
+	
+	if (MyConnect(sptr))
+	{
 		mine = 1;
-		s = make_nick_user_host(nick, sptr->user->username, GetIP(sptr));
-		strlcpy(nuip, s, sizeof nuip);
+		make_nick_user_host_r(nuip, nick, sptr->user->username, GetIP(sptr));
 		ban_ip = nuip;
+		make_nick_user_host_r(cloakhost, nick, sptr->user->username, sptr->user->cloakedhost);
+		ban_cloakhost = cloakhost;
 	}
 
-	if (sptr->user->virthost)
-		if (strcmp(sptr->user->realhost, sptr->user->virthost))
-		{
-			dovirt = 1;
-		}
-
-	s = make_nick_user_host(nick, sptr->user->username,
-	    sptr->user->realhost);
-	strlcpy(realhost, s, sizeof realhost);
-
-	if (dovirt)
+	if (IsSetHost(sptr) && strcmp(sptr->user->realhost, sptr->user->virthost))
 	{
-		s = make_nick_user_host(nick, sptr->user->username,
-		    sptr->user->virthost);
-		strlcpy(virthost, s, sizeof virthost);
+		dovirt = 1;
+		make_nick_user_host_r(virthost, nick, sptr->user->username, sptr->user->virthost);
 		ban_virthost = virthost;
 	}
-		/* We now check +b first, if a +b is found we then see if there is a +e.
+
+
+	make_nick_user_host_r(realhost, nick, sptr->user->username, sptr->user->realhost);
+
+/* We now check +b first, if a +b is found we then see if there is a +e.
  * If a +e was found we return NULL, if not, we return the ban.
  */
 	for (tmp = chptr->banlist; tmp; tmp = tmp->next)
@@ -524,7 +520,8 @@ Ban *is_banned_with_nick(aClient *sptr, aChannel *chptr, int type, char *nick)
 		} else {
 			if ((match(tmp->banstr, realhost) == 0) ||
 			    (dovirt && (match(tmp->banstr, virthost) == 0)) ||
-			    (mine && (match(tmp->banstr, nuip) == 0)))
+			    (mine && (match(tmp->banstr, nuip) == 0)) ||
+			    (mine && (match(tmp->banstr, cloakhost) == 0)) )
 			{
 				/* matches.. do nothing */
 			} else
@@ -544,7 +541,8 @@ Ban *is_banned_with_nick(aClient *sptr, aChannel *chptr, int type, char *nick)
 			} else {
 				if ((match(tmp2->banstr, realhost) == 0) ||
 					(dovirt && (match(tmp2->banstr, virthost) == 0)) ||
-					(mine && (match(tmp2->banstr, nuip) == 0)) )
+					(mine && (match(tmp2->banstr, nuip) == 0)) ||
+					(mine && (match(tmp2->banstr, cloakhost) == 0)) )
 					return NULL;
 			}
 		}
@@ -552,6 +550,17 @@ Ban *is_banned_with_nick(aClient *sptr, aChannel *chptr, int type, char *nick)
 	}
 
 	return (tmp);
+}
+
+int extban_is_banned_helper(char *buf)
+{
+	if ((match(buf, ban_realhost) == 0) ||
+	    (ban_virthost && (match(buf, ban_virthost) == 0)) ||
+	    (ban_ip && (match(buf, ban_ip) == 0)) ||
+	    (ban_cloakhost && (match(buf, ban_cloakhost) == 0)) )
+		return 1;
+	
+	return 0;
 }
 
 /*
@@ -691,15 +700,6 @@ int  is_halfop(aClient *cptr, aChannel *chptr)
 
 	return 0;
 }
-#ifdef UDB
-int is_chanreg(char *chname)
-{
-	if (!busca_registro(BDD_CHANS, chname))
-		return 0;
-	else
-		return 1;
-}
-#endif
 
 int  is_chanowner(aClient *cptr, aChannel *chptr)
 {
@@ -715,7 +715,7 @@ int  is_chanowner(aClient *cptr, aChannel *chptr)
 	{
 		if ((bloq = busca_bloque(C_FUN_TOK, reg)))
 		{
-			if (IsARegNick(cptr) && !compara(bloq->data_char, cptr->name))
+			if (IsARegNick(cptr) && !strcasecmp(bloq->data_char, cptr->name))
 				return 1;
 		}
 	}
@@ -1309,7 +1309,7 @@ char *clean_ban_mask(char *mask, int what, aClient *cptr)
 	}
 
 	if ((*mask == '~') && !strchr(mask, '@'))
-		return NULL; /* not and extended ban and not a ~user@host ban either. */
+		return NULL; /* not an extended ban and not a ~user@host ban either. */
 
 	if ((user = index((cp = mask), '!')))
 		*user++ = '\0';
@@ -1541,17 +1541,12 @@ void sub1_from_channel(aChannel *chptr)
 	Link *lp;
 
         /* if (--chptr->users <= 0) */
-#ifdef UDB        
-        if (is_chanreg(chptr->chname))
-        {
-        	if (chptr->users == 0)
-        		return;
-        	--chptr->users;
-        	return;
-        }
-#endif            
 	if (chptr->users == 0 || --chptr->users == 0)
 	{
+#ifdef UDB
+		if (busca_registro(BDD_CHANS, chptr->chname))
+			return;
+#endif
 		/*
 		 * Now, find all invite links from channel structure
 		 */
@@ -1847,150 +1842,6 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 		return 1;
 	}
 	return 0;
-}
-
-/************************************************************************
- * m_names() - Added by Jto 27 Apr 1989
- * 12 Feb 2000 - geesh, time for a rewrite -lucas
- ************************************************************************/
-/*
-** m_names
-**	parv[0] = sender prefix
-**	parv[1] = channel
-*/
-#define TRUNCATED_NAMES 64
-CMD_FUNC(m_names)
-{
-	int  mlen = strlen(me.name) + NICKLEN + 7;
-	aChannel *chptr;
-	aClient *acptr;
-	int  member;
-	Member *cm;
-	int  idx, flag = 1, spos;
-	char *s, *para = parv[1];
-
-
-	if (parc < 2 || !MyConnect(sptr))
-	{
-		sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name,
-		    parv[0], "*");
-		return 0;
-	}
-
-	if (parc > 1 &&
-	    hunt_server_token(cptr, sptr, MSG_NAMES, TOK_NAMES, "%s %s", 2, parc, parv))
-		return 0;
-
-	for (s = para; *s; s++)
-	{
-		if (*s == ',')
-		{
-			if (strlen(para) > TRUNCATED_NAMES)
-				para[TRUNCATED_NAMES] = '\0';
-			sendto_realops("abuso de names %s %s",
-			    get_client_name(sptr, FALSE), para);
-			sendto_one(sptr, err_str(ERR_TOOMANYTARGETS),
-			    me.name, sptr->name, "NAMES");
-			return 0;
-		}
-	}
-
-	chptr = find_channel(para, (aChannel *)NULL);
-
-	if (!chptr || (!ShowChannel(sptr, chptr) && !IsAnOper(sptr)))
-	{
-		sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name,
-		    parv[0], para);
-		return 0;
-	}
-
-	/* cache whether this user is a member of this channel or not */
-	member = IsMember(sptr, chptr);
-
-	if (PubChannel(chptr))
-		buf[0] = '=';
-	else if (SecretChannel(chptr))
-		buf[0] = '@';
-	else
-		buf[0] = '*';
-
-	idx = 1;
-	buf[idx++] = ' ';
-	for (s = chptr->chname; *s; s++)
-		buf[idx++] = *s;
-	buf[idx++] = ' ';
-	buf[idx++] = ':';
-
-	/* If we go through the following loop and never add anything,
-	   we need this to be empty, otherwise spurious things from the
-	   LAST /names call get stuck in there.. - lucas */
-	buf[idx] = '\0';
-
-	spos = idx;		/* starting point in buffer for names! */
-
-	for (cm = chptr->members; cm; cm = cm->next)
-	{
-		acptr = cm->cptr;
-		if (IsInvisible(acptr) && !member && !IsNetAdmin(sptr))
-			continue;
-		if (chptr->mode.mode & MODE_AUDITORIUM)
-			if (!is_chan_op(sptr, chptr)
-			    && !is_chanprot(sptr, chptr)
-			    && !is_chanowner(sptr, chptr))
-				if (!(cm->
-				    flags & (CHFL_CHANOP | CHFL_CHANPROT |
-				    CHFL_CHANOWNER)) && acptr != sptr)
-					continue;
-
-#ifdef UDB
-#ifdef PREFIX_AQ
-		if (cm->flags & CHFL_CHANOWNER)
-			buf[idx++] = '.';	
-		if (cm->flags & CHFL_CHANPROT)
-			buf[idx++] = '&';
-#endif
-		if (cm->flags & CHFL_CHANOP)
-			buf[idx++] = '@';
-		if (cm->flags & CHFL_HALFOP)
-			buf[idx++] = '%';
-		if (cm->flags & CHFL_VOICE)
-			buf[idx++] = '+';
-#else
-#ifdef PREFIX_AQ
-		if (cm->flags & CHFL_CHANOWNER)
-			buf[idx++] = '~';	
-		else if (cm->flags & CHFL_CHANPROT)
-			buf[idx++] = '&';
-		else
-#endif
-		if (cm->flags & CHFL_CHANOP)
-			buf[idx++] = '@';
-		else if (cm->flags & CHFL_HALFOP)
-			buf[idx++] = '%';
-		else if (cm->flags & CHFL_VOICE)
-			buf[idx++] = '+';
-#endif /* UDB */
-		for (s = acptr->name; *s; s++)
-			buf[idx++] = *s;
-		buf[idx++] = ' ';
-		buf[idx] = '\0';
-		flag = 1;
-		if (mlen + idx + NICKLEN > BUFSIZE - 3)
-		{
-			sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name,
-			    parv[0], buf);
-			idx = spos;
-			flag = 0;
-		}
-	}
-
-	if (flag)
-		sendto_one(sptr, rpl_str(RPL_NAMREPLY), me.name, parv[0], buf);
-
-	sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name, parv[0], para);
-
-	return 0;
-
 }
 
 void send_user_joins(aClient *cptr, aClient *user)
@@ -2474,8 +2325,12 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 		/* concat our stuff.. */
 		bufptr = mystpcpy(bufptr, tbuf);
 	}
+#ifdef UDB
+	if (busca_registro(BDD_CHANS, chptr->chname) || buf[prebuflen]) /* si está en bdd, SIEMPRE mandamos el prebuf */
+#else
 
 	if (buf[prebuflen])
+#endif
 		sendto_one(cptr, "%s", buf);
 }
 
