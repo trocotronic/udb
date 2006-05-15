@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.4.11 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.4.12 2006-05-15 20:52:03 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 
@@ -367,7 +367,7 @@ CMD_FUNC(m_protoctl)
 				if (!(c = strchr(s, '=')))
 					return exit_client(cptr, sptr, &me, "Faltan datos UDB");
 				parm = strtok(c+1, ",");
-				if (!parm || strcasecmp(grifo, parm))
+				if (!parm || (match(grifo, parm) && match(parm, grifo)))
 					return exit_client(cptr, sptr, &me, "ERROR: Propagador no coincide");
 				for (parm = strtok(NULL, ","); parm; parm = strtok(NULL, ","))
 				{
