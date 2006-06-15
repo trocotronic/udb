@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.13 2006-05-15 19:49:43 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.14 2006-06-15 21:16:13 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -1354,7 +1354,7 @@ struct _configitem_unknown_ext {
 
 
 typedef enum { 
-	ALIAS_SERVICES=1, ALIAS_STATS, ALIAS_NORMAL, ALIAS_COMMAND, ALIAS_CHANNEL
+	ALIAS_SERVICES=1, ALIAS_STATS, ALIAS_NORMAL, ALIAS_COMMAND, ALIAS_CHANNEL, ALIAS_REAL
 } AliasType;
 
 struct _configitem_alias {

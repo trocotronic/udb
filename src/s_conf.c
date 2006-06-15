@@ -1539,6 +1539,9 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->check_target_nick_bans = 1;
 	i->maxbans = 60;
 	i->maxbanlength = 2048;
+	i->timesynch_enabled = 1;
+	i->timesynch_timeout = 3;
+	i->timesynch_server = strdup("193.67.79.202,192.43.244.18,128.250.36.3"); /* nlnet (EU), NIST (US), uni melbourne (AU). All open acces, nonotify, nodns. */
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -2123,7 +2126,7 @@ void	config_rehash()
 		ircfree(alias_ptr->nick);
 		del_Command(alias_ptr->alias, NULL, cmptr->func);
 		ircfree(alias_ptr->alias);
-		if (alias_ptr->format && alias_ptr->type == ALIAS_COMMAND) {
+		if (alias_ptr->format && (alias_ptr->type == ALIAS_COMMAND)) {
 			for (fmt = (ConfigItem_alias_format *) alias_ptr->format; fmt; fmt = (ConfigItem_alias_format *) next2)
 			{
 				next2 = (ListStruct *)fmt->next;
@@ -2749,11 +2752,11 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 		{
 #endif
 #ifdef UDB
-			if (!(ireg = busca_registro(BDD_SET, S_CLO_TOK)))
+			if (!(ireg = BuscaBloque(S_CLO_TOK, UDB_SET)))
 				defmaxclons = aconf->maxperip ? aconf->maxperip : 2;
 			else
 				defmaxclons = ireg->data_long;
-			if ((reg = busca_registro(BDD_IPS, cptr->sockhost)) && (bloq = busca_bloque(I_CLO_TOK, reg)))
+			if ((reg = BuscaBloque(cptr->sockhost, UDB_IPS)) && (bloq = BuscaBloque(I_CLO_TOK, reg)))
 				defmaxclons = bloq->data_long;
 #endif		
 			ii = 1;
@@ -2779,7 +2782,7 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 #ifdef UDB
 					if (ii > defmaxclons)
 					{
-						if (!(ireg = busca_registro(BDD_SET, reg ? S_QIP_TOK : S_QCL_TOK)))
+						if (!(ireg = BuscaBloque(reg ? S_QIP_TOK : S_QCL_TOK, UDB_SET)))
 							exit_client(cptr, cptr, &me, "Demasiadas conexiones para tu IP");
 						else
 							exit_client(cptr, cptr, &me, ireg->data_char);
@@ -6954,6 +6957,18 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 					tempiConf.ident_read_timeout = config_checkval(cepp->ce_vardata,CFG_TIME);
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "timesync") || !strcmp(cep->ce_varname, "timesynch"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "enabled"))
+					tempiConf.timesynch_enabled = config_checkval(cepp->ce_vardata,CFG_YESNO);
+				else if (!strcmp(cepp->ce_varname, "timeout"))
+					tempiConf.timesynch_timeout = config_checkval(cepp->ce_vardata,CFG_TIME);
+				else if (!strcmp(cepp->ce_varname, "server"))
+					ircstrdup(tempiConf.timesynch_server, cepp->ce_vardata);
+			}
+		}
 		else if (!strcmp(cep->ce_varname, "spamfilter"))
 		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
@@ -7773,6 +7788,34 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "timesync") || !strcmp(cep->ce_varname, "timesynch")) {
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				CheckNull(cepp);
+				if (!strcmp(cepp->ce_varname, "enabled"))
+				{
+				}
+				else if (!strcmp(cepp->ce_varname, "timeout"))
+				{
+					int v = config_checkval(cepp->ce_vardata,CFG_TIME);
+					if ((v > 5) || (v < 1))
+					{
+						config_error("%s:%i: set::timesync::%s fuera del rango (%d). Debe estar entre 1 y 5.",
+							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, cepp->ce_varname, v);
+						errors++;
+						continue;
+					}
+				} else if (!strcmp(cepp->ce_varname, "server"))
+				{
+				} else {
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::timesync",
+						cepp->ce_varname);
+					errors++;
+					continue;
+				}
+			}
+		}
 		else if (!strcmp(cep->ce_varname, "spamfilter")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
@@ -8257,7 +8300,8 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 			regcomp(&format->expr, cep->ce_vardata, REG_ICASE|REG_EXTENDED);
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
 				if (!strcmp(cepp->ce_varname, "nick") ||
-				    !strcmp(cepp->ce_varname, "target")) {
+				    !strcmp(cepp->ce_varname, "target") ||
+				    !strcmp(cepp->ce_varname, "command")) {
 					ircstrdup(format->nick, cepp->ce_vardata);
 				}
 				else if (!strcmp(cepp->ce_varname, "parameters")) {
@@ -8272,6 +8316,8 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 						format->type = ALIAS_NORMAL;
 					else if (!strcmp(cepp->ce_vardata, "channel"))
 						format->type = ALIAS_CHANNEL;
+					else if (!strcmp(cepp->ce_vardata, "real"))
+						format->type = ALIAS_REAL;
 				}
 			}
 			AddListItem(format, alias->format);
@@ -8363,6 +8409,7 @@ int _test_alias(ConfigFile *conf, ConfigEntry *ce) {
 					continue;
 				}
 				if (!strcmp(cepp->ce_varname, "nick") ||
+				    !strcmp(cepp->ce_varname, "command") ||
 				    !strcmp(cepp->ce_varname, "target"))
 				{
 					if (has_target)
@@ -8391,6 +8438,8 @@ int _test_alias(ConfigFile *conf, ConfigEntry *ce) {
 					else if (!strcmp(cepp->ce_vardata, "normal"))
 						;
 					else if (!strcmp(cepp->ce_vardata, "channel"))
+						;
+					else if (!strcmp(cepp->ce_vardata, "real"))
 						;
 					else 
 					{
@@ -9078,7 +9127,7 @@ int	rehash_internal(aClient *cptr, aClient *sptr, int sig)
 	unload_all_unused_umodes();
 #ifdef UDB
 	loop.ircd_rehashing = 1;
-	carga_bloques();
+	CargaBloques();
 #endif	
 	loop.ircd_rehashing = 0;	
 	return 1;

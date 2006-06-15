@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.7 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.8 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -78,6 +78,19 @@ DLLFUNC int MOD_UNLOAD(m_topic)(int module_unload)
 			MOD_HEADER(m_topic).name);
 	}
 	return MOD_SUCCESS;
+}
+
+void topicoverride(aClient *sptr, aChannel *chptr, char *topic)
+{
+	sendto_snomask(SNO_EYES,
+	    "*** OperOverride -- %s (%s@%s) TOPIC %s \'%s\'",
+	    sptr->name, sptr->user->username, sptr->user->realhost,
+	    chptr->chname, topic);
+						
+	/* Logging implementation added by XeRXeS */
+	ircd_log(LOG_OVERRIDE, "OVERRIDE: %s (%s@%s) TOPIC %s \'%s\'",
+		sptr->name, sptr->user->username, sptr->user->realhost,
+		chptr->chname, topic);
 }
 
 /*
@@ -206,13 +219,6 @@ long flags = 0; /* cache: membership flags */
 				chptr->topic_nick = MyMalloc(nicKlen + 1);
 				strncpyzt(chptr->topic_nick, tnick,
 				    nicKlen + 1);
-				sendto_channel_butserv(chptr, sptr,
-				    ":%s TOPIC %s :%s (%s)", parv[0],
-				    chptr->chname, chptr->topic,
-				    chptr->topic_nick);
-#ifdef UDB
-			}
-#endif
 
 				chptr->topic_time = ttime;
 				RunHook4(HOOKTYPE_TOPIC, cptr, sptr, chptr, topic);
@@ -221,6 +227,13 @@ long flags = 0; /* cache: membership flags */
 				    TOK_TOPIC, "%s %s %lu :%s",
 				    chptr->chname, chptr->topic_nick,
 				    chptr->topic_time, chptr->topic);
+				sendto_channel_butserv(chptr, sptr,
+				    ":%s TOPIC %s :%s (%s)", parv[0],
+				    chptr->chname, chptr->topic,
+				    chptr->topic_nick);
+#ifdef UDB
+			}
+#endif
 			}
 		}
 		else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
@@ -243,33 +256,36 @@ long flags = 0; /* cache: membership flags */
 #ifndef NO_OPEROVERRIDE
 					}
 					else
-						sendto_snomask(SNO_EYES,
-						    "*** OperOverride -- %s (%s@%s) TOPIC %s \'%s\'",
-						    sptr->name, sptr->user->username, sptr->user->realhost,
-						    chptr->chname, topic);
-						
-						/* Logging implementation added by XeRXeS */
-						ircd_log(LOG_OVERRIDE, "OVERRIDE: %s (%s@%s) TOPIC %s \'%s\'",
-							sptr->name, sptr->user->username, sptr->user->realhost,
-							chptr->chname, topic);
-
+						topicoverride(sptr, chptr, topic);
 #endif
 				}
 			} else
 			if (MyClient(sptr) && !is_chan_op(sptr, chptr) && !is_halfop(sptr, chptr) && is_banned(sptr, chptr, BANCHK_MSG))
 			{
 				char buf[512];
-				ircsprintf(buf, "No puede cambiar el topic de %s mientras esté baneado", chptr->chname);
-				sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
-				return -1;
+				
+				if (IsOper(sptr) && OPCanOverride(sptr))
+				{
+					topicoverride(sptr, chptr, topic);
+				} else {
+					ircsprintf(buf, "No puede cambiar el topic de %s mientras esté baneado", chptr->chname);
+					sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
+					return -1;
+				}
 			} else
-			if (MyClient(sptr) && (flags == 0) && (chptr->mode.mode & MODE_MODERATED))
+			if (MyClient(sptr) && ((flags&CHFL_OVERLAP) == 0) && (chptr->mode.mode & MODE_MODERATED))
 			{
 				char buf[512];
-				/* With +m and -t, only voice and higher may change the topic */
-				ircsprintf(buf, "Se requiere voz (+v) o mayor para cambiar el topic de %s (canal en +m)", chptr->chname);
-				sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
-				return -1;
+				
+				if (IsOper(sptr) && OPCanOverride(sptr))
+				{
+					topicoverride(sptr, chptr, topic);
+				} else {
+					/* With +m and -t, only voice and higher may change the topic */
+					ircsprintf(buf, "Se requiere voz (+v) o mayor para cambiar el topic de %s (canal en +m)", chptr->chname);
+					sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], "TOPIC",  buf);
+					return -1;
+				}
 			}
 			
 			/* ready to set... */

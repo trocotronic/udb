@@ -140,12 +140,18 @@ unsigned long our_crc32(const unsigned char *s, unsigned int len)
   unsigned long crc32val;
   
   crc32val = 0;
+#ifdef UDB
+	crc32val = 0xffffffffL;
+#endif
   for (i = 0;  i < len;  i ++)
     {
       crc32val =
         crc32_tab[(crc32val ^ s[i]) & 0xff] ^
           (crc32val >> 8);
     }
+#ifdef UDB
+	crc32val ^= 0xffffffffL;
+#endif
   return crc32val;
 }
 

@@ -16,18 +16,18 @@
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #*   
-#*   $Id: Makefile,v 1.1.1.8 2005-10-22 14:00:44 Trocotronic Exp $
+#*   $Id: Makefile,v 1.1.1.9 2006-06-15 21:16:13 Trocotronic Exp $
 #*/
 
 CC = danger will robinson
 
-OBJS=res.o s_bsd.o auth.o aln.o badwords.o channel.o cloak.o crule.o dbuf.o \
+OBJS=timesynch.o res.o s_bsd.o auth.o aln.o channel.o cloak.o crule.o dbuf.o \
 	events.o fdlist.o hash.o help.o ircd.o ircsprintf.o list.o lusers.o \
 	match.o modules.o packet.o parse.o s_auth.o \
 	s_conf.o s_debug.o s_err.o s_extra.o s_kline.o \
 	s_misc.o s_numeric.o s_serv.o s_svs.o $(STRTOUL) socket.o \
 	ssl.o s_user.o charsys.o scache.o send.o support.o umodes.o \
-	version.o webtv.o whowas.o zip.o cidr.o random.o extcmodes.o \
+	version.o whowas.o zip.o cidr.o random.o extcmodes.o \
 	tea.o s_bdd.o \
 	extbans.o md5.o api-isupport.o api-command.o $(URL)
 
@@ -106,9 +106,6 @@ dbuf.o: dbuf.c $(INCLUDES)
 packet.o: packet.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c packet.c
 
-badwords.o: badwords.c $(INCLUDES)
-	$(CC) $(CFLAGS) -c badwords.c
-
 aln.o: aln.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c aln.c
 
@@ -120,9 +117,6 @@ zip.o: zip.c $(INCLUDES)
 
 send.o: send.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c send.c
-
-webtv.o: webtv.c $(INCLUDES)
-	$(CC) $(CFLAGS) -c webtv.c
 
 ssl.o: ssl.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c ssl.c
@@ -183,6 +177,9 @@ lusers.o: lusers.c $(INCLUDES)
 
 res.o: res.c $(INCLUDES) ../include/res.h
 	$(CC) $(CFLAGS) -c res.c
+
+timesynch.o: timesynch.c $(INCLUDES)
+	$(CC) $(CFLAGS) -c timesynch.c
 
 cloak.o: cloak.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c cloak.c

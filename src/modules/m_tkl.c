@@ -35,8 +35,11 @@
 #include <string.h>
 #ifdef _WIN32
 #include <io.h>
+#else
+#include <sys/socket.h>
 #endif
 #include <fcntl.h>
+#include "inet.h"
 #include "h.h"
 #include "proto.h"
 #ifdef STRIPBADWORDS
@@ -99,7 +102,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.10 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.11 2006-06-15 21:16:15 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -539,7 +542,7 @@ DLLFUNC int  m_tkl_line(aClient *cptr, aClient *sptr, int parc, char *parv[], ch
 		if (((*type == 'z') || (*type == 'Z')) && !whattodo)
 		{
 			/* It's a (G)ZLINE, make sure the user isn't specyfing a HOST.
-			 * Just a warning for now, but perhaps in 3.2.4 we should make this an error.
+			 * Just a warning in 3.2.3, but an error in 3.2.4.
 			 */
 			if (strcmp(usermask, "*"))
 			{
@@ -591,35 +594,44 @@ DLLFUNC int  m_tkl_line(aClient *cptr, aClient *sptr, int parc, char *parv[], ch
 	if (!whattodo)
 	{
 		char c;
-		p++;
-		i = 0;
-		while (*p)
+		
+		if (!strchr(usermask, '*') && !strchr(usermask, '?'))
 		{
-			if (*p != '*' && *p != '.' && *p != '?')
-				i++;
+			/* Allow things like clone@*, dsfsf@*, etc.. */
+		} else {
+			/* Check hostmask. */
+			
+			/* STEP 1: Must at least contain 4 non-wildcard/non-dot characters */
 			p++;
-		}
-#ifndef UDB
-		if (i < 4)
-		{
-			sendto_one(sptr,
-			    ":%s NOTICE %s :*** [error] Too broad mask",
-			    me.name, sptr->name);
-			return 0;
-		}
-#endif
-		c = tolower(*type);
-		if (c == 'k' || c == 'z' || *type == 'G' || *type == 's')
-		{
-			struct irc_netmask tmp;
-			if ((tmp.type = parse_netmask(hostmask, &tmp)) != HM_HOST)
+			i = 0;
+			while (*p)
 			{
-				if (tmp.bits < 16)
+				if (*p != '*' && *p != '.' && *p != '?')
+					i++;
+				p++;
+			}
+			if (i < 4)
+			{
+				sendto_one(sptr,
+				    ":%s NOTICE %s :*** [error] Too broad mask",
+				    me.name, sptr->name);
+				return 0;
+			}
+
+			/* STEP 2: Check CIDR.. allow x.x/16, but not /15, /14, etc... */
+			c = tolower(*type);
+			if (c == 'k' || c == 'z' || *type == 'G' || *type == 's')
+			{
+				struct irc_netmask tmp;
+				if ((tmp.type = parse_netmask(hostmask, &tmp)) != HM_HOST)
 				{
-					sendto_one(sptr,
-					    ":%s NOTICE %s :*** [error] Too broad mask",
-					    me.name, sptr->name);
-					return 0;
+					if (tmp.bits < 16)
+					{
+						sendto_one(sptr,
+						    ":%s NOTICE %s :*** [error] Too broad mask",
+						    me.name, sptr->name);
+						return 0;
+					}
 				}
 			}
 		}
@@ -808,12 +820,11 @@ int n;
 	 * on 50 characters for the rest... -- Syzop
 	 */
 	n = strlen(reason) + strlen(parv[6]) + strlen(tkllayer[5]) + (NICKLEN * 2) + 40;
-	if (n > 500)
+	if ((n > 500) && (whattodo == 0))
 	{
 		sendnotice(sptr, "Spamfilter demasiado largo. Debe acortar la razón de la regex (sobrepasa by %d bytes)", n - 500);
 		return 0;
 	}
-	
 	
 	if (whattodo == 0)
 	{
@@ -900,6 +911,21 @@ aTKline *_tkl_add_line(int type, char *usermask, char *hostmask, char *reason, c
 {
 	aTKline *nl;
 	int index;
+
+	/* Pre-allocate etc check for spamfilters that fail to compile.
+	 * This could happen if for example TRE supports a feature on server X, but not
+	 * on server Y!
+	 */
+	if (type & TKL_SPAMF)
+	{
+		char *myerr = unreal_checkregex(reason, 0, 0);
+		if (myerr)
+		{
+			sendto_realops("[TKL ERROR] ERROR: Spamfilter se añadió pero no compiló. ERROR='%s', Spamfilter='%s'",
+				myerr, reason);
+			return NULL;
+		}
+	}
 
 	nl = (aTKline *) MyMallocEx(sizeof(aTKline));
 
@@ -1831,6 +1857,20 @@ int _m_tkl(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		  expiry_1 = atol(parv[6]);
 		  setat_1 = atol(parv[7]);
 		  reason = parv[8];
+		  
+		  if (expiry_1 < 0)
+		  {
+		  	sendto_realops("Invalid TKL entry from %s, negative expire time (%ld) -- not added. Clock on other server incorrect?",
+		  		sptr->name, (long)expiry_1);
+		  	return 0;
+		  }
+
+		  if (setat_1 < 0)
+		  {
+		  	sendto_realops("Invalid TKL entry from %s, negative set-at time (%ld) -- not added. Clock on other server incorrect?",
+		  		sptr->name, (long)setat_1);
+		  	return 0;
+		  }
 
 		  found = 0;
 		  if ((type & TKL_SPAMF) && (parc >= 11))
@@ -1936,8 +1976,10 @@ int _m_tkl(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			tk = tkl_add_line(type, parv[3], parv[4], reason, parv[5],
 				expiry_1, setat_1, 0, NULL);
 
-		  if (tk)
-		  	RunHook5(HOOKTYPE_TKL_ADD, cptr, sptr, tk, parc, parv);
+		  if (!tk)
+		     return 0; /* ERROR on allocate or something else... */
+
+		  RunHook5(HOOKTYPE_TKL_ADD, cptr, sptr, tk, parc, parv);
 
 		  strncpyzt(gmt, asctime(gmtime((TS *)&setat_1)), sizeof(gmt));
 		  strncpyzt(gmt2, asctime(gmtime((TS *)&expiry_1)), sizeof(gmt2));

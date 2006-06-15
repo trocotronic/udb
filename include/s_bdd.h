@@ -20,17 +20,20 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.10 2006-05-15 19:49:42 Trocotronic Exp $
+ * $Id: s_bdd.h,v 1.1.1.11 2006-06-15 21:16:13 Trocotronic Exp $
  */
 
 #ifdef _WIN32
 #define DB_DIR "database\\"
+#define DB_DIR_BCK DB_DIR "backup\\"
 #else
 #define DB_DIR "database/"
+#define DB_DIR_BCK DB_DIR "backup/"
 #endif
 #define DBMAX 64 /* hay de sobras */
-#define UDB_VER "UDB3.2.3"
+#define UDB_VER "UDB3.3"
 typedef struct _udb Udb;
+typedef struct _bloque UDBloq;
 struct _udb
 {
 	char *item; /* si queremos darle un nombre */
@@ -40,8 +43,6 @@ struct _udb
 	struct _udb *hsig, *up, *mid, *down; /* punteros enlazados bla bla bla */
 	/* 
 	   para los bloques root (nicks, canales, ips y set) los punteros apuntan:
-	   - prev al primer registro
-	   - sig al ultimo registro
 	   - hsig a NULL
 	   - up a NULL
 	   - mid al siguiente bloque root
@@ -52,38 +53,49 @@ struct _udb
 	   - data_long contiene el tamaño en bytes del archivo
 	   */
 };
+struct _bloque
+{
+	Udb *arbol;
+	struct _bloque *sig;
+	u_long crc32;
+	char *path;
+	u_int id;
+	u_long lof;
+	time_t gmt;
+	aClient *res;
+	u_int regs;
+	char letra;
+};
 /* bloques actuales */
 #if !defined(MODULE_COMPILE) && defined(_WIN32)
 #define DLLEXP __declspec(dllexport)
 #else
 #define DLLEXP
 #endif
-DLLEXP extern MODVAR Udb *nicks;
-DLLEXP extern MODVAR Udb *canales;
-DLLEXP extern MODVAR Udb *ips;
-DLLEXP extern MODVAR Udb *set;
-DLLEXP extern MODVAR Udb *ultimo;
-DLLEXP extern MODVAR u_int BDD_NICKS;
-DLLEXP extern MODVAR u_int BDD_CHANS;
-DLLEXP extern MODVAR u_int BDD_IPS;
-DLLEXP extern MODVAR u_int BDD_SET;
-DLLEXP extern MODVAR time_t gmts[DBMAX];
+DLLEXP extern MODVAR UDBloq *N;
+DLLEXP extern MODVAR UDBloq *C;
+DLLEXP extern MODVAR UDBloq *S;
+DLLEXP extern MODVAR UDBloq *I;
+DLLEXP extern MODVAR UDBloq *ultimo;
+DLLEXP extern MODVAR Udb *UDB_NICKS;
+DLLEXP extern MODVAR Udb *UDB_CANALES;
+DLLEXP extern MODVAR Udb *UDB_IPS;
+DLLEXP extern MODVAR Udb *UDB_SET;
 DLLEXP extern MODVAR char *grifo;
 
-DLLFUNC extern char *make_virtualhost(aClient *, char *, char *, int);
-DLLFUNC extern Udb *busca_registro(u_int, char *), *busca_bloque(char *, Udb *);
-DLLFUNC extern u_int level_oper_bdd(char *);
-DLLFUNC char *get_visiblehost(aClient *, aClient *);
-DLLFUNC extern char *chan_nick(int);
-DLLFUNC extern char *chan_mask(int);
-DLLFUNC extern aClient *chan_client();
-DLLFUNC extern void dale_cosas(int, aClient *, Udb *);
-DLLFUNC extern void quitale_cosas(aClient *, Udb *);
-DLLFUNC extern int tipo_de_pass(char *, char *, Udb *);
+DLLFUNC extern char *MakeVirtualHost(aClient *, char *, char *, int);
+DLLFUNC extern Udb *BuscaBloque(char *, Udb *);
+DLLFUNC extern u_int LevelOperUdb(char *);
+DLLFUNC char *GetVisibleHost(aClient *, aClient *);
+DLLFUNC extern char *ChanNick(int);
+DLLFUNC extern char *ChanMask(int);
+DLLFUNC extern aClient *ChanClient();
+DLLFUNC extern void DaleCosas(int, aClient *, Udb *, char *);
+DLLFUNC extern void QuitaleCosas(aClient *, Udb *);
+DLLFUNC extern int TipoDePass(char *, char *, Udb *);
 DLLEXP extern MODVAR int pases;
 DLLEXP extern MODVAR int intervalo;
 DLLEXP extern MODVAR aClient *propaga;
-DLLEXP extern MODVAR char bloques[DBMAX];
 
 #define BorraIpVirtual(x)							\
 	do									\

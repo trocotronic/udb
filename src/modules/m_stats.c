@@ -52,7 +52,7 @@ DLLFUNC int m_stats(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_stats)
   = {
 	"m_stats",
-	"$Id: m_stats.c,v 1.1.4.10 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_stats.c,v 1.1.4.11 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /stats", 
 	"3.2-b8-1",
 	NULL 
@@ -987,10 +987,8 @@ int stats_mem(aClient *sptr, char *para)
 	sendto_one(sptr, ":%s %d %s :Dbuf blocks %d(%ld)",
 	    me.name, RPL_STATSDEBUG, sptr->name, dbufblocks, db);
 
-	link = freelink;
-	while ((link = link->next))
+	for (link = freelink; link; link = link->next)
 		fl++;
-	fl++;
 	sendto_one(sptr, ":%s %d %s :Link blocks free %d(%ld) total %d(%ld)",
 	    me.name, RPL_STATSDEBUG, sptr->name,
 	    fl, (long)(fl * sizeof(Link)),

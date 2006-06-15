@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.6 2005-12-25 19:13:36 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.7 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -123,7 +123,7 @@ aClient *acptr;
 		                   "Nickname collision due to Services enforced "
 		                   "nickname change, your nick was overruled");
 #ifdef UDB                                
-	quitale_cosas(acptr, NULL);
+	QuitaleCosas(acptr, NULL);
 #else
 
 	acptr->umodes &= ~UMODE_REGNICK;
@@ -146,17 +146,17 @@ aClient *acptr;
 	add_to_client_hash_table(parv[2], acptr);
 	hash_check_watch(acptr, RPL_LOGON);
 #ifdef UDB
-	if ((reg = busca_registro(BDD_NICKS, parv[2])))
+	if ((reg = BuscaBloque(parv[2], UDB_NICKS)))
 	{
-		if (!busca_bloque(N_SUS_TOK, reg))
+		if (!BuscaBloque(N_SUS_TOK, reg))
 			val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
 		else
 			val = 1;
 	}
 	if (strcasecmp(parv[1], parv[2]))
-		dale_cosas(val, acptr, reg);
+		DaleCosas(val, acptr, reg, NULL);
 	if (IsHidden(acptr))
-		acptr->user->virthost = make_virtualhost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
+		acptr->user->virthost = MakeVirtualHost(acptr, acptr->user->realhost, acptr->user->virthost, 1);
 #endif	
 
 	return 0;

@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.5 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.6 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -510,16 +510,16 @@ creationtime = sendts;
 	if (samode)
 	{
 		sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
-	    		chan_nick(0), chptr->chname, modebuf, parabuf);
+	    		ChanNick(0), chptr->chname, modebuf, parabuf);
 		if (IsServer(sptr) && sendts != -1)
-			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s %lu", chptr->chname, isbounce ? "&" : "",
 			    	modebuf, parabuf, sendts);
 		else if (samode && IsMe(sptr)) /* SAMODE is a special case: always send a TS of 0 (omitting TS==desynch) */
-			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
 		   		 "%s %s %s 0", chptr->chname, modebuf, parabuf);
 		else
-			sendto_serv_butone_token(cptr, chan_nick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s", chptr->chname, isbounce ? "&" : "",
 		    		modebuf, parabuf);
 	}
@@ -1230,7 +1230,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		     }
 		  }
 #ifdef UDB
-		if (!bounce && what == MODE_DEL && !IsOper(cptr) && (reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque(C_OPT_TOK, reg)) && (bloq->data_long & BDD_C_OPT_PBAN) && (bloq = busca_bloque(C_FUN_TOK, reg)) && strcasecmp(bloq->data_char, cptr->name))
+		if (!bounce && what == MODE_DEL && !IsOper(cptr) && (reg = BuscaBloque(chptr->chname, UDB_CANALES)) && (bloq = BuscaBloque(C_OPT_TOK, reg)) && (bloq->data_long & BDD_C_OPT_PBAN) && (bloq = BuscaBloque(C_FUN_TOK, reg)) && strcasecmp(bloq->data_char, cptr->name))
 		{
 			Ban *ban;
 			int sale = 0;
@@ -2313,7 +2313,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 	 */
 	if (MyClient(sptr) && IsHelpOp(sptr) && !OPCanHelpOp(sptr)
 #ifdef UDB
-	&& !(level_oper_bdd(sptr->name) & BDD_OPER)
+	&& !(LevelOperUdb(sptr->name) & BDD_OPER)
 #endif
 	)
 		ClearHelpOp(sptr);
@@ -2402,7 +2402,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 			sptr->user->virthost = NULL;
 		}
 #ifdef UDB
-		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
+		sptr->user->virthost = MakeVirtualHost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #else
 		sptr->user->virthost = strdup(sptr->user->cloakedhost);
 #endif
@@ -2447,7 +2447,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 		 * been a vhost for example. -- Syzop
 		 */
 #ifdef UDB
-		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 0);
+		sptr->user->virthost = MakeVirtualHost(sptr, sptr->user->realhost, sptr->user->virthost, 0);
 #else
 		sptr->user->virthost = strdup(sptr->user->cloakedhost);
 #endif
@@ -2480,18 +2480,21 @@ DLLFUNC CMD_FUNC(_m_umode)
 
 	if (!(setflags & UMODE_OPER) && IsOper(sptr))
 		IRCstats.operators++;
+
+	/* deal with opercounts and stuff */
 	if ((setflags & UMODE_OPER) && !IsOper(sptr))
 	{
 		IRCstats.operators--;
 		VERIFY_OPERCOUNT(sptr, "umode1");
-	}
-	/* FIXME: This breaks something */
+	} else /* YES this 'else' must be here, otherwise we can decrease twice. fixes opercount bug. */
 	if (!(setflags & UMODE_HIDEOPER) && IsHideOper(sptr))
 	{
 		if (IsOper(sptr)) /* decrease, but only if GLOBAL oper */
 			IRCstats.operators--;
 		VERIFY_OPERCOUNT(sptr, "umode2");
 	}
+	/* end of dealing with opercounts */
+
 	if ((setflags & UMODE_HIDEOPER) && !IsHideOper(sptr))
 	{
 		if (IsOper(sptr)) /* increase, but only if GLOBAL oper */

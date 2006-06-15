@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.6 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.7 2006-06-15 21:16:14 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -187,7 +187,7 @@ Ban *banned;
 
 #ifdef UDB
 	if (!BadPtr(key) && IsARegNick(cptr))
-		fakefund = tipo_de_pass(chptr->chname, key, NULL);
+		fakefund = TipoDePass(chptr->chname, key, NULL);
 #endif
 	for (lp = sptr->user->invited; lp; lp = lp->next)
 		if (lp->value.chptr == chptr)
@@ -248,9 +248,9 @@ Ban *banned;
 #ifdef UDB
 	{
 		Udb *reg, *bloq;
-		if ((reg = busca_registro(BDD_CHANS, chptr->chname)) && (bloq = busca_bloque(C_ACC_TOK, reg)))
+		if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)) && (bloq = BuscaBloque(C_ACC_TOK, reg)))
 		{
-			if ((!IsHOper(sptr) && !busca_bloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
+			if ((!IsHOper(sptr) && !BuscaBloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
 				return (ERR_BANNEDFROMCHAN);
 		}
 	}
@@ -373,9 +373,9 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 	int f = 0, udbflags = 0;
 	if (MyClient(sptr))
 	{
-		if ((reg = busca_registro(BDD_CHANS, chptr->chname)))
+		if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)))
 		{
-			bloq = busca_bloque(C_SUS_TOK, reg);
+			bloq = BuscaBloque(C_SUS_TOK, reg);
 			if ((f = is_chanowner(sptr, chptr)) && !bloq)
 			{
 				udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
@@ -473,13 +473,13 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 #ifdef UDB
 		if (udbflags & CHFL_CHANOWNER)
 			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
-			    chan_nick(0),
+			    ChanNick(0),
 			    MSG_MODE, TOK_MODE, "%s +oq %s %s %lu",
 			    chptr->chname, sptr->name, sptr->name, 
 			    chptr->creationtime);
 		else if (udbflags & CHFL_CHANPROT)
 			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
-			    chan_nick(0),
+			    ChanNick(0),
 			    MSG_MODE, TOK_MODE, "%s +ao %s %s %lu",
 			    chptr->chname, sptr->name, sptr->name, 
 			    chptr->creationtime);
@@ -560,7 +560,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			else if (chptr->users == 1)
 				ircsprintf(buf, "-o %s", sptr->name);
 			if (buf[0] != '\0')
-				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", chan_mask(0), chptr->chname, buf);
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", ChanMask(0), chptr->chname, buf);
 		}
 #endif
 		parv[0] = sptr->name;
@@ -761,9 +761,9 @@ DLLFUNC CMD_FUNC(_do_join)
 			if (!IsOper(sptr) && !IsULine(sptr))
 			{
 				Udb *reg, *bloq;
-				if ((reg = busca_registro(BDD_CHANS, name)) && (bloq = busca_bloque(C_FOR_TOK, reg)))
+				if ((reg = BuscaBloque(name, UDB_CANALES)) && (bloq = BuscaBloque(C_FOR_TOK, reg)))
 				{
-					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", chan_mask(1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
+					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", ChanMask(1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
 					continue;
 				}
 			}

@@ -214,7 +214,6 @@ EXPORTS
 	add_listmode
 	add_local_client
 	add_local_domain
-	add_send_mode_param
 	add_server_to_table
 	add_silence
 	add_throttling_bucket
@@ -231,11 +230,9 @@ EXPORTS
 	b64_decode
 	b64_encode
 	backupbuf
-	badwords_stats
 	ban_flooder
 	ban_ip
 	ban_realhost
-	ban_version
 	ban_virthost
 	banact_chartoval
 	banact_stringtoval
@@ -465,8 +462,6 @@ EXPORTS
 	extcmode_get_struct
 	extcmode_init
 	extraflags
-	fast_badword_match
-	fast_badword_replace
 	find_Command
 	find_CommandEx
 	find_Command_simple
@@ -683,7 +678,6 @@ EXPORTS
 	myargv
 	myctime
 	myncmp
-	mystpcpy
 	next_client
 	nextconnect
 	nextdnscheck
@@ -707,7 +701,6 @@ EXPORTS
 	our_crc32
 	our_dlerror
 	our_mod_version
-	our_strcasestr
 	outofmemory
 	parabuf
 	parse
@@ -757,9 +750,6 @@ EXPORTS
 	save_tunefile
 	sbrk0
 	send_authports
-	send_channel_modes
-	send_channel_modes_sjoin
-	send_channel_modes_sjoin3
 	send_list
 	send_proto
 	send_queued
@@ -839,7 +829,6 @@ EXPORTS
 	spamfiltertargettable
 	start_auth
 	start_of_normal_client_handshake
-	stripbadwords
 	stripbadwords_channel
 	stripbadwords_message
 	stripbadwords_quit
@@ -912,9 +901,6 @@ EXPORTS
 	vsendto_one
 	vsendto_prefix_one
 	vsnprintf
-	w_whois
-	webtv_cmds
-	webtv_parse
 	whowas_next
 	write_pidfile
 	zlinebuf

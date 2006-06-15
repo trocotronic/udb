@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.12 2006-05-15 19:49:46 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.13 2006-06-15 21:16:15 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -181,7 +181,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #ifdef UDB
 			sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
 				    parv[0], name, user->username,
-				    get_visiblehost(acptr, sptr), acptr->info);
+				    GetVisibleHost(acptr, sptr), acptr->info);
 #else
 			sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
 			    parv[0], name,
@@ -316,9 +316,9 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	    			sendto_one(sptr, rpl_str(RPL_WHOISSUSPEND), me.name, parv[0],
 				name);
 			
-			if (level_oper_bdd(acptr->name) && !hideoper)
+			if (LevelOperUdb(acptr->name) && !hideoper)
 			{
-				u_int level = level_oper_bdd(acptr->name);
+				u_int level = LevelOperUdb(acptr->name);
 				buf[0] = '\0';
 				if (level >= BDD_ROOT)
 					strlcat(buf, "ROOT de los servicios y", sizeof buf);
@@ -334,7 +334,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				
 			if (IsHidden(acptr) && (IsShowIp(sptr) || acptr == sptr))
 	    			sendto_one(sptr, rpl_str(RPL_WHOISHOST),
-					me.name, parv[0], name, get_visiblehost(acptr, NULL)); 
+					me.name, parv[0], name, GetVisibleHost(acptr, NULL)); 
 #endif					    
 			/* makesure they aren't +H (we'll also check
 			   before we display a helpop or IRCD Coder msg)

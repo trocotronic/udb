@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.7 2006-05-15 19:49:42 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.8 2006-06-15 21:16:12 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -112,6 +112,8 @@
 /*
  * THROTTLING
  *   This will only allow 1 connection per ip in set::throttle::period time
+ * NOTE: There's no reason to disable this (anymore) since it can be fully
+ *       configured in the unrealircd.conf. Keep the define...
  */
 #define THROTTLING
 
@@ -423,6 +425,7 @@
 
 /*
  * Use much faster badwords replace routine (>100 times faster).
+ * Disabling this is not supported.
  */
 #define FAST_BADWORD_REPLACE
 

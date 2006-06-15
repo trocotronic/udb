@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>UDB - 3.2.3 - Documentaci&oacute;n oficial</title>
+<title>UDB - 3.3 - Documentaci&oacute;n oficial</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <style type="text/css">
  pre { font: "courier new"; font-style: normal;}
@@ -10,12 +10,12 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.6 2006-05-15 19:49:41 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.7 2006-06-15 21:16:12 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
   <font size="4"><a href="http://www.redyc.com">http://www.redyc.com</a></font><br>
-  <font size="4">Versi&oacute;n: 3.2.3</font><br>
+  <font size="4">Versi&oacute;n: 3.3</font><br>
   <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 12-04-2006</div>
 <br>
   <b>Programador:</b> Trocotronic<br>
@@ -119,7 +119,7 @@ Una de las formas para distribuir esa información es hacerlo por bloques, permit
 Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por ítems y valores (numéricos y alfanuméricos).
 Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
 Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
-Versión actual: <B>3.2.3</B><BR /><BR />
+Versión actual: <B>3.3</B><BR /><BR />
 <A name="bloques"></A><BR /><B>Bloques</B><BR />
 Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
 Todos los valores que estén precedidos por el símbolo '*' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
@@ -234,12 +234,12 @@ El comando es la orden que se quiere solicitar. Estos comandos son:<BR />
 <BR />
 <U>INF</U><BR />
 Pide información sobre un bloque. Su sintaxis es:
-<pre>:&lt;servidor> DB &lt;destino> INF &lt;bloque> &lt;md5> &lt;última-hora-OPT></pre>
-El bloque sólo puede ser N, C, I o S, según se precise. El parámetro md5 corresponde al valor del cifrado del contenido de su archivo (su md5 checksum).<BR />
+<pre>:&lt;servidor> DB &lt;destino> INF &lt;bloque> &lt;crc32> &lt;última-hora-OPT></pre>
+El bloque sólo puede ser N, C, I o S, según se precise. El parámetro crc32 corresponde al valor del cifrado del contenido de su archivo mediante el algoritmo CRC32.<BR />
 El último parámetro corresponde a la última hora GMT en que se ha recibido un OPT. Si no se ha recibido ninguno, vale 0. Cada vez que se recibe un OPT se guarda
 la hora en que se ha efectuado el comando y es la que se utiliza como último parámetro.<BR />
-Por ejemplo, <pre>:servicios.colossus DB irc.redyc.com INF N 419dbf37bf33b7ef0744696b67776ebe 0</pre>
-Donde el md5 corresponde al md5 del contenido de su archivo (el archivo en modo binario).<BR />
+Por ejemplo, <pre>:servicios.colossus DB irc.redyc.com INF N 86BDAF5B 0</pre>
+Donde el crc32 corresponde al crc32 del contenido de su archivo (el archivo en modo binario).<BR />
 Este comando va estrechamente ligado al RES e inicia la unión de dos servidores. Véase más adelante.<BR />
 <BR />Conviene que el servidor de destino sea uno concreto (no usar '*.redyc.com' por ejemplo).<BR />
 <BR />
@@ -313,52 +313,65 @@ Indica que se ha terminado el resumen de un bloque. Este comando debe mandarse d
 Si no se utiliza, el servidor seguirá pendiente de los datos en la red y no se podrán insertar nuevos registros.
 <pre>:&lt;servidor> DB &lt;destino> FDR &lt;bloque> 0</pre>
 <BR />
+<U>BCK</U><BR />
+Realiza una copia de seguridad de un bloque en particular y le asigna un nombre.<BR />
+Si se realiza una copia con un nombre ya existente, se sobreescribirá y se perderá la que hubiera.
+<pre>:&lt;servidor> DB * BCK &lt;bloque> &lt;nombre></pre>
+Se recomienda darle un nombre tipo HHmmDDMMYYYY, donde HH son la hora, mm el minuto, DD el día, MM el mes y YYYY el año que se realiza la copia.<BR />
+Los servidores que estén compilados con soporte ZLIB, guardarán la copia en un archivo comprimido reduciendo a la mitad su tamaño aproximadamente.<BR />
+<BR />
+<U>RST</U><BR />
+Restaura una copia de seguridad realizada con BCK.<BR />
+<B>NOTA:</B> el nombre de la copia debe existir. Si se propaga un nombre que no existe, toda la red perderá ese bloque y se propagará de nuevo. 
+Por tanto, si hay algún servidor que no posea esa copia truncará la red a partir de este punto.<BR />
+<pre>:&lt;servidor> DB * RST &lt;bloque> &lt;nombre> &lt;hora></pre>
+La hora que se especifica es la misma que la se usa en un OPT. Todos los servidores actualizarán su hora OPT a ésta.<BR />
 <A name="negociacion"></A><BR /><B>Negociación</B><BR />
 En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
-Lo primero que se manda es la cabecera PROTOCTL UDB3.2.3=&lt;parámetro1,parámetro2,etc>, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.2.3=params TOKEN VL.<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.3=&lt;parámetro1,parámetro2,etc>, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.3=params TOKEN VL.<BR />
 Los parámetros son configuraciones propias del UDB que requieren que sean las mismas en todos los servidores. En caso de no serlo, no se podrá linkar.<BR />
 Parámetros ordenados por orden de aparición:<BR />
 1- Propagador: nombre del servidor que puede insertar y borrar registros en la red (acepta comodines). Cualquier registro que provenga de otro servidor no será insertado o borrado y no se propagará. Aunque 
 pueda aceptar comodines, sólo podrán estar conectado un sólo propagador. Si otro linka, le dará una colisión de propagadores.<BR />
 2- SD (<i>opcional</i>): tiene soporte S::D.
-Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.2.3=*.servicios.colossus,SD VL NOQUIT...<BR />
+Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.3=*.servicios.colossus,SD VL NOQUIT...<BR />
 Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
 sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
 La negociación y consulta del estado de bloques se inicia con el envío de un INF. El servidor de destino debe ser solamente el servidor al que se linka (no usar '*').<BR />
 Una vez se ha recibido el INF remoto se procede a :<BR />
-<ul><li>Si los md5 checksum son distintos:
+<ul><li>Si los crc32 son distintos:
 <ul><li>Si el gmt recibido es mayor: vaciar todo el bloque y solicitarlo de nuevo (RES 0).</li>
 <li>Si el gmt recibido es igual, pedir un RES indicando el número de bytes que posee el archivo de dicho bloque.<BR/>
 El nodo que tenga más registros deberá pasarle al otro los que le faltan. Para ello situará el puntero en el archivo justo en el byte indicado en el RES y empezará a mandar los registros desde ese byte.</li></ul>
-<li>Si los md5 son idénticos: está todo en orden, no hay que hacer nada.</li></ul>
+<li>Si los crc32 son idénticos: está todo en orden, no hay que hacer nada.</li></ul>
 Cualquier resumen de bloques se efectúa mediante INS (si hay valor) y DEL (si no hay valor).<BR />
 Un ejemplo clásico sería este:
-<pre>:servicios.colossus DB irc.redyc.com INF C 0cc175b9c0f1b6a831c399e269772661 0<BR />
-:servicios.colossus DB irc.redyc.com INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
-:servicios.colossus DB irc.redyc.com INF N 4a8a08f09d37b73795649038408b5f33 0<BR />
-:servicios.colossus DB irc.redyc.com INF S 8277e0910d750195b448797616e091ad 0<BR />
-:irc.redyc.com DB servicios.colossus INF C 0cc175b9c0f1b6a831c399e269772661 0<BR />
-:irc.redyc.com DB servicios.colossus INF I 92eb5ffee6ae2fec3ad71c777531578f 0<BR />
-:irc.redyc.com DB servicios.colossus INF N 4a8a08f09d37b73795649038408b5f33 0<BR />
-:irc.redyc.com DB servicios.colossus INF S 8277e0910d750195b448797616e091ad 0<BR />
+<pre>:servicios.colossus DB irc.redyc.com INF C 86BDAF5B 0<BR />
+:servicios.colossus DB irc.redyc.com INF I 8391F83D2 1107168820<BR />
+:servicios.colossus DB irc.redyc.com INF N 2FE83A7B 0<BR />
+:servicios.colossus DB irc.redyc.com INF S 4E91A417 0<BR />
+:irc.redyc.com DB servicios.colossus INF C 86BDAF5B 0<BR />
+:irc.redyc.com DB servicios.colossus INF I 8391F83D2 0<BR />
+:irc.redyc.com DB servicios.colossus INF N 2FE83A7B 0<BR />
+:irc.redyc.com DB servicios.colossus INF S 4E91A417 0<BR />
 </pre>
-Como los md5 coinciden, no se prosigue porque todos los archivos son idénticos (aunque las horas sean distintas).<BR />
+Como los crc32 coinciden, no se prosigue porque todos los archivos son idénticos (aunque las horas sean distintas).<BR />
 Veamos otro ejemplo:
-<pre>:servicios.colossus DB INF irc.redyc.com C 0cc175b9c0f1b6a831c399e269772661 1107168820<BR />
-:servicios.colossus DB irc.redyc.com INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
-:servicios.colossus DB irc.redyc.com INF N 4a8a08f09d37b73795649038408b5f33 1107168820<BR />
-:servicios.colossus DB irc.redyc.com INF S 8277e0910d750195b448797616e091ad 1107168820<BR />
-:irc.redyc.com DB servicios.colossus INF C 0cc175b9c0f1b6a831c399e269772661 1107168820<BR />
-:irc.redyc.com DB servicios.colossus INF I 92eb5ffee6ae2fec3ad71c777531578f 1107168820<BR />
-:irc.redyc.com DB servicios.colossus INF N e1671797c52e15f763380b45e841ec32 1107168820<BR />
-:irc.redyc.com DB servicios.colossus INF S 8277e0910d750195b448797616e091ad 1107168820<BR />
+<pre>:servicios.colossus DB INF irc.redyc.com C 86BDAF5B 1107168820<BR />
+:servicios.colossus DB irc.redyc.com INF I 8391F83D2 1107168820<BR />
+:servicios.colossus DB irc.redyc.com INF N 2FE83A7B 1107168820<BR />
+:servicios.colossus DB irc.redyc.com INF S 4E91A417 1107168820<BR />
+:irc.redyc.com DB servicios.colossus INF C 86BDAF5B 1107168820<BR />
+:irc.redyc.com DB servicios.colossus INF I 8391F83D2 1107168820<BR />
+:irc.redyc.com DB servicios.colossus INF N F97381A8 1107168820<BR />
+:irc.redyc.com DB servicios.colossus INF S 4E91A417 1107168820<BR />
 :servicios.colossus DB irc.redyc.com RES N 2738<BR />
 :irc.redyc.com DB servicios.colossus RES N 2338<BR />
 :servicios.colossus DB * INS 2338 N::Trocotronic::M kXW<BR />
 :servicios.colossus DB * INS 2357 N::Trocotronic::O *4<BR />
 :servicios.colossus DB * DEL 2375 N::Trocotronic::V<BR />
 ...</pre>
-Todas las horas son las mismas, pero como se ve, el bloque N está desincronizado, puesto que los md5 no coinciden. Así que se mandan los RESúmenes de este bloque. Y como servicios.colossus tiene más registros, se los manda.<BR />
+Todas las horas son las mismas, pero como se ve, el bloque N está desincronizado, puesto que los crc32 no coinciden. Así que se mandan los RESúmenes de este bloque. Y como servicios.colossus tiene más registros, se los manda.<BR />
 Seguiría insertando registro o borrándolos según se diera. Atención al número de bytes que se va incrementando.<BR />
 Partimos del byte 2338, el siguiente registro estará en el byte 2357 puesto que "Trocotronic::M kXW" ocupa 18 bytes + 1 del \n = 19 bytes. 2338 + 19 = 2357. 
 El siguiente estará en 2357+18=2375, puesto que "Trocotronic::O *4" ocupa 17 bytes + 1 del \n. El siguiente estará en 2375+15=2390 puesto que "Trocotronic::V" ocupa 14 bytes + 1 del \n.<BR />
@@ -375,12 +388,12 @@ Por ejemplo, /dbq C::#redyc::F devolvería el fundador de #redyc.<BR />
 /dbq * S::C todos los servidores enviarían un raw indicando la máscara de ChanServ.<BR /><BR />
 /dbq [*] C este comando es especial respecto a los anteriores. Si no se especifica ningún contenido, se manda información de interés perteneciente a este bloque.<BR />
 El raw devuelto viene dado por la siguiente forma:
-<pre>id tot pos md5 TS hash</pre>
+<pre>id tot pos crc32 TS</pre>
 - id: id o identificación del bloque.<BR />
 - tot: número de registros de primer nivel que tiene ese bloque. Por ejemplo, nos dice cuántos nicks, canales o ips hay en cada bloque.<BR />
-- md5: desafío md5 correspondiente al archivo del bloque.<BR />
+- pos: siguiente posición a escribir en el archivo.<BR />
 - TS: hora del último OPT.
-- hash: valor hexadecimal del hash del bloque.<BR />
+- crc32: desafío crc32 correspondiente al archivo del bloque.<BR />
 Mencionar, que para una correcta sincronización, al hacer /dbq * &lt;bloque> todos los servidores deben devolver la misma información (el parámetro hash puede variar entre servidores).<BR />
 <BR />
 </div>

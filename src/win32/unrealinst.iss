@@ -1,17 +1,17 @@
 ; UnrealIRCd Win32 Installation Script for My Inno Setup Extensions
 ; Requires Inno Setup 4.1.6 and ISX 3.0.4 to work
 
-; #define USE_SSL
+ #define USE_SSL
 ; Uncomment the above line to package an SSL build
-; #define USE_ZIP
+ #define USE_ZIP
 ; Uncomment the above line to package with ZIP support
-; #define USE_CURL
+ #define USE_CURL
 ; Uncomment the above line to package with libcurl support
 
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.4+UDB 3.2.3es
+AppVerName=UnrealIRCd3.2.5+UDB 3.3es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com

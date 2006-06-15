@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.7 2006-05-15 20:52:03 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.8 2006-06-15 21:16:10 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -174,3 +174,28 @@
 040506161 - Las versiones con el segundo número de versión distinto no pueden linkar. Si el tercero es distinto pero el segundo no, sí.
 		Ej: un servidor 3.2.1 no puede linkar con un 3.3.2 pero sí con un 3.2.3.
 150506162 - *** Unreal 3.2.5pre1 + UDB 3.2.3 es
+200506163 - Arreglado un fallo al identificar un enlace como hub.
+200506164 - Arreglado un fallo grave al linkar servidores con opts distintos.
+200506165 - Arreglado un fallo que emitía un mensaje de resumen en progreso.
+270506166 - Se cambia la numeración de las versiones: impar > devel, par > estable.
+270506167 - Se crea un sistema de copias de seguridad.
+270506168 - Se complementa el sistema anterior con un sistema de restauración.
+280506169 - Se cambia el sistema de mapeo de memoria, agilizándolo notablemente.
+280506170 - Se cambia el sistema de manejo de bloques.
+280506171 - Con estos cambios se arregla un fallo muy grave.
+280506172 - Se cambian las funciones para unificar con los servicios de red Colossus.
+280506173 - Arreglado un fallo de duplicidad de modos al iniciar la sesión.
+280506174 - Arreglado un fallo relacionado con el opercount.
+310506175 - Arreglado un fallo al propagar los modos al inicio de sesión.
+310506176 - Arreglado un fallo con el OptimizaBloque, aviso de MaD (#0000183).
+310506177 - Arreglado un fallo al borrar una ipv.
+020606178 - Arreglado un fallo al truncar un bloque.
+040606179 - Arreglado un fallo con el comando DRP.
+050606180 - Arreglado un fallo con la ipv y +x en autoconectar.
+050606181 - Arreglado un fallo al conectar y realhost (#0000184).
+060606182 - Arreglado un fallo con el algoritmo del crc32.
+060606183 - Por ello subo a la versión 4 del archivo hash con su función de autoactualización.
+090606184 - Arreglado un fallo de desincronización cons los RESes en progreso.
+090606185 - Arreglado un fallo con un RES no recíproco.
+160606186 - *** Unreal 3.2.5 + UDB 3.3 es
+		(Requiescat In Pace - 16/06/2005)

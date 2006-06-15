@@ -46,6 +46,7 @@
 #include "version.h"
 #endif
 
+void add_send_mode_param(aChannel *chptr, aClient *from, char what, char mode, char *param);
 DLLFUNC int m_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC int m_svs2mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 #ifdef UDB
@@ -64,7 +65,7 @@ DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.6 2006-02-15 22:06:20 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.7 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 
@@ -100,7 +101,6 @@ DLLFUNC int MOD_UNLOAD(m_svsmode)(int module_unload)
 	return MOD_SUCCESS;
 }
 
-extern void add_send_mode_param(aChannel *chptr, aClient *from, char what, char mode, char *param);
 int channel_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[]) 
 {
 	aChannel *chptr;
@@ -433,6 +433,7 @@ char *xmsg, *xtok;
 #else
 char *xmsg = show_change ? MSG_SVS2MODE : MSG_SVSMODE;
 char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
+
 #endif
 	if (!IsULine(sptr))
 		return 0;
@@ -606,6 +607,60 @@ int  m_svsmode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 int  m_svs2mode(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 	return do_svsmode(cptr, sptr, parc, parv, 1);
+}
+
+void add_send_mode_param(aChannel *chptr, aClient *from, char what, char mode, char *param) {
+	static char *modes = NULL, lastwhat;
+	static short count = 0;
+	short send = 0;
+	
+	if (!modes) modes = modebuf;
+	
+	if (!modebuf[0]) {
+		modes = modebuf;
+		*modes++ = what;
+		*modes = 0;
+		lastwhat = what;
+		*parabuf = 0;
+		count = 0;
+	}
+	if (lastwhat != what) {
+		*modes++ = what;
+		*modes = 0;
+		lastwhat = what;
+	}
+	if (strlen(parabuf) + strlen(param) + 11 < MODEBUFLEN) {
+		if (*parabuf) 
+			strcat(parabuf, " ");
+		strcat(parabuf, param);
+		*modes++ = mode;
+		*modes = 0;
+		count++;
+	}
+	else if (*parabuf) 
+		send = 1;
+
+	if (count == MAXMODEPARAMS)
+		send = 1;
+
+	if (send) {
+		sendto_channel_butserv(chptr, from, ":%s MODE %s %s %s",
+			from->name, chptr->chname, modebuf, parabuf);
+		sendto_serv_butone(NULL, ":%s MODE %s %s %s", from->name, chptr->chname, modebuf, parabuf);
+		send = 0;
+		*parabuf = 0;
+		modes = modebuf;
+		*modes++ = what;
+		lastwhat = what;
+		if (count != MAXMODEPARAMS) {
+			strcpy(parabuf, param);
+			*modes++ = mode;
+			count = 1;
+		}
+		else 
+			count = 0;
+		*modes = 0;
+	}
 }
 #ifdef UDB
 /*

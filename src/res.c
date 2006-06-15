@@ -97,7 +97,13 @@ int n;
 	options.timeout = 3;
 	options.tries = 2;
 	options.flags = ARES_FLAG_NOALIASES;
+#ifdef _WIN32
+	/* for windows, keep using the hosts file for now, until I'm sure it's safe to disable */
 	n = ares_init_options(&resolver_channel, &options, ARES_OPT_TIMEOUT|ARES_OPT_TRIES|ARES_OPT_FLAGS);
+#else
+	options.lookups = "b"; /* no hosts file shit plz */
+	n = ares_init_options(&resolver_channel, &options, ARES_OPT_TIMEOUT|ARES_OPT_TRIES|ARES_OPT_FLAGS|ARES_OPT_LOOKUPS);
+#endif
 	if (n != ARES_SUCCESS)
 	{
 		config_error("resolver: ares_init_options() failed with error code %d [%s]", n, ares_strerror(n));
@@ -250,6 +256,22 @@ char ipv6 = r->ipv6;
 #endif
 }
 
+int verify_hostname(char *name)
+{
+char *p;
+
+	if (strlen(name) > HOSTLEN)
+		return 0; 
+
+	/* No underscores or other illegal characters */
+	for (p = name; *p; p++)
+		if (!isalnum(*p) && !strchr(".-", *p))
+			return 0;
+
+	return 1;
+}
+
+
 void unrealdns_cb_nametoip_verify(void *arg, int status, struct hostent *he)
 {
 DNSReq *r = (DNSReq *)arg;
@@ -304,6 +326,13 @@ u_int32_t ipv4_addr;
 	if (!he->h_addr_list[i])
 	{
 		/* Failed name <-> IP mapping */
+		proceed_normal_client_handshake(acptr, NULL);
+		return;
+	}
+
+	if (!verify_hostname(he->h_name))
+	{
+		/* Hostname is bad, don't cache and consider unresolved */
 		proceed_normal_client_handshake(acptr, NULL);
 		return;
 	}

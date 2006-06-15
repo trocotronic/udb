@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.6 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.7 2006-06-15 21:16:15 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -153,7 +153,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		}
 	}
 #ifdef UDB
-	if (!(breg = busca_registro(BDD_SET, S_NIC_TOK)))
+	if (!(breg = BuscaBloque(S_NIC_TOK, UDB_SET)))
 		botname = me.name;
 	else
 		botname = breg->data_char;
@@ -215,7 +215,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		    me.name, parv[0], parv[1], "Caracteres inválidos");
 		return 0;
 	}
-	reg = busca_registro(BDD_NICKS, nick);
+	reg = BuscaBloque(nick, UDB_NICKS);
 	if (!IsServer(cptr))
 	{
 		if (parc > 2)
@@ -227,13 +227,13 @@ DLLFUNC CMD_FUNC(m_nick)
 			if (pass)
 				pass++;
 		}
-		val = tipo_de_pass(nick, pass, reg);
+		val = TipoDePass(nick, pass, reg);
 	}
 	else
 	{
 		if (reg)
 		{
-			if (!busca_bloque(N_SUS_TOK, reg))
+			if (!BuscaBloque(N_SUS_TOK, reg))
 				val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
 			else
 				val = 1;
@@ -330,7 +330,7 @@ DLLFUNC CMD_FUNC(m_nick)
 				    acptrs ? acptrs->name : "servidor desconocido");
 		}
 		
-		if (IsServer(cptr) && IsPerson(sptr)) /* remote user changing nick */
+		if (IsServer(cptr) && IsPerson(sptr) && !ishold) /* remote user changing nick */
 		{
 			sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s", nick,
 				sptr->name, sptr->srvptr ? sptr->srvptr->name : "(desconocido)");
@@ -661,7 +661,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			case -1:
 			{
 				Udb *bline;
-				if (!(bline = busca_bloque(N_FOR_TOK, reg))) /* esto no debería pasar nunca */
+				if (!(bline = BuscaBloque(N_FOR_TOK, reg))) /* esto no debería pasar nunca */
 				{
 					sendto_one(sptr->from,
 						":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com.",
@@ -700,7 +700,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			case 1:
 			{
 				Udb *bline;
-				if (!(bline = busca_bloque(N_SUS_TOK, reg))) /* esto no debería pasar */
+				if (!(bline = BuscaBloque(N_SUS_TOK, reg))) /* esto no debería pasar */
 				{
 					sendto_one(sptr->from,
 						":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.redyc.com.",
@@ -810,7 +810,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		}
 #ifdef UDB
 		if (sptr != acptr)
-			quitale_cosas(sptr, NULL);
+			QuitaleCosas(sptr, NULL);
 #endif
 		add_history(sptr, 1);
 		sendto_common_channels(sptr, ":%s NICK :%s", parv[0], nick);
@@ -885,11 +885,6 @@ DLLFUNC CMD_FUNC(m_nick)
 			newusr = 1;
 		}
 	}
-#ifdef UDB
-	else if (sptr != acptr)
-		quitale_cosas(sptr, NULL);
-#endif
-
 	/*
 	 *  Finally set new nick name.
 	 */
@@ -926,10 +921,10 @@ DLLFUNC CMD_FUNC(m_nick)
 	}
 #endif
 #ifdef UDB
-	if (IsPerson(sptr) && sptr != acptr)
-		dale_cosas(val, sptr, reg);
+	if (IsPerson(sptr) && parc < 5 && sptr != acptr)
+		DaleCosas(val, sptr, reg, NULL);
 	if (IsHidden(sptr))
-		sptr->user->virthost = make_virtualhost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
+		sptr->user->virthost = MakeVirtualHost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 #endif	
 	if (newusr && !MyClient(sptr) && IsPerson(sptr))
 	{
@@ -1181,26 +1176,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	if (sptr->srvptr && sptr->srvptr->serv)
 		sptr->srvptr->serv->users++;
 #ifdef UDB
-    	if ((reg = busca_registro(BDD_NICKS, sptr->name)))
-    	{
-    		dale_cosas(busca_bloque(N_SUS_TOK, reg) ? 1 : 2, sptr, reg);
-    		if ((bloq = busca_bloque(N_SWO_TOK, reg)))
-		{
-			if (sptr->user->swhois)
-				MyFree(sptr->user->swhois);
-			sptr->user->swhois = strdup(bloq->data_char);
-		}
-    		if ((bloq = busca_bloque(N_SNO_TOK, reg)))
-    		{
-    			set_snomask(sptr, bloq->data_char);
-    			if (sptr->user->snomask)
-			{
-				sptr->user->snomask |= SNO_SNOTICE; /* set +s if needed */
-				sptr->umodes |= UMODE_SERVNOTICE;
-			}
-		}
-	}
-	user->virthost = make_virtualhost(sptr, user->realhost, user->virthost, 1);
+	user->virthost = MakeVirtualHost(sptr, user->realhost, user->virthost, 1);
 #else
 
 	make_virthost(sptr, user->realhost, user->cloakedhost, 0);
@@ -1328,6 +1304,19 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 
 	hash_check_watch(sptr, RPL_LOGON);	/* Uglier hack */
 	send_umode(NULL, sptr, 0, SEND_UMODES|UMODE_SERVNOTICE, buf);
+#ifdef UDB
+	if ((reg = BuscaBloque(sptr->name, UDB_NICKS)))
+	{
+		char umodebuf[128];
+		aClient *fr = sptr->from;
+		bzero(umodebuf, sizeof(umodebuf));
+		sptr->from = NULL;
+		DaleCosas(BuscaBloque(N_SUS_TOK, reg) ? 1 : 2, sptr, reg, umodebuf);
+		strcat(buf, &umodebuf[1]);
+		sptr->from = fr;
+		user->virthost = MakeVirtualHost(sptr, user->realhost, user->virthost, 1);
+	}
+#endif
 	/* NICKv2 Servers ! */
 	sendto_serv_butone_nickcmd(cptr, sptr, nick,
 	    sptr->hopcount + 1, sptr->lastnick, user->username, user->realhost,

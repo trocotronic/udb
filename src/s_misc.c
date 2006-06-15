@@ -1140,7 +1140,7 @@ char *getcloak(aClient *sptr)
 		/* need to calculate (first-time) */
 #ifdef UDB
 		char *virt;
-		virt = make_virtualhost(sptr, sptr->user->realhost, NULL, 0);
+		virt = MakeVirtualHost(sptr, sptr->user->realhost, NULL, 0);
 		strncpyzt(sptr->user->cloakedhost, virt, HOSTLEN);
 		MyFree(virt);
 #else

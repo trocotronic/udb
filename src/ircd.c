@@ -450,7 +450,7 @@ static TS try_connections(TS currenttime)
 		/*
 		 * Also when already connecting! (update holdtimes) --SRB 
 		 */
-		if (!(aconf->options & CONNECT_AUTO))
+		if (!(aconf->options & CONNECT_AUTO) || (aconf->flag.temporary == 1))
 			continue;
 
 		cltmp = aconf->class;
@@ -1438,6 +1438,12 @@ int InitwIRCD(int argc, char *argv[])
 		}
 	}
 #endif
+	if (TIMESYNCH)
+	{
+		if (!unreal_time_synch(TIMESYNCH_TIMEOUT))
+			ircd_log(LOG_ERROR, "TIME SYNCH: Unable to synchronize time: %s. This happens sometimes, no error on your part.",
+				unreal_time_synch_error());
+	}
 	write_pidfile();
 	Debug((DEBUG_NOTICE, "Server ready..."));
 	SetupEvents();
@@ -1448,7 +1454,7 @@ int InitwIRCD(int argc, char *argv[])
 	init_modef();
 #endif
 #ifdef UDB	
-	bdd_init();
+	IniciaUDB();
 #endif	
 	loop.do_bancheck = 0;
 	loop.ircd_booted = 1;

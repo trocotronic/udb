@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.7 2006-02-15 22:06:18 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.8 2006-06-15 21:16:14 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -44,7 +44,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.7 2006-02-15 22:06:18 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.8 2006-06-15 21:16:14 Trocotronic Exp $
  */
 
 /*
@@ -114,8 +114,12 @@ char *unrealcredits[] =
 	"AloneInTheDark - irc.sleepwalkers.org, El_barto - irc.ircdit.net,",
 	"Pyrexnetworks - www.pyrexnetworks.com, zunnie - www.MP-Gaming.NET,",
 	"All My Data - www.amdwebhost.com, Wulfie - irc.soundsnwaves.net,",
-	"eCoupons.com - www.ecoupons.com, MauritZ - irc.MindForge.org",
-	"Voodoohosting - www.voodoohosting.com",
+	"eCoupons.com - www.ecoupons.com, MauritZ - irc.MindForge.org,",
+	"Voodoohosting - www.voodoohosting.com,",
+	"RealityBytez IRC Network - irc.realitybytez.net,",
+	"LFS - www.linuxfromscratch.org, The_devil - chat.snyggast.se,",
+	"Stephen - dirac.betas-online.com, NationWars - www.nationwars.com",
+	"SurrealChat.net - www.surrealchat.net, NamesDir - www.namesdir.com",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",

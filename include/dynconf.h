@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.10 2006-05-15 19:49:42 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.11 2006-06-15 21:16:12 Trocotronic Exp $
  */
 
 
@@ -148,6 +148,9 @@ struct zConfiguration {
 	char *spamexcept_line;
 	int maxbans;
 	int maxbanlength;
+	int timesynch_enabled;
+	int timesynch_timeout;
+	char *timesynch_server;
 	aNetwork network;
 };
 
@@ -253,6 +256,11 @@ extern MODVAR aConfiguration iConf;
 
 #define MAXBANS		iConf.maxbans
 #define MAXBANLENGTH	iConf.maxbanlength
+
+#define TIMESYNCH	iConf.timesynch_enabled
+#define TIMESYNCH_TIMEOUT	iConf.timesynch_timeout
+#define TIMESYNCH_SERVER	iConf.timesynch_server
+
 
 /* Used for "is present?" and duplicate checking */
 struct SetCheck {

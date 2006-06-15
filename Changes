@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.15 2006-05-15 19:49:38 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.16 2006-06-15 21:16:09 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1168,3 +1168,91 @@
 - (multiple?) IPv6 listen blocks could cause a crash in config parser. Reported by Robby22
   (#0002868).
 - Added error checking to (main) setuid/setgid calls.
+- Fixed implicit declaration compiler warning if compiling for ipv6.
+- Fixed some small memory leak on rehash.
+- Removed spamfilter-oversized-checking when trying to REMOVE one.. duh.. reported by satmd
+  (#00029160).
+- Allow *lining of literalident@* such as clones@* (but not *clones@*), this is also as
+  far as we want to go with regards to relaxing "too broad" checking... Just continue to use
+  services AKILL for (other) "too broad cases", as many people (correctly) do. Change
+  suggested by salama (#0002911).
+- Made empty command aliases work (no more "no text to send" error) if the alias finds it ok,
+  which basically means if it allows .*. If you want to require a parameter, use .+ (or
+  anything other in regex that requires at least one character). Suggested and patch provided
+  by Nazzy (#0002722).
+- Fixed oper count bug which happened on /mode, this was our fault (can't blame services in
+  this case ;p). Reported by KnAseN and many others (#0002581).
+  There might still be other operator count bugs, but these are triggered by a different bug
+  and may or may not be caused by services.
+- Added MINIMAL time synchronization support. This is enabled by default and will try to
+  synchronize the IRCd clock (TSOffset) with a few good time servers. It currently only does
+  this on-boot, but it will hopefully help a lot of people with most of their time differences.
+  I still keep recommending anyone who can to run proper time-synchronization software such as
+  ntpd/ntpdate on their servers.
+  To disable time synchronization (eg: because you are already running ntp), you can simply
+  set set::timesynch::enabled to no.
+  The boot timeout for the timeserver response (=causes boot delay) can be configured via
+  set::timesynch::timeout and is set to 3 seconds by default (range is 1s-5s), there should
+  be no reason to change this.
+  The time server can be configured by setting set::timesynch::server, the default is to
+  use 3 time servers on 3 continents (US, EU, AU) which should be sufficient for anyone but
+  if you got a good one near you you can use that one instead.
+  The time protocol we use is (S)NTP v4.
+- Fixed some compile warnings for Windows
+- Updated windows compile instructions again.
+- Updated release notes
+- Added 'real' aliases, this are aliases that map to real commands, so you can for example
+  map the command '/GLINEBOT <x>' to 'GLINE <x> 2d Bots are not allowed on this server, blabla'.
+  See the documentation on the alias block for more information. doc/example.conf contains an
+  example as well (search for "glinebot").
+- Modulized: badwords system (src/badwords.c is now gone) and StripColors/StripControlCodes
+  to m_message, multiple netsynch routines to m_server, send_list to m_list, a certain mode
+  routine to m_svsmode, all /MSG IRC.. webtv stuff to src/modules/webtv.c which is compiled
+  with m_message.
+  This means another ~1500 lines of code are now in modules (and thus can be upgraded on
+  the fly), which brings the total of modulized lines at 32K.
+- Fixed compilation error on FreeBSD and others caused by timesynch, reported by tigra
+  (#0002921).
+- Fixed win32 compile problem cause by timesynch.
+- Updated release notes: more modulization and real command alias support.
+- Fixed crash in /STATS Z (possibly rare), reported by yasinbey (#0002929).
+- Win32 makefile/installer updates for new curl/ssl
+- Updated versions everywhere, bumped protocol to 2308
+** 3.2.5-rc1 release **
+- Added doc/example.ru.conf, translated by Bock.
+- Deal with unsupported regexes added by remote servers (possible crash otherwise)
+- Fixed crash problem on win32 if TKL times were <0. Obviously it's hard to protect from such
+  invalid server traffic, but figured in this case it might be a good idea since *NIX does
+  not crash.
+- Made a note about possessive quantifiers, they are scary :P.
+- Made the "voice needed when channel is +m but -t" actually work, reported by Trystan and
+  Ron2K (#0002940).
+- #undef STRIPBADWORDS did not work, reported by penna (#0002944).
+- Made the resolver no longer check /etc/hosts, since that's how it used to be and should be.
+  Saves some useless file reads.
+- Fixed compile (well, configure) problem on FreeBSD if compiling with remote includes
+  enabled. Reported by psadi (#0002941).
+- Added translated Turkish docs (doc/unreal32docs.tk.html), translated by tt` and Timaeus.
+- Fixed problem with IRCd using old link block settings if using a low connfreq, this made it
+  for example near-impossible to remove autoconnect for such a server. Reported by mixx941
+  (#0002836).
+- Fixed problem if c-ares library is already installed system-wide, reported by Trystan.
+- Updated release notes a bit (will be updated more later): backrefs (\1) in regexes are
+  kinda scary, or at least at the moment.
+- Removed PATCH5 from module version incompatibility system, so it can be used if we ever
+  need to update stuff and not enforce modules to recompile.. Might be useful one day ;p
+- Updated list of donators
+** 3.2.5-rc2 release **
+- Updated release notes, bleh.. I forgot :P
+- Got rid of qline notice that could happen if using services holds (semi-race condition),
+  reported and bugfix provided by tabrisnet (#0002950).
+- Made opers with can_override able to change the topic again if not chanop and banned/+m-t,
+  reported by vonitsanet (#0002952).
+- Disable /RESTART if running chrooted since that won't work anyway, reported by kayelem
+  (#0002956).
+- On certain (newer?) FreeBSD's you get "make: Permission denied" after ./Config, but when
+  you do 'cd ..' and then 'cd -' again, make works just fine. This is going to be the most
+  stupid workaround in history... Reported by vonitsanet and others (#0002926).
+** 3.2.5-rc3 release **
+- Updated doc/technical/005.txt
+- Mass version change

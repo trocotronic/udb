@@ -61,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.10 2006-05-15 19:49:44 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.11 2006-06-15 21:16:14 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -74,7 +74,8 @@ ModuleHeader l_commands_Header
 
 extern int m_htm_Test(ModuleInfo *modinfo), m_join_Test(ModuleInfo *modinfo);
 extern int m_mode_Test(ModuleInfo *modinfo), m_nick_Test(ModuleInfo *modinfo);
-extern int m_tkl_Test(ModuleInfo *modinfo);
+extern int m_tkl_Test(ModuleInfo *modinfo), m_list_Test(ModuleInfo *modinfo);
+extern int m_message_Test(ModuleInfo *modinfo);
 
 extern int m_sethost_Init(ModuleInfo *modinfo), m_setname_Init(ModuleInfo *modinfo), m_chghost_Init(ModuleInfo *modinfo);
 extern int m_chgident_Init(ModuleInfo *modinfo), m_setident_Init(ModuleInfo *modinfo), m_sdesc_Init(ModuleInfo *modinfo);
@@ -223,6 +224,8 @@ int l_commands_Test(ModuleInfo *modinfo)
 	m_mode_Test(ModCmdsInfo);
 	m_nick_Test(ModCmdsInfo);
 	m_tkl_Test(ModCmdsInfo);
+	m_list_Test(ModCmdsInfo);
+	m_message_Test(ModCmdsInfo);
 	return MOD_SUCCESS;
 }
 
