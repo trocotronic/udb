@@ -53,7 +53,7 @@ void _send_list(aClient *cptr, int numsend);
 ModuleHeader MOD_HEADER(m_list)
   = {
 	"m_list",
-	"$Id: m_list.c,v 1.1.4.5 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_list.c,v 1.1.4.6 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /list", 
 	"3.2-b8-1",
 	NULL 
@@ -115,12 +115,10 @@ DLLFUNC CMD_FUNC(m_list)
 		"de modos que puedes utilizar.",
 		">n  Lista los canales con más de <n> personas.",
 		"<n  Lista los canales con menos de <n> personas.",
-#ifdef LIST_USE_T
 		"C>n Lista los canales creados hace más <n> minutos.",
 		"C<n Lista los canales creados hace menos de <n> minutos.",
 		"T>n Lista los canales cuyos topics tienen más de <n> minutos.",
 		"T<n Lista los canales cuyos topics tienen menos de <n> minutos.",
-#endif
 		"*mask*   Lista los canales que coincidan con *mask*",
 		"!*mask*  Lista los canales que no coincidan con *mask*",
 		NULL
@@ -274,7 +272,7 @@ DLLFUNC CMD_FUNC(m_list)
 			  else	/* Just a normal channel */
 			  {
 				  chptr = find_channel(name, NullChn);
-				  if (chptr && (ShowChannel(sptr, chptr) || IsAnOper(sptr))) {
+				  if (chptr && (ShowChannel(sptr, chptr) || OPCanSeeSecret(sptr))) {
 #ifdef LIST_SHOW_MODES
 					modebuf[0] = '[';
 					channel_modes(sptr, &modebuf[1], parabuf, chptr);
@@ -369,7 +367,7 @@ void _send_list(aClient *cptr, int numsend)
 			{
 				if (SecretChannel(chptr)
 				    && !IsMember(cptr, chptr)
-				    && !IsAnOper(cptr))
+				    && !OPCanSeeSecret(cptr))
 					continue;
 
 				/* Much more readable like this -- codemastr */
@@ -410,7 +408,7 @@ void _send_list(aClient *cptr, int numsend)
 				else
 					strlcat(modebuf, "]", sizeof modebuf);
 #endif
-				if (!IsAnOper(cptr))
+				if (!OPCanSeeSecret(cptr))
 					sendto_one(cptr,
 					    rpl_str(RPL_LIST), me.name,
 					    cptr->name,

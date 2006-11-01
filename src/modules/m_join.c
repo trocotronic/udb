@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.7 2006-06-15 21:16:14 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -187,7 +187,7 @@ Ban *banned;
 
 #ifdef UDB
 	if (!BadPtr(key) && IsARegNick(cptr))
-		fakefund = TipoDePass(chptr->chname, key, NULL);
+		fakefund = TipoDePass(chptr->chname, key, NULL, NULL);
 #endif
 	for (lp = sptr->user->invited; lp; lp = lp->next)
 		if (lp->value.chptr == chptr)

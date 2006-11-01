@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: modules.h,v 1.1.1.10 2006-06-15 21:16:13 Trocotronic Exp $
+ *   $Id: modules.h,v 1.1.1.11 2006-11-01 00:06:42 Trocotronic Exp $
  */
 #ifndef MODULES_H
 #define MODULES_H
@@ -636,6 +636,8 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 #define HOOKTYPE_REMOTE_PART 44
 #define HOOKTYPE_REMOTE_KICK 45
 #define HOOKTYPE_LOCAL_SPAMFILTER 46
+#define HOOKTYPE_SILENCED 47
+#define HOOKTYPE_POST_SERVER_CONNECT 48
 
 /* Hook return values */
 #define HOOK_CONTINUE 0

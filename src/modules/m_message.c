@@ -66,7 +66,7 @@ extern int webtv_parse(aClient *sptr, char *string);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.11 2006-06-15 21:16:15 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.12 2006-11-01 00:06:44 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -222,6 +222,9 @@ int ret;
 			return CANPRIVMSG_CONTINUE;
 		
 		return CANPRIVMSG_SEND;
+	} else {
+		/* Silenced */
+		RunHook4(HOOKTYPE_SILENCED, cptr, sptr, acptr, notice);
 	}
 	return CANPRIVMSG_CONTINUE;
 }

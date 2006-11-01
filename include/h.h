@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.15 2006-06-15 21:16:12 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.16 2006-11-01 00:06:41 Trocotronic Exp $
  */
 
 /*
@@ -112,6 +112,8 @@ extern void  module_loadall(int module_load);
 extern long set_usermode(char *umode);
 extern char *get_modestr(long umodes);
 extern void                    config_error(char *format, ...) __attribute__((format(printf,1,2)));
+extern void config_warn(char *format, ...) __attribute__((format(printf,1,2)));
+
 extern MODVAR int config_verbose;
 extern void config_progress(char *format, ...) __attribute__((format(printf,1,2)));
 extern void       ipport_seperate(char *string, char **ip, char **port);
@@ -785,3 +787,4 @@ extern char *unreal_time_synch_error(void);
 extern int unreal_time_synch(int timeout);
 extern int extban_is_banned_helper(char *buf);
 extern char *getcloak(aClient *sptr);
+extern void kick_insecure_users(aChannel *);

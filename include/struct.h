@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.14 2006-06-15 21:16:13 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.15 2006-11-01 00:06:42 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -627,6 +627,11 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define OPIsNetAdmin(x) ((x)->oflag & OFLAG_NETADMIN)
 #define OPIsCoAdmin(x)	((x)->oflag & OFLAG_COADMIN)
 #define OPIsWhois(x)    ((x)->oflag & OFLAG_WHOIS)
+#ifdef SHOW_SECRET
+#define OPCanSeeSecret(x) IsAnOper(x)
+#else
+#define OPCanSeeSecret(x) IsNetAdmin(x)
+#endif
 
 #define OPSetRehash(x)	((x)->oflag |= OFLAG_REHASH)
 #define OPSetDie(x)	((x)->oflag |= OFLAG_DIE)

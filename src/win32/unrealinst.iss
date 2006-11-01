@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.5+UDB 3.3es
+AppVerName=UnrealIRCd3.2.6pre1+UDB 3.4es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -70,9 +70,9 @@ Source: "..\..\unreal.exe"; DestDir: "{app}"; Flags: ignoreversion; MinVersion: 
 Source: "..\modules\*.dll"; DestDir: "{app}\modules"; Flags: ignoreversion
 Source: "tre.dll"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef USE_SSL
-Source: "C:\dev\openssl\out32dll\openssl.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\dev\openssl\out32dll\ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\dev\openssl\out32dll\libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\bin\openssl.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\bin\ssleay32.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\openssl\bin\libeay32.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\makecert.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\encpem.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\ssl.cnf"; DestDir: "{app}"; Flags: ignoreversion
@@ -83,7 +83,7 @@ Source: "c:\dev\zlib\dll32\zlibwapi.dll"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef USE_SSL
 #ifdef USE_CURL
 ; curl with ssl support
-Source: "c:\dev\curl\lib\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "c:\dev\curl\lib\release\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\curl-ca-bundle.crt"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 #else

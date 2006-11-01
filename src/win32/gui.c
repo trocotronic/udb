@@ -1051,6 +1051,7 @@ void win_log(unsigned char *format, ...)
 	else 
 	{
 		FILE *fd = fopen("service.log", "a");
+		sprintf(buf,"%s :%i", strerror(GetLastError()), GetLastError());
 		fprintf(fd, "%s\n", buf);
 		fclose(fd);
 	}

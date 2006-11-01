@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.es.html,v 1.2.2.10 2006-06-15 21:16:11 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.es.html,v 1.2.2.11 2006-11-01 00:06:38 Trocotronic Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -27,7 +27,7 @@ Spanish |
 <a href="unreal32docs.gr.html">Greek</a> | 
 <a href="unreal32docs.nl.html">Dutch</a> |
 <a href="unreal32docs.ru.html">Russian</a> | 
-<a href="unreal32docs.tk.html">Turkish</a>
+<a href="unreal32docs.tr.html">Turkish</a>
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
@@ -191,9 +191,9 @@ Windows:<br>
 <li><b>Versiones *NIX:</b>
 <ul>
 <li>Linux (2.2.*, 2.4.*, 2.6.*)
-<li>FreeBSD (4.*, 5.*)
+<li>FreeBSD (4.*, 5.*, 6.*)
 <li>NetBSD (2.*)
-<li>OpenBSD (3.7, 3.8)
+<li>OpenBSD (3.7, 3.8, 3.9)
 <li>Solaris (9, 10)
 </ul>
 <li><b>Versiones Windows:</b>
@@ -2323,12 +2323,6 @@ set {
  <p><font class="set">set::timesynch::timeout &lt;time&gt;</font><br>
   M&aacute;ximo tiempo a esperar las respuestas de los servidores de hora. Este valor debe estar entre 1 y 5 segundos. No es posible m&aacute;s alto porque puede causar demasiada diferencia de hora. 
   Por defecto es 3 y no hay ninguna raz&oacute;n para cambiarlo.</p>
- <p><b>Sólo para compilaciones con UDB</b></p>
- <p><font class="set">set::udb::propagador &lt;servidor&gt;</font><br>
-  Nombre del servidor que insertará y borrará registros por la red (acepta comodines). Normalmente será el servidor de servicios.</p>
- <p><font class="set">set::udb::pass-flood &lt;v&gt;:&lt;s&gt;</font><br>
-  Protección para evitar ataques de fuerza bruta sobre las contraseñas. Cuando un usuario introduce &lt;v&gt; contraseñas incorrectas en menos de &lt;s&gt; segundos, es bloqueado durante este tiempo. 
-  Al mismo tiempo, cada vez que introduce una incorrecta, es lagueado durante 3 segundos.</p>
 </div>
 <p><b><font size="+2">5 &#8211; Archivos adicionales <a name="addtlfiles"></a>
   </font></b></p>
@@ -2508,7 +2502,7 @@ set {
   <tr> 
     <td><div align="center">z</div></td>
     <td>S&oacute;lo pueden entrar usuarios conectados bajo SSL</td>
-  </tr>  
+  </tr>
 </table>
 <p>&nbsp;</p>
 <table width="75%" border="1">
@@ -2626,21 +2620,6 @@ set {
   <tr>
     <td><div align="center">z</div></td>
     <td>Cliente SSL</td>
-  </tr>
-  <tr>
-    <td colspan="2"><div align="center">Modos exclusivos de UDB</div></td>
-  </tr>
-  <tr> 
-    <td><div align="center">k</div></td>
-    <td>Protege al operador que lo lleve contra floods </td>
-  </tr>
-  <tr> 
-    <td><div align="center">X</div></td>
-    <td>El operador que lleva este flag puede ver las ips reales de los usuarios cuando hace /whois </td>
-  </tr>
-  <tr> 
-    <td><div align="center">S</div></td>
-    <td>El usuario tiene el nick suspendido (no tiene +r) </td>
   </tr>
 </table>
 <p></p></div>

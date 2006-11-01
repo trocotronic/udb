@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.11 2006-06-15 21:16:13 Trocotronic Exp $
+ * $Id: s_bdd.h,v 1.1.1.12 2006-11-01 00:06:42 Trocotronic Exp $
  */
 
 #ifdef _WIN32
@@ -31,7 +31,7 @@
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
 #define DBMAX 64 /* hay de sobras */
-#define UDB_VER "UDB3.3"
+#define UDB_VER "UDB3.4"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb
@@ -92,7 +92,7 @@ DLLFUNC extern char *ChanMask(int);
 DLLFUNC extern aClient *ChanClient();
 DLLFUNC extern void DaleCosas(int, aClient *, Udb *, char *);
 DLLFUNC extern void QuitaleCosas(aClient *, Udb *);
-DLLFUNC extern int TipoDePass(char *, char *, Udb *);
+DLLFUNC extern int TipoDePass(char *, char *, Udb *, aClient *);
 DLLEXP extern MODVAR int pases;
 DLLEXP extern MODVAR int intervalo;
 DLLEXP extern MODVAR aClient *propaga;
@@ -133,6 +133,7 @@ DLLEXP extern MODVAR aClient *propaga;
  * - N::<nick>:snomasks <snomask> -> contiene las snomask de operador que puede utilizar:
  *		cfFjveGnNqS
  * - N::<nick>::swhois <whois> -> contiene su swhois
+ * - N::<nick>::A <ip> -> acceso sólo a esta ip (CIDR para un rango de ips)
  * Todos estos campos se dan en el momento que el usuario se identifica correcamente con /nick nick:pass
  *
  * Los canales tienen los siguientes subbloques:
@@ -195,6 +196,8 @@ DLLEXP extern MODVAR aClient *propaga;
 #define C_DES_TOK "D"
 #define C_OPT "opciones"
 #define C_OPT_TOK "O"
+#define N_ALL "acceso"
+#define N_ALL_TOK "A"
 #define N_PAS "pass"
 #define N_PAS_TOK "P"
 #define N_VHO "vhost"
@@ -239,3 +242,4 @@ DLLEXP extern MODVAR aClient *propaga;
 #define S_DES_TOK "D"
 
 #define BDD_C_OPT_PBAN 0x1
+#define BDD_C_OPT_RMOD 0x2

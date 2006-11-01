@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.7 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -99,6 +99,7 @@ aClient *acptr;
 	Udb *reg;
 	char buf[BUFSIZE], *c;
 #endif
+aClient *ocptr; /* Other client */
 
 	if (!IsULine(sptr) || parc < 4 || (strlen(parv[2]) > NICKLEN))
 		return -1; /* This looks like an error anyway -Studded */
@@ -118,15 +119,19 @@ aClient *acptr;
 	if (!(acptr = find_person(parv[1], NULL)))
 		return 0; /* User not found, bail out */
 
-	if (find_client(parv[2], NULL)) /* Collision */
-		return exit_client(cptr, acptr, sptr,
+	if ((ocptr = find_client(parv[2], NULL)) && ocptr != acptr) /* Collision */
+	{
+		exit_client(acptr, acptr, sptr,
 		                   "Nickname collision due to Services enforced "
 		                   "nickname change, your nick was overruled");
+		return 0;
+	}
 #ifdef UDB                                
 	QuitaleCosas(acptr, NULL);
 #else
 
-	acptr->umodes &= ~UMODE_REGNICK;
+	if (acptr != ocptr)
+		acptr->umodes &= ~UMODE_REGNICK;
 #endif
 	acptr->lastnick = TS2ts(parv[3]);
 	sendto_common_channels(acptr, ":%s NICK :%s", parv[1], parv[2]);

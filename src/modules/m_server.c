@@ -59,7 +59,7 @@ static char buf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.10 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.11 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -419,7 +419,7 @@ nohostcheck:
 		{
 			if ((numeric < 0) || (numeric > 254))
 			{
-				sendto_locfailops("Link %s denegado, numeric '%d' fuera de rango (should be 0-254)",
+				sendto_locfailops("Link %s denegado, numeric '%d' fuera de rango (debería ser 0-254)",
 					inpath, numeric);
 
 				return exit_client(cptr, cptr, cptr,
@@ -611,6 +611,7 @@ CMD_FUNC(m_server_remote)
 			    acptr->name, hop + 1, acptr->info);
 		}
 	}
+	RunHook(HOOKTYPE_POST_SERVER_CONNECT, acptr);
 	return 0;
 }
 
@@ -643,7 +644,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 		sendto_one(cptr, "SERVER %s 1 :U%d-%s-%i %s",
 			    me.name, UnrealProtocol,
 			    serveropts, me.serv->numeric,
-			    (me.info[0]) ? (me.info) : "Rallados");
+			    (me.info[0]) ? (me.info) : "Redyc");
 	}
 #ifdef ZIP_LINKS
 	if (aconf->options & CONNECT_ZIP)
@@ -973,6 +974,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 			cptr->name);
 #endif
 #endif
+	RunHook(HOOKTYPE_POST_SERVER_CONNECT, cptr);
 	return 0;
 }
 
@@ -1337,6 +1339,8 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 			*bufptr++ = '$';
 #else
 			*bufptr++ = '~';
+
+
 #endif
 
 		name = lp->cptr->name;

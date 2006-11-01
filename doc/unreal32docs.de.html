@@ -24,7 +24,7 @@
 <a href="unreal32docs.gr.html">Greek</a> |
 <a href="unreal32docs.nl.html">Dutch</a> |
 <a href="unreal32docs.ru.html">Russian</a> |
-<a href="unreal32docs.tk.html">Turkish</a>
+<a href="unreal32docs.tr.html">Turkish</a>
 <br><br>
 
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
@@ -183,7 +183,7 @@ Upgrade von 3.2 Versionen</a></b></font><br>
 <p>Der empfohlene Weg für ein Upgrade ist:<br>
 Linux:<br>
 <ul>
-<li>Altes UnrealIRCd Verzeichnis umbenennen (oder es wird im nächsten Schritt
+<li>Altes UnrealIRCd Verzeichnis umbenennen (ansonsten wird es im nächsten Schritt
   überschrieben)
 <li>Neue UnrealIRCd Version entpacken und &quot;./Config&quot; und &quot;make&quot;
   laufen lassen (*NIX).
@@ -208,9 +208,9 @@ Bug gemeldet wird!</p></div>
 <li><b>*NIX Versionen:</b>
 <ul>
 <li>Linux (2.2.*, 2.4.*, 2.6.*)
-<li>FreeBSD (4.*, 5.*)
+<li>FreeBSD (4.*, 5.*, 6.*)
 <li>NetBSD (2.*)
-<li>OpenBSD (3.7, 3.8)
+<li>OpenBSD (3.7, 3.8, 3.9)
 <li>Solaris (9,10)
 </ul>
 <li><b>Windows Versionen:</b>
@@ -2324,7 +2324,7 @@ angegebenen abgelehnt.<br>
 haben oder nicht haben darf. Die Flags müssen direkt nacheinander ohne
 Zwischenräume angegeben sein. Wird einem Zeichen ein &quot;!&quot;
 vorangestellt, darf der Server dieses Flag nicht haben, steht kein &quot;!&quot;
-davor, so muss der Server dieses Flag haben, um vom Linken ausgeschlossen zu
+davor, muss der Server dieses Flag haben, um vom Linken ausgeschlossen zu
 sein.</p>
 </div>
 <p><font class="block_section"><a name="denylinkblock">4.24 - </a> </font><a name="denylinkblock"><font class="block_name">Deny Link Block</font>
@@ -3030,7 +3030,7 @@ Wird hier nichts angegeben, können alle User sämtliche Flags benutzen, bei
 Angabe von '*' keines. Es dürfen nur <b> kurze Operflags</b> angegeben werden.</p>
 <p><b>set::oper-only-stats {&lt;stats-flag>; &lt;stats-flag&gt;;};</b><br>
 Definiert eine Liste von Stats Flags, die nur von Opers benutzt werden können.
-In dieser Syntax dürfen nur <b>lange Operflags</b> angegeben wwerden.</p>
+In dieser Syntax dürfen nur <b>lange Operflags</b> angegeben werden.</p>
 <p><font class="set">set::maxchannelsperuser &lt;amount-of-channels&gt;;</font><br>
 Einstellung, in wie vielen Channels ein User gleichzeitig sein darf.</p>
 <p><b>set::maxdccallow &lt;amount-of-entries&gt;;</b><br>

@@ -52,7 +52,7 @@ DLLFUNC int m_sajoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sajoin)
   = {
 	"m_sajoin",
-	"$Id: m_sajoin.c,v 1.1.4.7 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_sajoin.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /sajoin", 
 	"3.2-b8-1",
 	NULL 
@@ -92,6 +92,8 @@ DLLFUNC CMD_FUNC(m_sajoin)
 {
 	aClient *acptr;
 	char jbuf[BUFSIZE];
+	int did_anything = 0;
+
 #ifdef UDB
 	if (!IsSAdmin(sptr) && !IsULine(sptr) && !IsNetAdmin(sptr))
 #else
@@ -171,6 +173,7 @@ DLLFUNC CMD_FUNC(m_sajoin)
 
 			if (*name == '0' && !atoi(name))
 			{
+				did_anything = 1;
 				while ((lp = acptr->user->channel))
 				{
 					chptr = lp->chptr;
@@ -192,21 +195,31 @@ DLLFUNC CMD_FUNC(m_sajoin)
 			chptr = get_channel(acptr, name, CREATE);
 			if (chptr && (lp = find_membership_link(acptr->user->channel, chptr)))
 				continue;
-
+			if ((chptr->mode.mode & MODE_ONLYSECURE) && !IsSecure(acptr))
+			{
+				sendnotice(sptr, "No puedes usar SAJOIN %s en %s porque el canal es +z y no está conectado vía SSL",
+					acptr->name, chptr->chname);
+				continue;
+			}
 			join_channel(chptr, acptr, acptr, flags);
+			did_anything = 1;
 			if (*jbuf)
 				(void)strlcat(jbuf, ",", sizeof jbuf);
 			(void)strlncat(jbuf, name, sizeof jbuf, sizeof(jbuf) - i - 1);
 			i += strlen(name) + 1;
 		}
-		sendnotice(acptr, "*** Has sido forzado a entrar en %s", jbuf);
-		sendto_realops("%s usa SAJOIN a %s en %s", sptr->name, acptr->name,
-			       jbuf);
-		sendto_serv_butone(&me, ":%s GLOBOPS :%s usa SAJOIN a %s en %s",
-				   me.name, sptr->name, acptr->name, jbuf);
-		/* Logging function added by XeRXeS */
-		ircd_log(LOG_SACMDS,"SAJOIN: %s used SAJOIN to make %s join %s",
-			sptr->name, parv[1], jbuf);
+		
+		if (did_anything)
+		{
+			sendnotice(acptr, "*** Has sido forzado a entrar en %s", jbuf);
+			sendto_realops("%s usa SAJOIN a %s en %s", sptr->name, acptr->name,
+				       jbuf);
+			sendto_serv_butone(&me, ":%s GLOBOPS :%s usa SAJOIN a %s en %s",
+					   me.name, sptr->name, acptr->name, jbuf);
+			/* Logging function added by XeRXeS */
+			ircd_log(LOG_SACMDS,"SAJOIN: %s used SAJOIN to make %s join %s",
+				sptr->name, parv[1], jbuf);
+		}
 	}
 	else
 	{

@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 				 NULL, NULL, NULL, NULL, NULL); 
 		if (hService) 
 		{
-			printf("UnrealIRCd NT Service successfully installed");
+			printf("Servicio UnrealIRCd NT instalado correctamente");
 			if (VerInfo.dwMajorVersion >= 5) {
 				SERVICE_DESCRIPTION info;
 				info.lpDescription = "Servidor Internet Relay Chat Server. Permite a los usuarios chatear mediante clientes IRC.";

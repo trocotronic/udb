@@ -23,7 +23,7 @@
 /* rewritten 06/02 by larne, the old one was unreadable. */
 /* changed indentation + some parts rewritten by Syzop. */
 
-/* $Id: m_who.c,v 1.1.1.7 2006-02-15 22:06:21 Trocotronic Exp $ */
+/* $Id: m_who.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $ */
 
 #include "config.h"
 #include "struct.h"
@@ -59,7 +59,7 @@ DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_who)
   = {
 	"who",	/* Name of module */
-	"$Id: m_who.c,v 1.1.1.7 2006-02-15 22:06:21 Trocotronic Exp $", /* Version */
+	"$Id: m_who.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -806,7 +806,7 @@ static char *first_visible_channel(aClient *sptr, aClient *acptr, int *flg)
 			cansee = 0;
 		if (!cansee)
 		{
-			if (IsAnOper(sptr))
+			if (OPCanSeeSecret(sptr))
 				*flg |= FVC_HIDDEN;
 			else
 				continue;

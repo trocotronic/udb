@@ -904,3 +904,5 @@ EXPORTS
 	whowas_next
 	write_pidfile
 	zlinebuf
+	kick_insecure_users
+	

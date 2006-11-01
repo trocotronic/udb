@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.8 2006-06-15 21:16:10 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.9 2006-11-01 00:06:37 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -199,3 +199,15 @@
 090606185 - Arreglado un fallo con un RES no recíproco.
 160606186 - *** Unreal 3.2.5 + UDB 3.3 es
 		(Requiescat In Pace - 16/06/2005)
+300606187 - Arreglado un fallo al optimizar después de restaurar.
+010706188 - Mi cumpleaños.
+020706189 - Se añade una forma de visualizar si está un resumen en curso vía DBQ.
+020706190 - Arreglado un fallo con el resumen de bloques.
+020706191 - Arreglado un fallo al borrar el último ítem de un bloque.
+020706192 - Arreglada una inconsistencia con la restauración de datos.
+130706193 - Se añade la directriz A en el bloque N.
+190806194 - Arreglado un fallo grave al poner :: en los campos de UDB.
+210906195 - Arreglado un fallo sin importancia con los permisos dados por la directriz oper.
+270906196 - Se cambian algunas rutinas de propagación. Ahora los datos sólo llegan si tienen que llegar.
+290906197 - Se deshace lo anterior.
+311006198 - Se sube a la versión 3.4.

@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.9 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.10 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -623,6 +623,8 @@ docontinue:
 		    chptr->creationtime);
 		sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
 		    sptr->name, chptr->chname, modebuf, paraback);
+		if (chptr->mode.mode & MODE_ONLYSECURE)
+			kick_insecure_users(chptr);
 	}
 	if (merge && !nomode)
 	{
@@ -727,6 +729,8 @@ docontinue:
 			Addsingle('S'); /* - */
 			queue_c = 1;
 		}
+		if (!(oldmode.mode & MODE_ONLYSECURE) && (chptr->mode.mode & MODE_ONLYSECURE))
+			kick_insecure_users(chptr);
 		/* Add single char modes... */
 		for (acp = cFlagTab; acp->mode; acp++)
 		{

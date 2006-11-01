@@ -53,7 +53,7 @@ DLLFUNC int m_help(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_help)
   = {
 	"m_help",
-	"$Id: m_help.c,v 1.1.4.3 2006-02-15 22:06:18 Trocotronic Exp $",
+	"$Id: m_help.c,v 1.1.4.4 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /help", 
 	"3.2-b8-1",
 	NULL 
@@ -62,7 +62,7 @@ ModuleHeader MOD_HEADER(m_help)
 DLLFUNC int MOD_INIT(m_help)(ModuleInfo *modinfo)
 {
 	add_Command(MSG_HELP, TOK_HELP, m_help, 1);
-	add_Command(MSG_HELPOP, TOK_HELP, m_help, 1);
+	add_Command(MSG_HELPOP, NULL, m_help, 1);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -79,7 +79,7 @@ DLLFUNC int MOD_UNLOAD(m_help)(int module_unload)
 		sendto_realops("Failed to delete commands when unloading %s",
 			MOD_HEADER(m_help).name);
 	}
-	if (del_Command(MSG_HELPOP, TOK_HELP, m_help) < 0)
+	if (del_Command(MSG_HELPOP, NULL, m_help) < 0)
 	{
 		sendto_realops("Failed to delete commands when unloading %s",
 			MOD_HEADER(m_help).name);

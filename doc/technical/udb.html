@@ -10,7 +10,7 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.7 2006-06-15 21:16:12 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.8 2006-11-01 00:06:41 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
@@ -50,7 +50,7 @@ Esto permite el uso de nicks registrados, ips virtuales e incluso canales persis
 A simple vista se aprecia el amplio ventanal de opciones que se pueden brindar.<BR />
 Aun así, representa toda una potente herramienta para redes que utilizan este software.<BR />
 Además, el sistema UDB proporciona las siguientes características:<BR />
-<li>Sobre nicks:</li>
+		<li>Sobre nicks:</li>
 		Todas las acciones para nicks se darán automáticamente cuando se identifique como propietario y reciba el modo +r.<br />
 		<ul>
 			<li>Registrar nicks por toda la red.</li>
@@ -68,6 +68,7 @@ Además, el sistema UDB proporciona las siguientes características:<BR />
 			<li>Personalizar snomasks de usuario de forma automática.</li>
 			<li>Personalizar un whois especial (swhois).</li>
 			<li>Fijar un máximo de intentos de poner tu contraseña con /nick tunick:tupass para evitar robos.</li>
+			<li>Restringir el uso de un nick a una ip o rango de ips.</li>
 		</ul>
 		<br />
 		<li>Sobre canales:</li>
@@ -141,6 +142,7 @@ El bloque N contiene los nicks y todo lo que les concierne. Se estructura de la 
 - N::&lt;nick>::K &lt;snomask> -> contiene las snomask de operador que puede utilizar:<BR />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cfFjveGnNqS<BR />
 - N::&lt;nick>::W &lt;whois> -> contiene su swhois<BR />
+- N::&lt;nick>::A &lt;ip> -> acceso sólo a esta ip (CIDR para un rango de ips)<BR />
 Todos estos campos se dan en el momento que el usuario se identifica correcamente con /nick nick:pass<BR />
 <B>NOTA UDB3.2:</B> A partir de esta versión, se aceptan las contraseñas generadas por el comando /mkpasswd.<BR />
 <BR />
@@ -309,7 +311,7 @@ Este comando es útil hacerlo por lo menos una vez al día, puesto que reduce cons
 La hora a usar es la que haya en el momento de propagar el comando en la franja GMT (funciones time(0) en C o $gmt en mIRC).<BR />
 <BR />
 <U>FDR</U><BR />
-Indica que se ha terminado el resumen de un bloque. Este comando debe mandarse después del último INS o DEL a un servidor que ha solicitado un RES.<BR />
+Indica que se ha terminado el resumen de un bloque. Este comando debe mandarse después del último INS o DEL (en caso de existir) a un servidor que ha solicitado un RES.<BR />
 Si no se utiliza, el servidor seguirá pendiente de los datos en la red y no se podrán insertar nuevos registros.
 <pre>:&lt;servidor> DB &lt;destino> FDR &lt;bloque> 0</pre>
 <BR />
@@ -370,7 +372,8 @@ Veamos otro ejemplo:
 :servicios.colossus DB * INS 2338 N::Trocotronic::M kXW<BR />
 :servicios.colossus DB * INS 2357 N::Trocotronic::O *4<BR />
 :servicios.colossus DB * DEL 2375 N::Trocotronic::V<BR />
-...</pre>
+...
+:servicios.colossus DB * FDR N 0</pre>
 Todas las horas son las mismas, pero como se ve, el bloque N está desincronizado, puesto que los crc32 no coinciden. Así que se mandan los RESúmenes de este bloque. Y como servicios.colossus tiene más registros, se los manda.<BR />
 Seguiría insertando registro o borrándolos según se diera. Atención al número de bytes que se va incrementando.<BR />
 Partimos del byte 2338, el siguiente registro estará en el byte 2357 puesto que "Trocotronic::M kXW" ocupa 18 bytes + 1 del \n = 19 bytes. 2338 + 19 = 2357. 
@@ -386,14 +389,15 @@ Este comando proporciona diversa información muy útil. Su sintaxis es:
 Por ejemplo, /dbq C::#redyc::F devolvería el fundador de #redyc.<BR />
 /dbq N::Trocotronic devolvería toda la información de Trocotronic (modos, snomasks, oper, etc.).<BR />
 /dbq * S::C todos los servidores enviarían un raw indicando la máscara de ChanServ.<BR /><BR />
-/dbq [*] C este comando es especial respecto a los anteriores. Si no se especifica ningún contenido, se manda información de interés perteneciente a este bloque.<BR />
+/dbq [*] &lt;bloque> este comando es especial respecto a los anteriores. Si no se especifica ningún contenido, se manda información de interés perteneciente a este bloque.<BR />
 El raw devuelto viene dado por la siguiente forma:
-<pre>id tot pos crc32 TS</pre>
+<pre>&lt;id> &lt;tot> &lt;pos> &lt;TS> &lt;crc32> [*]</pre>
 - id: id o identificación del bloque.<BR />
 - tot: número de registros de primer nivel que tiene ese bloque. Por ejemplo, nos dice cuántos nicks, canales o ips hay en cada bloque.<BR />
 - pos: siguiente posición a escribir en el archivo.<BR />
-- TS: hora del último OPT.
+- TS: hora del último OPT.<BR />
 - crc32: desafío crc32 correspondiente al archivo del bloque.<BR />
+- *: si está presente un asterisco al final, indica que hay un resumen en curso de este bloque. Posiblemente por no haber mandado a tiempo el comando FDR.<BR />
 Mencionar, que para una correcta sincronización, al hacer /dbq * &lt;bloque> todos los servidores deben devolver la misma información (el parámetro hash puede variar entre servidores).<BR />
 <BR />
 </div>

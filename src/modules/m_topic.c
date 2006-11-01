@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.8 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.9 2006-11-01 00:06:45 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -146,7 +146,7 @@ long flags = 0; /* cache: membership flags */
 		if (parc > 2 || SecretChannel(chptr))
 		{
 			if (!ismember && !IsServer(sptr)
-			    && !IsOper(sptr) && !IsULine(sptr))
+			    && !OPCanSeeSecret(sptr) && !IsULine(sptr))
 			{
 				sendto_one(sptr, err_str(ERR_NOTONCHANNEL),
 				    me.name, parv[0], name);

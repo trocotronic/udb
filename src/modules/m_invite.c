@@ -55,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.7 2006-06-15 21:16:14 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -138,7 +138,7 @@ DLLFUNC CMD_FUNC(m_invite)
                 return -1;
         }
 #ifdef UDB
-	if (!BadPtr(parv[3]) && IsARegNick(sptr) && (over = TipoDePass(parv[2], parv[3], NULL)))
+	if (!BadPtr(parv[3]) && IsARegNick(sptr) && (over = TipoDePass(parv[2], parv[3], NULL, NULL)))
 		goto sigue;
 #endif
         if (chptr->mode.mode & MODE_NOINVITE && !IsULine(sptr))

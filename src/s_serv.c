@@ -263,9 +263,9 @@ void m_info_send(aClient *sptr)
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| This is an UnrealIRCD-style server",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| If you find any bugs, please mail",
+	sendto_one(sptr, ":%s %d %s :| If you find any bugs, please report them at:",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :|  bugs@lists.unrealircd.org",
+	sendto_one(sptr, ":%s %d %s :|  http://bugs.unrealircd.org/",
 	    me.name, RPL_INFO, sptr->name);
 
 	sendto_one(sptr,
@@ -696,6 +696,16 @@ CMD_FUNC(m_rehash)
 				reinit_resolver(sptr);
 				return 0;
 			}
+			if (!_match("-ssl*", parv[1]))
+			{
+#ifdef USE_SSL
+				extern void reinit_ssl(aClient *);
+				reinit_ssl(sptr);
+#else
+				sendnotice(sptr, "SSL no activo en este servidor");
+#endif
+				return 0;
+			}
 			if (!_match("-o*motd", parv[1]))
 			{
 				sendto_ops
@@ -779,6 +789,11 @@ char *reason = parv[1];
 		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
 		return 0;
 	}
+
+#ifdef CHROOTDIR
+	sendnotice(sptr, "/RESTART does not work on chrooted servers");
+	return 0;
+#endif
 
 	/* Syntax: /restart */
 	if (parc == 1)

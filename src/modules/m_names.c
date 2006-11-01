@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_names);
 ModuleHeader MOD_HEADER(m_names)
   = {
 	"m_names",
-	"$Id: m_names.c,v 1.1.4.1 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_names.c,v 1.1.4.2 2006-11-01 00:06:44 Trocotronic Exp $",
 	"command /names", 
 	"3.2-b8-1",
 	NULL 
@@ -126,7 +126,7 @@ DLLFUNC CMD_FUNC(m_names)
 
 	chptr = find_channel(para, (aChannel *)NULL);
 
-	if (!chptr || (!ShowChannel(sptr, chptr) && !IsAnOper(sptr)))
+	if (!chptr || (!ShowChannel(sptr, chptr) && !OPCanSeeSecret(sptr)))
 	{
 		sendto_one(sptr, rpl_str(RPL_ENDOFNAMES), me.name,
 		    parv[0], para);

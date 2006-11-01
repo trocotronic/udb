@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
-<!-- $Id: serverprotocol.html,v 1.1.4.3 2006-05-15 19:49:41 Trocotronic Exp $ -->
+<!-- $Id: serverprotocol.html,v 1.1.4.4 2006-11-01 00:06:41 Trocotronic Exp $ -->
 
 <html>
 
@@ -211,6 +211,7 @@
 		<p>The following version numbers have been used previously:</p>
 
 		<ul>
+			<li>2308 - Unreal 3.2.5</li>
 			<li>2307 - Unreal 3.2.4</li>
 
 			<li>2306 - Unreal 3.2.3</li>
@@ -287,9 +288,9 @@
 
 		<h2><a name="S2_5"></a>2.5 NETINFO - Network Information (TOKEN: AO)</h2>
 
-		<p><b>Syntax:</b> AO <i>currenttime</i> <i>protocolversion</i> <i>cloakhash</i> 0 0 0 :<i>networkname</i></p>
+		<p><b>Syntax:</b> AO <i>maxglobal</i> <i>currenttime</i> <i>protocolversion</i> <i>cloakhash</i> 0 0 0 :<i>networkname</i></p>
 
-		<p>This tells the other server your current network configuration. The current time is a timestamp value. Protocolversion is the same as that in the SERVER command. Cloakhash is a hash representing the configured cloak keys. It may be a * if you are implementing services. The network name is that specified in set::network-name. The cloak-prefix is currently not sent here (and thus unreal won't generate warning for mismatching cloak prefixes, but they should be the same anyway).</p>
+		<p>This tells the other server your current network configuration. The max global is the highest number of concurrent users network-wide that this server has seen. The current time is a timestamp value. Protocolversion is the same as that in the SERVER command. Cloakhash is a hash representing the configured cloak keys. It may be a * if you are implementing services. The network name is that specified in set::network-name. The cloak-prefix is currently not sent here (and thus unreal won't generate warning for mismatching cloak prefixes, but they should be the same anyway).</p>
 
 		<hr/>
 
