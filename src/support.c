@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: support.c,v 1.1.1.8 2005-10-22 14:00:46 Trocotronic Exp $
+ * $Id: support.c,v 1.1.1.9 2006-12-22 21:59:00 Trocotronic Exp $
  */
 
 #ifndef CLEAN_COMPILE
@@ -1675,6 +1675,17 @@ void	*MyMallocEx(size_t size)
 	return (p);
 }
 
+int file_exists(char* file)
+{
+	FILE *fd;
+	fd = fopen(file, "r");
+	if (!fd)
+	{
+		return 0;
+	}
+	return 1;
+}
+
 /* Returns a unique filename in the specified directory
  * using the specified suffix. The returned value will
  * be of the form <dir>/<random-hex>.<suffix>
@@ -1766,7 +1777,10 @@ int unreal_copyfile(char *src, char *dest)
 #endif
 
 	if (srcfd < 0)
+	{
+		config_error("Unable to open file '%s': %s", src, strerror(errno));
 		return 0;
+	}
 
 #ifndef _WIN32
 	destfd  = open(dest, O_WRONLY|O_CREAT, DEFAULT_PERMISSIONS);
@@ -1814,7 +1828,7 @@ int unreal_copyfileex(char *src, char *dest, int tryhardlink)
 #ifndef _WIN32
 	/* Try a hardlink first... */
 	if (tryhardlink && !link(src, dest))
-		return 0; /* success */
+		return 1; /* success */
 #endif
 	return unreal_copyfile(src, dest);
 }
