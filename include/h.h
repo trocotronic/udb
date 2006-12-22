@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.16 2006-11-01 00:06:41 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.17 2006-12-22 21:58:58 Trocotronic Exp $
  */
 
 /*
@@ -746,6 +746,8 @@ extern MODVAR char *(*stripbadwords_message)(char *str, int *blocked);
 extern MODVAR char *(*stripbadwords_quit)(char *str, int *blocked);
 extern MODVAR unsigned char *(*StripColors)(unsigned char *text);
 extern MODVAR const char *(*StripControlCodes)(unsigned char *text);
+extern MODVAR void (*spamfilter_build_user_string)(char *buf, char *nick, aClient *acptr);
+extern MODVAR int (*is_silenced)(aClient *sptr, aClient *acptr);
 /* /Efuncs */
 extern MODVAR aMotd *opermotd, *svsmotd, *motd, *botmotd, *smotd;
 extern MODVAR int max_connection_count;
@@ -788,3 +790,5 @@ extern int unreal_time_synch(int timeout);
 extern int extban_is_banned_helper(char *buf);
 extern char *getcloak(aClient *sptr);
 extern void kick_insecure_users(aChannel *);
+extern int file_exists(char* file);
+extern void free_motd(aMotd *m);

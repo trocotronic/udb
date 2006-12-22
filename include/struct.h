@@ -17,13 +17,14 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.15 2006-11-01 00:06:42 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.16 2006-12-22 21:58:59 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
 #define __struct_include__
 
 #include "config.h"
+
 /* need to include ssl stuff here coz otherwise you get
  * conflicting types with isalnum/isalpha/etc @ redhat. -- Syzop
  */

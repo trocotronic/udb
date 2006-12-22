@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.10 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.11 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -217,7 +217,7 @@ CMD_FUNC(m_sjoin)
 #ifdef UDB
 	char *qmask = sptr->name, *qnick = sptr->name, tt[NICKLEN+1+USERLEN+1+HOSTLEN+1], *cc;
 	Udb *chanserv;
-	if ((chanserv = BuscaBloque(S_CHA_TOK, UDB_SET)))
+	if ((chanserv = BuscaBloque(S_CHA, UDB_SET)))
 	{
 		strncpy(tt, chanserv->data_char, sizeof(tt));
 		if ((cc = strchr(tt, '!')))

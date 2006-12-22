@@ -52,7 +52,7 @@ DLLFUNC int m_silence(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_silence)
   = {
 	"m_silence",
-	"$Id: m_silence.c,v 1.1.4.4 2006-02-15 22:06:20 Trocotronic Exp $",
+	"$Id: m_silence.c,v 1.1.4.5 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /silence", 
 	"3.2-b8-1",
 	NULL 
@@ -103,7 +103,7 @@ DLLFUNC CMD_FUNC(m_silence)
 		if (parc < 2 || *parv[1] == '\0'
 		    || (acptr = find_person(parv[1], NULL)))
 		{
-			if (!(acptr->user))
+			if (acptr != sptr)
 				return 0;
 			for (lp = acptr->user->silence; lp; lp = lp->next)
 				sendto_one(sptr, rpl_str(RPL_SILELIST), me.name,

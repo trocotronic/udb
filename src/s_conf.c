@@ -54,7 +54,6 @@
 #include "badwords.h"
 #ifdef UDB
 #include "s_bdd.h"
-int pases = 3, intervalo = 60;
 #endif
 
 #define ircstrdup(x,y) do { if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); } while(0)
@@ -1526,10 +1525,6 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->modef_default_unsettime = 0;
 	i->modef_max_unsettime = 60; /* 1 hour seems enough :p */
 #endif
-#ifdef UDB
-	pases = 3;
-	intervalo = 60;
-#endif
 	i->ban_version_tkl_time = 86400; /* 1d */
 	i->spamfilter_ban_time = 86400; /* 1d */
 	i->spamfilter_ban_reason = strdup("Spam/advertising");
@@ -1542,6 +1537,7 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->timesynch_enabled = 1;
 	i->timesynch_timeout = 3;
 	i->timesynch_server = strdup("193.67.79.202,192.43.244.18,128.250.36.3"); /* nlnet (EU), NIST (US), uni melbourne (AU). All open acces, nonotify, nodns. */
+	i->name_server = strdup("127.0.0.1"); /* default, especially needed for w2003+ in some rare cases */
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -2205,6 +2201,7 @@ int	config_post_test()
 	if (!settings.has_kline_address)
 		Error("falta set::kline-address");
 	if (!settings.has_maxchannelsperuser)
+#if 0
 		Error("falta set::maxchannelsperuser");
 	if (!settings.has_dns_nameserver)
 		Error("falta set::dns::nameserver");
@@ -2212,6 +2209,7 @@ int	config_post_test()
 		Error("falta set::dns::timeout");
 	if (!settings.has_dns_retries)
 		Error("falta set::dns::retries");
+#endif
 	if (!settings.has_services_server)
 		Error("falta set::services-server");
 	if (!settings.has_default_server)
@@ -2232,10 +2230,6 @@ int	config_post_test()
 		Error("falta set::help-channel");
 	if (!settings.has_hiddenhost_prefix)
 		Error("falta set::hiddenhost-prefix");
-#ifdef UDB
-	if (!settings.has_grifo)
-		Error("falta set::udb::propagador");
-#endif
 		
 	for (h = Hooks[HOOKTYPE_CONFIGPOSTTEST]; h; h = h->next) 
 	{
@@ -2752,11 +2746,11 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 		{
 #endif
 #ifdef UDB
-			if (!(ireg = BuscaBloque(S_CLO_TOK, UDB_SET)))
+			if (!(ireg = BuscaBloque(S_CLO, UDB_SET)))
 				defmaxclons = aconf->maxperip ? aconf->maxperip : 2;
 			else
 				defmaxclons = ireg->data_long;
-			if ((reg = BuscaBloque(cptr->sockhost, UDB_IPS)) && (bloq = BuscaBloque(I_CLO_TOK, reg)))
+			if ((reg = BuscaBloque(cptr->sockhost, UDB_IPS)) && (bloq = BuscaBloque(I_CLO, reg)))
 				defmaxclons = bloq->data_long;
 #endif		
 			ii = 1;
@@ -2782,7 +2776,7 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 #ifdef UDB
 					if (ii > defmaxclons)
 					{
-						if (!(ireg = BuscaBloque(reg ? S_QIP_TOK : S_QCL_TOK, UDB_SET)))
+						if (!(ireg = BuscaBloque(reg ? S_QIP : S_QCL, UDB_SET)))
 							exit_client(cptr, cptr, &me, "Demasiadas conexiones para tu IP");
 						else
 							exit_client(cptr, cptr, &me, ireg->data_char);
@@ -3379,6 +3373,14 @@ int	_test_oper(ConfigFile *conf, ConfigEntry *ce)
 			/* oper::modes */
 			else if (!strcmp(cep->ce_varname, "modes")) 
 			{
+				char *p;
+				for (p = cep->ce_vardata; *p; p++)
+					if (strchr("oOaANCrzS", *p))
+					{
+						config_error("%s:%i: oper::modes no puede tener '%c'",
+							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+						errors++;
+					}
 				if (has_modes)
 				{
 					config_warn_duplicate(cep->ce_fileptr->cf_filename,
@@ -3558,6 +3560,8 @@ int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 		class->options = 0; /* RESET OPTIONS */
 	}
 	ircstrdup(class->name, ce->ce_vardata);
+
+	class->connfreq = 60; /* default */
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
@@ -6709,6 +6713,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
 			tempiConf.check_target_nick_bans = config_checkval(cep->ce_vardata, CFG_YESNO);
 		}
+		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
+			tempiConf.pingpong_warning = config_checkval(cep->ce_vardata, CFG_YESNO);
+		}
 		else if (!strcmp(cep->ce_varname, "allow-userhost-change")) {
 			if (!stricmp(cep->ce_vardata, "always"))
 				tempiConf.userhost_allowed = UHALLOW_ALWAYS;
@@ -7065,17 +7072,6 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) 
 			{
-				if (!strcmp(cepp->ce_varname, "propagador"))
-				{
-					ircstrdup(grifo, cepp->ce_vardata);	
-				}
-				else if (!strcmp(cepp->ce_varname, "pass-flood"))
-				{
-					int cnt, period;
-					config_parse_flood(cepp->ce_vardata, &cnt, &period);
-					pases = cnt;
-					intervalo = period;
-				}
 			}
 		}
 #endif
@@ -7150,6 +7146,12 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "modes-on-connect")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, modes_on_connect, "modes-on-connect");
+			if (strchr(cep->ce_vardata, 'z'))
+			{
+				config_error("%s:%i: set::modes-on-connect no puede tener +z",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				errors++;
+			}
 			templong = (long) set_usermode(cep->ce_vardata);
 			if (templong & UMODE_OPER)
 			{
@@ -7214,8 +7216,16 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-oper")) {
+			char *p;
 			CheckNull(cep);
 			CheckDuplicate(cep, modes_on_oper, "modes-on-oper");
+			for (p = cep->ce_vardata; *p; p++)
+				if (strchr("oOaANCrzS", *p))
+				{
+					config_error("%s:%i: set::modes-on-oper no puede tener '%c'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+				}
 			templong = (long) set_usermode(cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "snomask-on-oper")) {
@@ -7261,6 +7271,10 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, check_target_nick_bans, "check-target-nick-bans");
+		}
+		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, pingpong_warning, "pingpong-warning");
 		}
 		else if (!strcmp(cep->ce_varname, "channel-command-prefix")) {
 			CheckNull(cep);
@@ -7444,7 +7458,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else if (!strcmp(cepp->ce_varname, "bind-ip")) {
 					struct in_addr in;
-					CheckDuplicate(cepp, dns_retries, "dns::bind-ip");
+					CheckDuplicate(cepp, dns_bind_ip, "dns::bind-ip");
 					if (strcmp(cepp->ce_vardata, "*"))
 					{
 						in.s_addr = inet_addr(cepp->ce_vardata);
@@ -7970,25 +7984,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
-				if (!strcmp(cepp->ce_varname, "propagador"))
-				{
-					CheckNull(cepp);
-					CheckDuplicate(cep, grifo, "udb::propagador");
-				}
-				else if (!strcmp(cepp->ce_varname, "pass-flood"))
-				{
-					int cnt, period;
-					CheckDuplicate(cepp, pass_flood, "udb::pass-flood");
-					if (!config_parse_flood(cepp->ce_vardata, &cnt, &period) ||
-					    (cnt < 1) || (cnt > 255) || (period < 5))
-					{
-						config_error("%s:%i: set::udb::pass-flood error. Sintaxis '<v>:<s>' (ej 5:60), "
-						             "<v> 1-255, <s> mayor que 4",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-						errors++;
-					}
-				}
-				else
+				//else
 				{
 					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
 						cepp->ce_varlinenum, "set::udb",

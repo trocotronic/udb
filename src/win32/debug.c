@@ -293,9 +293,19 @@ LONG __stdcall ExceptionFilter(EXCEPTION_POINTERS *e)
 	{
 		FILE *fd = fopen("service.log", "a");
 
-		fprintf(fd, "Se ha producido un error fatal. La información necesaria ha sido enviada a wircd.%d.core, por favor envíe el archivo vía email a "
+		if (fd)
+		{
+			fprintf(fd, "Se ha producido un error fatal. La información necesaria ha sido enviada a wircd.%d.core, por favor envíe el archivo vía email a "
 			    "coders@lists.unrealircd.org.", getpid());
-		fclose(fd);
+			fclose(fd);
+		}
+#ifdef _DEBUG
+		else
+		{
+			OutputDebugString("Se ha producido un error fatal. La información necesaria ha sido enviada a wircd.%d.core, por favor envíe el archivo vía email a "
+			    "coders@lists.unrealircd.org.", getpid());
+		}
+#endif
 	}
 	CleanUp();
 	return EXCEPTION_EXECUTE_HANDLER;

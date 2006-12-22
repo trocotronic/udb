@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.9 2006-11-01 00:06:37 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.10 2006-12-22 21:58:54 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -106,7 +106,7 @@
 		En ambos casos, el pass es el que se ha utilizado en la directriz P. Esta función debe utilizarse en casos de extrema necesidad.
 220805095 - Se ha añadido un índice en /dbq que indica el número de nicks, canales, ips. etc que hay en su correspondiente bloque.
 270805096 - Paso los permisos de *lines, override y algunos otros más del rango de Root al rango de Admin. Reservo para el Root los restart, die y addline.
-270805097 - Arreglado un fallo de conexión hub-leaf con UDB. Sólo podrá linkarse en caso de ser leaf.
+270805097 - Arreglado un fallo de conexión hub-leaf con UDB. Sólo podrá linkarse en caso de ser hub.
 280805098 - Paso unos numerics 339 al notice de NickServ.
 280805099 - Extiendo la protección de intento de robo de contraseñas a /ghost.
 290805100 - Los Administradores reciben +oa y los Roots +oN, sugerencia #0000064-0000310.
@@ -211,3 +211,32 @@
 270906196 - Se cambian algunas rutinas de propagación. Ahora los datos sólo llegan si tienen que llegar.
 290906197 - Se deshace lo anterior.
 311006198 - Se sube a la versión 3.4.
+011106199 - *** Unreal 3.2.6pre1 + UDB 3.4 es
+111106200 - Se añade la opción C_OPT_RMOD para bloquear los modos de un canal.
+161106201 - Arreglado un fallo al eliminar bloques.
+261106202 - Arreglado un fallo al borrar registros especiales.
+261106203 - Optimizado el sistema de inserción y borrado de registros especiales.
+261106204 - Optimizada la búsqueda de bloques.
+271106205 - Se deshace lo anterior.
+271106206 - Se añade una macro para compilar con o sin soporte de tablas HASH.
+271106207 - Al compilar se detectan los cambios realizados en s_bdd.h
+271106208 - Se quita la macro BorraIpVirtual.
+281106209 - Se añade una macro para compilar con o sin soporte TOK (items tokenizados).
+291106210 - Se permite el uso de leafs no-UDB pero no pueden introducir clientes, para evitar desincronizaciones.
+021206211 - Se globaliza el parámetro pass-flood.
+021206212 - Se añade el bloque L.
+021206213 - Se añade la opción de servidores debug.
+021206214 - Se traspasa el sistema de propagador a la opción del bloque L.
+031206215 - Arreglado un fallo al no mandar el EOS a un servidor no-UDB.
+031206216 - Se mejora el motivo de rechazo por diferentes versiones. Aparecen la local y la remota.
+041206217 - Arreglado un fallo en el que no se propagaba el +t/-t a debugs.
+041206218 - Arreglado un fallo en el que no se enviaba el SETHOST a debugs.
+171206219 - Cambiado totalmente el sistema de ficheros de la BDD.
+171206220 - Se elimina la tabla de hashes y los descriptores se dejan abiertos.
+181206221 - Arreglado un fallo al resumir si no había servidor propagador.
+211206222 - Arreglado un fallo al volcar un hash.
+211206223 - Arreglado un fallo al cargar un bloque.
+221206224 - Se añade la opción L_OPT_CNTL para permitir la conexión de clientes en servidores no-UDB leafs que sean ulines.
+221206225 - Documentación actualizada.
+221206226 - Una pequeña optimización para propagar comandos.
+221206227 - *** Unreal 3.2.6 + UDB 3.5 es

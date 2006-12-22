@@ -54,7 +54,7 @@ DLLFUNC int m_mkpasswd(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_mkpasswd)
   = {
 	"m_mkpasswd",
-	"$Id: m_mkpasswd.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $",
+	"$Id: m_mkpasswd.c,v 1.1.1.2 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /mkpasswd", 
 	"3.2-b8-1",
 	NULL 
@@ -127,6 +127,15 @@ int  m_mkpasswd(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				me.name, sptr->name, parv[1]);
 		return 0;
 	}
+
+#ifdef AUTHENABLE_UNIXCRYPT
+	if ((type == AUTHTYPE_UNIXCRYPT) && (strlen(parv[2]) > 8))
+	{
+		sendnotice(sptr, "WARNING: Password truncated to 8 characters due to 'crypt' algorithm. "
+		                 "You are suggested to use the 'md5' algorithm instead.");
+		parv[2][8] = '\0';
+	}
+#endif
 
 	if (!(result = Auth_Make(type, parv[2])))
 	{

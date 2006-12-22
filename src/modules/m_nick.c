@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.9 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -126,7 +126,7 @@ DLLFUNC CMD_FUNC(m_nick)
 #ifdef UDB
 	int val = 0;
 	char *pass, *botname;
-	Udb *reg, *breg;
+	Udb *reg, *bloq;
 #endif		
 	unsigned char newusr = 0, removemoder = 1;
 	/*
@@ -141,6 +141,17 @@ DLLFUNC CMD_FUNC(m_nick)
 
 	strncpyzt(nick, parv[1], NICKLEN + 1);
 
+#ifdef UDB
+	if (IsServer(sptr) && !IsUDB(sptr) && !IsULine(sptr))
+	{
+		if (!(reg = BuscaBloque(sptr->name, UDB_LINKS)) || !(bloq = BuscaBloque(L_OPT, reg)) || !(bloq->data_long & L_OPT_CLNT))
+		{
+			sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME), me.name, parv[0], parv[1], "No puedes entrar en un servidor no-UDB");
+			sendto_one(cptr, ":%s KILL %s :No puedes entrar en un servidor no-UDB", me.name, parv[1], me.name, parv[1], nick, cptr->name);
+			return 0;
+		}
+	}
+#endif
 	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
 	{
 		if ((sptr->user->flood.nick_c >= NICK_COUNT) && 
@@ -153,11 +164,11 @@ DLLFUNC CMD_FUNC(m_nick)
 		}
 	}
 #ifdef UDB
-	if (!(breg = BuscaBloque(S_NIC_TOK, UDB_SET)))
+	if (!(bloq = BuscaBloque(S_NIC, UDB_SET)))
 		botname = me.name;
 	else
-		botname = breg->data_char;
-	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
+		botname = bloq->data_char;
+	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr) && pases && intervalo)
 	{
 		if ((sptr->user->flood.udb_c >= pases) && 
 		    (TStime() - sptr->user->flood.udb_t < intervalo))
@@ -203,6 +214,20 @@ DLLFUNC CMD_FUNC(m_nick)
 		}
 		return 0;
 	}
+
+	/* Kill quarantined opers early... */
+	if (IsServer(cptr) && (sptr->from->flags & FLAGS_QUARANTINE) &&
+	    (parc >= 11) && strchr(parv[8], 'o'))
+	{
+		ircstp->is_kill++;
+		/* Send kill to uplink only, hasn't been broadcasted to the rest, anyway */
+		sendto_one(cptr, ":%s KILL %s :%s (Cuarentena: privilegios globales prohibidos)",
+			me.name, parv[1], me.name);
+		sendto_realops("CUARENTENA: Oper %s en %s killeado, por cuarentena",
+			parv[1], sptr->name);
+		/* (nothing to exit_client or to free, since user was never added) */
+		return 0;
+	}
 #ifdef UDB
 	/* debido al charsys ahora tenemos que quitar toda la paja de los : o ! */
 	if ((pass = strchr(nick, '!')))
@@ -233,7 +258,7 @@ DLLFUNC CMD_FUNC(m_nick)
 	{
 		if (reg)
 		{
-			if (!BuscaBloque(N_SUS_TOK, reg))
+			if (!BuscaBloque(N_SUS, reg))
 				val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
 			else
 				val = 1;
@@ -308,8 +333,7 @@ DLLFUNC CMD_FUNC(m_nick)
 	if (MyClient(sptr)) /* local client changin nick afterwards.. */
 	{
 		int xx;
-		ircsprintf(spamfilter_user, "%s!%s@%s:%s",
-			nick, sptr->user->username, sptr->user->realhost, sptr->info);
+		spamfilter_build_user_string(spamfilter_user, nick, sptr);
 		xx = dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL, 0, NULL);
 		if (xx < 0)
 			return xx;
@@ -661,8 +685,8 @@ DLLFUNC CMD_FUNC(m_nick)
 			case -1:
 			{
 				Udb *bline;
-				if (!(bline = BuscaBloque(N_FOR_TOK, reg))) /* esto no debería pasar nunca */
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com.", botname, sptr->name, nick);
+				if (!(bline = BuscaBloque(N_FOR, reg))) /* esto no debería pasar nunca */
+					sendto_one(sptr->from, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com/.", botname, sptr->name, nick);
 				else
 				{
 					sendto_one(sptr->from, ":%s NOTICE %s :*** Este nick está prohibido", botname, sptr->name);
@@ -672,7 +696,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			}
 			case -2:
 				sendto_one(sptr->from, ":%s NOTICE %s :*** Contraseña incorrecta para el nick %s.", botname, sptr->name, nick);
-				if (sptr->user && !IsAnOper(sptr))
+				if (sptr->user && !IsAnOper(sptr) && pases && intervalo)
 				{
 					if (TStime() - sptr->user->flood.udb_t >= intervalo)
 					{
@@ -697,7 +721,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			case 1:
 			{
 				Udb *bline;
-				if (!(bline = BuscaBloque(N_SUS_TOK, reg))) /* esto no debería pasar */
+				if (!(bline = BuscaBloque(N_SUS, reg))) /* esto no debería pasar */
 					sendto_one(sptr->from, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.redyc.com.", botname, sptr->name, nick);
 				else
 				{
@@ -781,11 +805,15 @@ DLLFUNC CMD_FUNC(m_nick)
 			} else
 				sptr->user->flood.nick_c++;
 
-			sendto_snomask(SNO_NICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s", sptr->name, sptr->user->username, sptr->user->realhost, nick);
+			sendto_snomask(SNO_NICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s",
+				sptr->name, sptr->user->username, sptr->user->realhost, nick);
 
 			RunHook2(HOOKTYPE_LOCAL_NICKCHANGE, sptr, nick);
 		} else {
-			sendto_snomask(SNO_FNICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s", sptr->name, sptr->user->username, sptr->user->realhost, nick);
+			if (!IsULine(sptr))
+				sendto_snomask(SNO_FNICKCHANGE, "*** Notice -- %s (%s@%s) cambia su nick a %s",
+					sptr->name, sptr->user->username, sptr->user->realhost, nick);
+
 			RunHook3(HOOKTYPE_REMOTE_NICKCHANGE, cptr, sptr, nick);
 		}
 		/*
@@ -824,10 +852,13 @@ DLLFUNC CMD_FUNC(m_nick)
 		 * Generate a random string for them to pong with.
 		 */
 		sptr->nospoof = getrandom32();
-		sendto_one(sptr, ":%s NOTICE %s :*** Si tienes problemas para conectar"
-		    " debido a ping fuera de tiempo"
-		    " escribe /quote pong %X o /raw pong %X",
-		    me.name, nick, sptr->nospoof, sptr->nospoof);
+
+		if (PINGPONG_WARNING)
+			sendto_one(sptr, ":%s NOTICE %s :*** Si tienes problemas para conectar"
+		 	   " debido a ping fuera de tiempo"
+		    	" escribe /quote pong %X o /raw pong %X",
+			    me.name, nick, sptr->nospoof, sptr->nospoof);
+
 		sendto_one(sptr, "PING :%X", sptr->nospoof);
 #endif /* NOSPOOF */
 #ifdef CONTACT_EMAIL
@@ -848,7 +879,8 @@ DLLFUNC CMD_FUNC(m_nick)
 		/* Copy password to the passwd field if it's given after NICK
 		 * - originally by taz, modified by Wizzu
 		 */
-		if ((parc > 2) && (strlen(parv[2]) <= PASSWDLEN))
+		if ((parc > 2) && (strlen(parv[2]) <= PASSWDLEN)
+		    && !(sptr->listener->umodes & LISTENER_JAVACLIENT))
 		{
 			if (sptr->passwd)
 				MyFree(sptr->passwd);
@@ -1156,7 +1188,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		 *    yet (at all).
 		 *  -- Syzop
 		 */
-		ircsprintf(spamfilter_user, "%s!%s@%s:%s", sptr->name, sptr->user->username, sptr->user->realhost, sptr->info);
+		spamfilter_build_user_string(spamfilter_user, sptr->name, sptr);
 		xx = dospamfilter(sptr, spamfilter_user, SPAMF_USER, NULL, 0, &savetkl);
 		if ((xx < 0) && (xx != -5))
 			return xx;
@@ -1307,7 +1339,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		aClient *fr = sptr->from;
 		bzero(umodebuf, sizeof(umodebuf));
 		sptr->from = NULL;
-		DaleCosas(BuscaBloque(N_SUS_TOK, reg) ? 1 : 2, sptr, reg, umodebuf);
+		DaleCosas(BuscaBloque(N_SUS, reg) ? 1 : 2, sptr, reg, umodebuf);
 		strcat(buf, &umodebuf[1]);
 		sptr->from = fr;
 		user->virthost = MakeVirtualHost(sptr, user->realhost, user->virthost, 1);

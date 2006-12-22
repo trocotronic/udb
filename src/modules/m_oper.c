@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.9 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.10 2006-12-22 21:59:01 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -205,8 +205,8 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 	if (!(aconf = Find_oper(name))) {
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) [oper desconocido]",
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) [oper desconocido]",
 		    parv[0], sptr->user->username, sptr->sockhost);
 		ircd_log(LOG_OPER, "OPER UNKNOWNOPER (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
@@ -221,9 +221,9 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			break;
 	if (!oper_from)	{
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) [no coincide host]",
-		    parv[0], sptr->user->username, sptr->sockhost);
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [no coincide host]",
+		    parv[0], sptr->user->username, sptr->sockhost, name);
 		ircd_log(LOG_OPER, "OPER NOHOSTMATCH (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
 		sptr->since += 7;
@@ -240,9 +240,9 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
 			sendto_one(sptr, ":%s NOTICE %s :Demasiados intentos (%d)",
 				me.name, sptr->name, aconf->maxlogins);
-			sendto_realops
-				("Intento de OPER por %s (%s@%s) [maxlogins sobrepasados]",
-				parv[0], sptr->user->username, sptr->sockhost);
+			sendto_snomask_global
+				(SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [maxlogins sobrepasados]",
+				parv[0], sptr->user->username, sptr->sockhost, name);
 			ircd_log(LOG_OPER, "OPER TOOMANYLOGINS (%s) by (%s!%s@%s)", name, parv[0],
 				sptr->user->username, sptr->sockhost);
 			sptr->since += 4;
@@ -319,7 +319,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 				iNAH_host(sptr, locop_host);
 				SetHidden(sptr);
 			}
-			sendto_ops("%s (%s@%s) es un operaor local (O)",
+			sendto_snomask(SNO_OPER, "%s (%s@%s) es un operaor local (O)",
 			    parv[0], sptr->user->username, GetHost(sptr));
 		}
 
@@ -384,13 +384,9 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			    IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name);
 		ircd_log(LOG_OPER, "OPER FAILEDAUTH (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) usando UID %s [FAILEDAUTH]",
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [FAILEDAUTH]",
 		    parv[0], sptr->user->username, sptr->sockhost, name);
-		sendto_serv_butone(&me,
-		    ":%s GLOBOPS :Intento de OPER %s (%s@%s) usando UID %s [---]",
-		    me.name, parv[0], sptr->user->username, sptr->sockhost,
-		    name);
 		sptr->since += 7;
 	}
 	/* Belay that order, number One. (-2) */

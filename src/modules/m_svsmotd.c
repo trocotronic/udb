@@ -55,7 +55,7 @@ DLLFUNC int m_svsmotd(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsmotd)
   = {
 	"m_svsmotd",
-	"$Id: m_svsmotd.c,v 1.1.1.4 2006-02-15 22:06:20 Trocotronic Exp $",
+	"$Id: m_svsmotd.c,v 1.1.1.5 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /svsmotd", 
 	"3.2-b8-1",
 	NULL 
@@ -119,6 +119,8 @@ int  m_svsmotd(aClient *cptr, aClient *sptr, int parc, char *parv[])
           case '!':
           {
                   remove(VPATH);
+                  free_motd(svsmotd);
+                  svsmotd = NULL;
                   sendto_ops("Wiped out services motd data");
                   break;
           }

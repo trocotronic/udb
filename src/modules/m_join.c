@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.9 2006-12-22 21:59:00 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -248,7 +248,7 @@ Ban *banned;
 #ifdef UDB
 	{
 		Udb *reg, *bloq;
-		if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)) && (bloq = BuscaBloque(C_ACC_TOK, reg)))
+		if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)) && (bloq = BuscaBloque(C_ACC, reg)))
 		{
 			if ((!IsHOper(sptr) && !BuscaBloque(sptr->name, bloq) && !is_chanowner(sptr, chptr)) || !IsARegNick(sptr))
 				return (ERR_BANNEDFROMCHAN);
@@ -375,7 +375,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 	{
 		if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)))
 		{
-			bloq = BuscaBloque(C_SUS_TOK, reg);
+			bloq = BuscaBloque(C_SUS, reg);
 			if ((f = is_chanowner(sptr, chptr)) && !bloq)
 			{
 				udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
@@ -761,7 +761,7 @@ DLLFUNC CMD_FUNC(_do_join)
 			if (!IsOper(sptr) && !IsULine(sptr))
 			{
 				Udb *reg, *bloq;
-				if ((reg = BuscaBloque(name, UDB_CANALES)) && (bloq = BuscaBloque(C_FOR_TOK, reg)))
+				if ((reg = BuscaBloque(name, UDB_CANALES)) && (bloq = BuscaBloque(C_FOR, reg)))
 				{
 					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", ChanMask(1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
 					continue;

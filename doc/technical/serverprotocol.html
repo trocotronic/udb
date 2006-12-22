@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
-<!-- $Id: serverprotocol.html,v 1.1.4.4 2006-11-01 00:06:41 Trocotronic Exp $ -->
+<!-- $Id: serverprotocol.html,v 1.1.4.5 2006-12-22 21:58:57 Trocotronic Exp $ -->
 
 <html>
 
@@ -13,14 +13,23 @@
 	</head>
 
 	<body>
+
 		<h1 style="text-align: center;">Unreal 3.2 Protocol Documentation</h1>
-		<h3 style="text-align: center;">Last update: 13 May 2006</h3>
+
+		<h3 style="text-align: center;">Last update: 29 November 2006</h3>
+
 		<h1>Table of Contents</h1>
+
 		<p><a href="#S1">1 Introduction</a></p>
+
 		<p><a href="#S2">2 Server Negotiation</a></p>
+
 		<blockquote><p><a href="#S2_1">2.1 PASS - Connection Password</a></p></blockquote>
+
 		<blockquote><p><a href="#S2_2">2.2 PROTOCTL - Server Protocol Negotiation</a></p></blockquote>
+
 		<blockquote><p><a href="#S2_3">2.3 SERVER - Server Negotiation</a></p></blockquote>
+
 		<blockquote><p><a href="#S2_4">2.4 EOS - End Of Synch</a></p></blockquote>
 
 		<blockquote><p><a href="#S2_5">2.5 NETINFO - Network Information</a></p></blockquote>
@@ -50,7 +59,9 @@
 		<blockquote><p><a href="#S4_2">4.2 SQUIT - Server Removal</a></p></blockquote>
 
 		<blockquote><p><a href="#S4_3">4.3 SDESC - Server Description</a></p></blockquote>
+
 		<blockquote><p><a href="#S4_4">4.4 PING - Live Connection Query</a></p></blockquote>
+
 		<blockquote><p><a href="#S4_5">4.5 PONG - Live Connection Reply</a></p></blockquote>
 
 		<p><a href="#S5">5 Channel Operations</a></p>
@@ -72,6 +83,8 @@
 		<blockquote><p><a href="#S5_8">5.8 SAPART - Channel Force Part</a></p></blockquote>
 
 		<blockquote><p><a href="#S5_9">5.9 SAMODE - Channel Force Mode</a></p></blockquote>
+
+		<blockquote><p><a href="#S5_10">5.10 TOPIC - Chanel Topic</a></p></blockquote>
 
 		<p><a href="#S6">6 Services Commands</a></p>
 
@@ -124,8 +137,11 @@
 		<blockquote><blockquote><p><a href="#S8_1_3">8.1.3 SQLINE, UNSQLINE - Network-wide Nickname ban</a></p></blockquote></blockquote>
 
 		<blockquote><blockquote><p><a href="#S8_1_4">8.1.4 SPAMFILTER - Message Spam Filtration System</a></p></blockquote></blockquote>
+
 		<p><a href="#S9">9 Base64 Tables</a></p>
+
 		<blockquote><p><a href="#S9_1">9.1 Table for SJB64 (NICK and SJOIN).</a></p></blockquote>
+
 		<blockquote><p><a href="#S9_2">9.2 Table for NICKIP.</a></p></blockquote>
 
 		<hr/>
@@ -154,7 +170,7 @@
 
 		<h2><a name="S2_2"></a>2.2 PROTOCTL - Server Protocol Negotiation</h2>
 
-		<p><b>Syntax:</b> <tt>PROTOCTL :<i>protocol options</i></tt></p>
+		<p><b>Syntax:</b> <tt>PROTOCTL <i>protocol options</i></tt></p>
 
 		<p>The PROTOCTL command sets several protocol options. The tokens supported are listed below.</p>
 
@@ -174,7 +190,7 @@
 
 			<li>UMODE2 : Supports the UMODE2 command, which is a shortened version of MODE for usermode changes.</li>
 
-			<li>VL : Supports V:Line information. Extends the SERVER message to include version information used in deny version{} blocks. Note that this is assumed - unreal will always send it's own version information.</li>
+			<li>VL : Supports V:Line information. Extends the SERVER message to include version information used in deny version{} blocks. Note that this is assumed - unreal will always send its own version information.</li>
 
 			<li>SJ3 : Supports SJOIN version 3.</li>
 
@@ -189,9 +205,11 @@
 			<li>NICKCHARS : Indicates the set of enabled nickchar options (see the regular documention for info about this).</li>
 
 			<li>CHANMODES : (Not required to be sent) This is the same as the CHANMODES value in the 005 for client connections. Useful for autodetecting things like what modes are valid for ChanServ MLOCK, for example.</li>
+
 			<li>CLK : Supports an extra field in NICK for sending the cloaked host (not vhost).</li>
 
 		</ul>
+
 		<p>The syntax examples here follow the conventions for TOKEN and also NS in cases of server-only messages.</p>
 
 		<h2><a name="S2_3"></a>2.3 SERVER - Server Negotiation</h2>
@@ -211,7 +229,11 @@
 		<p>The following version numbers have been used previously:</p>
 
 		<ul>
+
+			<li>2309 - Unreal 3.2.6</li>
+
 			<li>2308 - Unreal 3.2.5</li>
+
 			<li>2307 - Unreal 3.2.4</li>
 
 			<li>2306 - Unreal 3.2.3</li>
@@ -284,13 +306,17 @@
 
 		<p><b>Syntax:</b> ES</p>
 
-		<p>Marks the end of the synching process. This is really optionally, but it might be a good idea to send it anyway when you really are done synching.</p>
+		<p>Marks the end of the synching process. This is really optional, but it might be a good idea to send it anyway when you really are done synching. Once you send this, unreal will announce &quot;Client connecting&quot; or &quot;Client exiting&quot; notices (to those with snomask +F) for users (unless your server is U:Lined), and joins will be counted toward channel flood controls (chanmode +f).</p>
+
+		<p>Sending EOS only marks your server as synched, but does not do so for servers behind you. EOS would need to be sent on those servers' behalf as well.</p>
 
 		<h2><a name="S2_5"></a>2.5 NETINFO - Network Information (TOKEN: AO)</h2>
 
 		<p><b>Syntax:</b> AO <i>maxglobal</i> <i>currenttime</i> <i>protocolversion</i> <i>cloakhash</i> 0 0 0 :<i>networkname</i></p>
 
 		<p>This tells the other server your current network configuration. The max global is the highest number of concurrent users network-wide that this server has seen. The current time is a timestamp value. Protocolversion is the same as that in the SERVER command. Cloakhash is a hash representing the configured cloak keys. It may be a * if you are implementing services. The network name is that specified in set::network-name. The cloak-prefix is currently not sent here (and thus unreal won't generate warning for mismatching cloak prefixes, but they should be the same anyway).</p>
+
+		<p>It is NETINFO, not EOS, that triggers the &quot;Link bla bla bla is now synched&quot; notices, but NETINFO does not imply synching is actually complete (see EOS).</p>
 
 		<hr/>
 
@@ -304,14 +330,16 @@
 
 		<p>This format of the NICK message indicates an existing user is changing his or her nickname. If a collision occurs, see the section on Nick Collisions below. The timestamp is the new nickname's timestamp.</p>
 
-		<p><b>Syntax (normal):</b> <tt>:<i>source.server</i> &amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> :<i>realname</i></tt></p>
+		<p><b>Syntax (normal):</b> <tt>&amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> :<i>realname</i></tt></p>
 
-		<p><b>Syntax (NICKv2):</b> <tt>:<i>source.server</i> &amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> :<i>realname</i></tt></p>
-		<p><b>Syntax (NICKv2+CLK):</b> <tt>:<i>source.server</i> &amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>cloakhost</i> :<i>realname</i></tt>
+		<p><b>Syntax (NICKv2):</b> <tt>&amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> :<i>realname</i></tt></p>
 
-		<p><b>Syntax (NICKv2+NICKIP):</b> <tt>:<i>source.server</i> &amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i> <i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>nickipaddr</i> :<i>realname</i></tt></p>
+		<p><b>Syntax (NICKv2+CLK):</b> <tt>&amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>cloakhost</i> :<i>realname</i></tt>
 
-		<p><b>Syntax (NICKv2+NICKIP+CLK):</b> <tt>:<i>source.server</i> &amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>cloakhost</i> <i>nickipaddr</i> :<i>realname</i></tt>
+		<p><b>Syntax (NICKv2+NICKIP):</b> <tt>&amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i> <i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>nickipaddr</i> :<i>realname</i></tt></p>
+
+		<p><b>Syntax (NICKv2+NICKIP+CLK):</b> <tt>&amp; <i>nick</i> <i>hopcount</i> <i>timestamp</i>	<i>username</i> <i>hostname</i> <i>server</i> <i>servicestamp</i> <i>+usermodes</i> <i>virtualhost</i> <i>cloakhost</i> <i>nickipaddr</i> :<i>realname</i></tt>
+
 		<p><b>Note:</b> Because each server normally does its own cloak generation, Unreal does not expect to receive NICK messages with the CLK info, so do not send it. It will send this info to a server it has received a PROTOCTL CLK from however.</p>
 
 		<p>This format of the NICK message introduces a new user to the network. If PROTOCTL VHP is enabled, the user's cloaked host is put in the virtualhost field, otherwise it'll be * unless the user is +t. With the addition of CLK, VHP is no longer necessary for determining the cloak host.</p>
@@ -413,17 +441,27 @@
 		<p>The server to which source is connected to should have it's description updated to newdesc. This does NOT include the VL inforamtion.</p>
 
 		<h2><a name="S4_4">4.4 PING - Live Connection Query (TOKEN: 8)</a></h2>
+
 		<p><b>Syntax:</b> <tt>8 <i>source</i>[ :<i>destination</i>]</tt></p>
+
 		<p>Used to check if a connection is still live if it has been &quot;quiet&quot; for a certain amount of time. Typically, unreal will send PING requests at intervals determined by the class::pingfreq setting. PINGs originating from the direct uplink will use the token, but it seems PINGs originating from a distant server will not.</p>
+
 		<p>The response to a PING is sent with the <a href="#S4_5">PONG</a> command.</p>
+
 		<p>When receiving a two-parameter PING, the second parameter is the target. If the target isn't you, you can either reply on behalf of that target (using its name instead of yours), or if there is a real connection representing the target, forward the PING to the target.</p>
+
 		<h2><a name="S4_5">4.5 PONG - Live Connection Reply (TOKEN: 9)</a></h2>
+
 		<p><b>Syntax:</b> <tt>9 <i>source</i>[ :<i>destination</i>]</tt></p>
+
 		<p>Used to respond to a <a href="#S4_4">PING</a> query.</p>
 
 		<p><b>Responding to a ping:</b> Once a PING is received, you usually have an amount of time to respond equal to your class::pingfreq. The correct response will always have two parameters. If you received one parameter, then the received parameter becomes the second parameter of your response, and the first parameter is your server name. If you received two parameters, the response returns both parameters in reverse order.</p>
+
 		<p>For example, the response to <tt>8 uplink.server</tt> is <tt>9 my.name uplink.server</tt>, while the response to <tt>PING distant.server your.server</tt> is <tt>9 your.server distant.server</tt>. Unreal typically includes a : prior to the last parameter. This isn't required if that parameter contains no spaces, but it is especially important to not include the colon when reversing the parameters, or else Unreal mistake it for a single-parameter PONG.
+
 		<p>If a two-parameter PONG is received, the second parameter names the target. If the target is not you, and a real connection represents that target, you should forward the PONG message via that connection.</p>
+
 		<hr/>
 
 		<h1><a name="S5"></a>5 Channel Operations</h1>
@@ -523,6 +561,12 @@
 		<p><b>Syntax:</b> <tt>:<i>source</i> o <i>#channel</i> <i>modechange</i> <i>modeparams</i></tt></p>
 
 		<p>This has the same parameters as for MODE. The only difference is that servers probably will never receive this (but is best to document just in case), and that absolutely NO permission checking is done on anything.</p>
+
+		<h2><a name="S5_10"></a>5.10 TOPIC - Channel Topic (TOKEN: ) )</h2>
+
+		<p><b>Syntax:</b> <tt>:<i>source</i> ) <i>#channel</i> <i>nick</i> <i>timestamp</i> :<i>topic</i></p>
+
+		<p>Changes the channel topic information. This format is used when synching, as well as when a topic is changed normally. Nick is the user who changed the topic (depending on compile options, it can be just nick or a full nick!user@host), timestamp is when the change occured, and topic is the new topic text. Normally, only a newer timestamp will actually change the topic, but a U:Lined server can use an older timestamp as well (such as for TOPICLOCK).
 
 		<hr/>
 
@@ -747,63 +791,119 @@
 		<p><b>Remove Syntax (TKL):</b> <tt>BD - F <i>target(s)</i> <i>action</i> <i>source</i> 0 <i>settimestap</i> :<i>regex</i></tt></p>
 
 		<p>Adds and Removes network-wide spamfilters. The SPAMFILTER command itself must not be used. See <a href="http://vulnscan.org/UnrealIrcd/unreal32docs.html#feature_spamfilter">http://vulnscan.org/UnrealIrcd/unreal32docs.html#feature_spamfilter</a> for a list of valid targets. For actions, a single character is used to identify the action to be taken:</p>
+
 		<ul>
+
 			<li>K (kill) - The user is simply disconnected, with the reason given.</li>
+
 			<li>S (tempshun) - A temporary shun is placed on the user. This shun is applied only to that user, and disappears if the user reconnects.</li>
+
 			<li>s (shun) - A regular shun on the user's IP address is added. This causes all users with the same hostname to be shunned, but they will also stay shunned if they reconnect.</li>
+
 			<li>k (kline) - A K:Line is added on the user's IP address.</li>
+
 			<li>z (zline) - A Z:Line is added on the user's IP address.</li>
+
 			<li>g (gline) - A G:Line is added on the user's IP address.</li>
+
 			<li>Z (gzline) - A Global Z:Line is added on the user's IP address.</li>
+
 			<li>b (block) - Messages (or users!) matching the filter are simply blocked.</li>
+
 			<li>d (dccblock) - The user is prevented from sending files using DCC for the remainder of his session (in other words, until he quits).</li>
+
 			<li>v (viruschan) - User is removed from all channels, joined to the viruschan as defined in conf, and cannot message anything but that channel.</li>
+
 			<li>w (warn) - No action on the user is taken. Only the Spamfilter notice is sent to opers with snomask +S.</li>
+
 		</ul>
 
 		<h1><a name="S9">9 Base64 Tables</a></h1>
+
 		<p>Unreal uses base64 encoding to allow saving bandwidth by encoding numbers in a more compact format. Unreal uses two different variations of base64, one used for the SJB64 PROTOCTL option (in NICK and SJOIN), and one used for NICKIP.</p>
+
 		<h2><a name="S9_1">9.1 Table for SJB64 (NICK and SJOIN).</a></h2>
+
 		<p>In NICK and SJOIN, remember that the timestamp will be prefixed with ! to signal a base64 timestamp.</p>
+
 		<p>Just like in base10, the least significant &quot;digit&quot; is last.</p>
+
 		<pre> 0 0            17 H            34 Y            51 p
+
  1 1            18 I            35 Z            52 q
+
  2 2            19 J            36 a            53 r
+
  3 3            20 K            37 b            54 s
+
  4 4            21 L            38 c            55 t
+
  5 5            22 M            39 d            56 u
+
  6 6            23 N            40 e            57 v
+
  7 7            24 O            41 f            58 w
+
  8 8            25 P            42 g            59 x
+
  9 9            26 Q            43 h            60 y
+
 10 A            27 R            44 i            61 z
+
 11 B            28 S            45 j            62 {
+
 12 C            29 T            46 k            63 }
+
 13 D            30 U            47 l
+
 14 E            31 V            48 m
+
 15 F            32 W            49 n
+
 16 G            33 X            50 o</pre>
+
 		<h2><a name="S9_2">9.2 Table for NICKIP.</a></h2>
+
 		<p>In this table, the IP is encoded in network byte order. In terms of IPs, this means the first byte of the address really is first. Each &quot;digit&quot; in the base64 encoded IP corresponds to 6 bits of the IP address.</p>
+
 		<p>An IPv4 address is 32 bits, so 6 base64 &quot;digits&quot; are needed. Since base64 requires values to come in multiples of 4 &quot;digits&quot;, padding characters (=) need to be added if a value comes up short. In the case of IPv4 addresses, two are needed.</p>
+
 		<p>IPv6 addresses are 128-bit. They therefore need 22 base64 &quot;digits&quot; plus 2 pad characters.</p>
+
 		<pre> 0 A            17 R            34 i            51 z
+
  1 B            18 S            35 j            52 0
+
  2 C            19 T            36 k            53 1
+
  3 D            20 U            37 l            54 2
+
  4 E            21 V            38 m            55 3
+
  5 F            22 W            39 n            56 4
+
  6 G            23 X            40 o            57 5
+
  7 H            24 Y            41 p            58 6
+
  8 I            25 Z            42 q            59 7
+
  9 J            26 a            43 r            60 8
+
 10 K            27 b            44 s            61 9
+
 11 L            28 c            45 t            62 +
+
 12 M            29 d            46 u            63 /
+
 13 N            30 e            47 v
+
 14 O            31 f            48 w         (pad) =
+
 15 P            32 g            49 x
+
 16 Q            33 h            50 y</pre>
+
 	</body>
 
 </html>

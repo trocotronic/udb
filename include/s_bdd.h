@@ -20,9 +20,16 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.12 2006-11-01 00:06:42 Trocotronic Exp $
+ * $Id: s_bdd.h,v 1.1.1.13 2006-12-22 21:58:58 Trocotronic Exp $
  */
 
+/* CONFIGURACIÓN DEL SISTEMA INTERNO UDB */
+/* !!! NO TOCAR SI NO SE SABE REALMENTE QUÉ ESTÁ MODIFICANDO !!! */
+#define UDB_HASH
+#define UDB_TOK
+/* FIN DE CONFIGURACIÓN */
+
+/* --- NO TOCAR NADA A PARTIR DE AQUÍ --- */
 #ifdef _WIN32
 #define DB_DIR "database\\"
 #define DB_DIR_BCK DB_DIR "backup\\"
@@ -30,28 +37,19 @@
 #define DB_DIR "database/"
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
-#define DBMAX 64 /* hay de sobras */
-#define UDB_VER "UDB3.4"
+#define UDB_VER "UDB3.5"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb
 {
-	char *item; /* si queremos darle un nombre */
-	u_int id; /* si queremos darle una id */
-	char *data_char; /* su valor char */
-	u_long data_long; /* su valor numérico */
-	struct _udb *hsig, *up, *mid, *down; /* punteros enlazados bla bla bla */
-	/* 
-	   para los bloques root (nicks, canales, ips y set) los punteros apuntan:
-	   - hsig a NULL
-	   - up a NULL
-	   - mid al siguiente bloque root
-	   - down al ultimo registro introducido
-	   - data_char al total MD5 de su archivo
-	   - item al path del archivo
-	   - id contiene id
-	   - data_long contiene el tamaño en bytes del archivo
-	   */
+	char *item;
+	u_int id;
+	char *data_char;
+	u_long data_long;
+#ifdef UDB_HASH
+	struct _udb *hsig;
+#endif
+	struct _udb *up, *mid, *down;
 };
 struct _bloque
 {
@@ -65,6 +63,8 @@ struct _bloque
 	aClient *res;
 	u_int regs;
 	char letra;
+	u_int ver;
+	int fd;
 };
 /* bloques actuales */
 #if !defined(MODULE_COMPILE) && defined(_WIN32)
@@ -76,12 +76,17 @@ DLLEXP extern MODVAR UDBloq *N;
 DLLEXP extern MODVAR UDBloq *C;
 DLLEXP extern MODVAR UDBloq *S;
 DLLEXP extern MODVAR UDBloq *I;
+DLLEXP extern MODVAR UDBloq *L;
 DLLEXP extern MODVAR UDBloq *ultimo;
 DLLEXP extern MODVAR Udb *UDB_NICKS;
 DLLEXP extern MODVAR Udb *UDB_CANALES;
 DLLEXP extern MODVAR Udb *UDB_IPS;
 DLLEXP extern MODVAR Udb *UDB_SET;
+DLLEXP extern MODVAR Udb *UDB_LINKS;
 DLLEXP extern MODVAR char *grifo;
+DLLEXP extern MODVAR int pases;
+DLLEXP extern MODVAR int intervalo;
+DLLEXP extern MODVAR aClient *propaga;
 
 DLLFUNC extern char *MakeVirtualHost(aClient *, char *, char *, int);
 DLLFUNC extern Udb *BuscaBloque(char *, Udb *);
@@ -93,17 +98,7 @@ DLLFUNC extern aClient *ChanClient();
 DLLFUNC extern void DaleCosas(int, aClient *, Udb *, char *);
 DLLFUNC extern void QuitaleCosas(aClient *, Udb *);
 DLLFUNC extern int TipoDePass(char *, char *, Udb *, aClient *);
-DLLEXP extern MODVAR int pases;
-DLLEXP extern MODVAR int intervalo;
-DLLEXP extern MODVAR aClient *propaga;
-
-#define BorraIpVirtual(x)							\
-	do									\
-	{									\
-		if ((x)->user->virthost)					\
-			MyFree((x)->user->virthost);				\
-		(x)->user->virthost = NULL;					\
-	}while(0)
+DLLFUNC extern int BuscaOpt(int, Udb *);
 
 #define BDD_OPER 0x1
 #define BDD_ADMIN 0x2
@@ -133,7 +128,7 @@ DLLEXP extern MODVAR aClient *propaga;
  * - N::<nick>:snomasks <snomask> -> contiene las snomask de operador que puede utilizar:
  *		cfFjveGnNqS
  * - N::<nick>::swhois <whois> -> contiene su swhois
- * - N::<nick>::A <ip> -> acceso sólo a esta ip (CIDR para un rango de ips)
+ * - N::<nick>::acceso <ip> -> acceso sólo a esta ip (CIDR para un rango de ips)
  * Todos estos campos se dan en el momento que el usuario se identifica correcamente con /nick nick:pass
  *
  * Los canales tienen los siguientes subbloques:
@@ -148,7 +143,8 @@ DLLEXP extern MODVAR aClient *propaga;
  * - C::<#canal>::pass <contraseña> -> Contraseña del canal para darse +ao. Se usa /join # pass o /invite nick # pass
  * - C::<#canal>::desafio <desafio> -> Desafío de la contraseña del canal
  * - C::<#canal>::opciones *<opts> -> Fija distintas opciones para el canal.
- * 		- BDD_C_OPT_PBAN 0x1 -> Si figura esta bit, hay protección de bans: sólo el autor de los bans puede quitarlo (excepto founder y opers).
+ * 		- C_OPT_PBAN 0x1 -> Si figura este flag, hay protección de bans: sólo el autor de los bans puede quitarlo (excepto founder y opers).
+ *		- C_OPT_RMOD 0x2 -> Si figura este flag, los modos que haya en canal estarán bloqueados, no se podrán cambiar (excepto founder).
  *
  * Las ips tienen los siguiente subbloques
  * - I::<ip|host>::clones *<nº clones> -> nº de clones que se permiten desde esa ip
@@ -165,6 +161,7 @@ DLLEXP extern MODVAR aClient *propaga;
  * - S::quit_ips <mensaje quit> -> mensaje que se muestra si esta conexión sobrepasa su capacidad otorgada
  * - S::quit_clones <mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos
  * - S::desafio <metodo> -> Desafío global con el que se cifran las contraseñas
+ * - S::flood <v>:<s> -> Si el usuario intenta más de <v> veces durante <s> segundos una contraseña incorrecta, es bloqueado.
  */
 
 #define E_UDB_NODB 1 /* no existe bloque */
@@ -178,68 +175,79 @@ DLLEXP extern MODVAR aClient *propaga;
 #define E_UDB_FBSRV 9 /* servidor prohibido */
 #define E_UDB_REP 10 /* dato repetido */
 
+#ifdef UDB_TOK
+#define C_FUN "F"	/* fundador */
+#define C_MOD "M"	/* modos */
+#define C_TOP "T"	/* topic */
+#define C_ACC "A"	/* acceso */
+#define C_FOR "B"	/* forbid */
+#define C_SUS "S"	/* suspendido */
+#define C_PAS "P"	/* pass */
+#define C_DES "D"	/* desafio */
+#define C_OPT "O"	/* opciones */
+#define N_ALL "A"	/* acceso */
+#define N_PAS "P"	/* pass */
+#define N_VHO "V"	/* vhost */
+#define N_FOR "B"	/* forbid */
+#define N_SUS "S"	/* suspendido */
+#define N_OPE "O"	/* oper */
+#define N_DES "D"	/* desafio */
+#define N_MOD "M"	/* modos */
+#define N_SNO "K"	/* snomasks */
+#define N_SWO "W"	/* swhois */
+#define I_CLO "S"	/* nº clones */
+#define I_NOL "E"	/* nolines */
+#define I_HOS "H"	/* host reverso */
+#define S_CLA "L"	/* clave de cifrado */
+#define S_SUF "J"	/* sufijo */
+#define S_NIC "N"	/* nickserv */
+#define S_CHA "C"	/* chanserv */
+#define S_IPS "I"	/* ipserv */
+#define S_CLO "S"	/* nº clones global */
+#define S_QIP "T"	/* quit por ip */
+#define S_QCL "Q"	/* quit por clones */
+#define S_DES "D"	/* desafio global */
+#define S_FLO "F"	/* pass-flood */
+#define L_OPT "O"	/* opciones */
+#else
 #define C_FUN "fundador"
-#define C_FUN_TOK "F"
 #define C_MOD "modos"
-#define C_MOD_TOK "M"
 #define C_TOP "topic"
-#define C_TOP_TOK "T"
 #define C_ACC "accesos"
-#define C_ACC_TOK "A"
 #define C_FOR "forbid"
-#define C_FOR_TOK "B"
 #define C_SUS "suspendido"
-#define C_SUS_TOK "S"
 #define C_PAS "pass"
-#define C_PAS_TOK "P"
 #define C_DES "desafio"
-#define C_DES_TOK "D"
 #define C_OPT "opciones"
-#define C_OPT_TOK "O"
 #define N_ALL "acceso"
-#define N_ALL_TOK "A"
 #define N_PAS "pass"
-#define N_PAS_TOK "P"
 #define N_VHO "vhost"
-#define N_VHO_TOK "V"
 #define N_FOR "forbid"
-#define N_FOR_TOK "B"
 #define N_SUS "suspendido"
-#define N_SUS_TOK "S"
 #define N_OPE "oper"
-#define N_OPE_TOK "O"
 #define N_DES "desafio"
-#define N_DES_TOK "D"
 #define N_MOD "modos"
-#define N_MOD_TOK "M"
 #define N_SNO "snomasks"
-#define N_SNO_TOK "K"
 #define N_SWO "swhois"
-#define N_SWO_TOK "W"
 #define I_CLO "clones"
-#define I_CLO_TOK "S"
 #define I_NOL "nolines"
-#define I_NOL_TOK "E"
 #define I_HOS "host"
-#define I_HOS_TOK "H"
 #define S_CLA "clave_cifrado"
-#define S_CLA_TOK "L"
 #define S_SUF "sufijo"
-#define S_SUF_TOK "J"
 #define S_NIC "NickServ"
-#define S_NIC_TOK "N"
 #define S_CHA "ChanServ"
-#define S_CHA_TOK "C"
 #define S_IPS "IpServ"
-#define S_IPS_TOK "I"
 #define S_CLO "clones"
-#define S_CLO_TOK "S"
 #define S_QIP "quit_ips"
-#define S_QIP_TOK "T"
 #define S_QCL "quit_clones"
-#define S_QCL_TOK "Q"
 #define S_DES "desafio"
-#define S_DES_TOK "D"
+#define S_FLO "flood"
+#define L_OPT "opciones"
+#endif
 
-#define BDD_C_OPT_PBAN 0x1
-#define BDD_C_OPT_RMOD 0x2
+#define C_OPT_PBAN 0x1
+#define C_OPT_RMOD 0x2
+
+#define L_OPT_DEBG 0x1
+#define L_OPT_PROP 0x2
+#define L_OPT_CLNT 0x4

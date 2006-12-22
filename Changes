@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.17 2006-11-01 00:06:37 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.18 2006-12-22 21:58:53 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1316,3 +1316,116 @@
 - Fixed zlib version check: 1.x is compatible with all 1.*, etc. (#0002966).
 - Fixed a couple of add_Command/del_Command lines in m_chgname and m_helpop trying to
   add the same token twice. Didn't cause any trouble, normally, though...
+- Updated ukrainian-w1251 and belarussian-w1251 charsets: some characters were previously
+  included that shouldn't. Reported by avb (#0003102), patch supplied by Bock.
+- Made it so that when 'java' is enabled for a listen block, then the 2nd parameter to
+  NICK is not seen as a password on this port. Patch from afolentes (#0003097).
+- Fixed some unitialized pointer things for win32 w/ssl on keyprompt, no idea if it
+  helps, though. Would appreciate it if another code looks into this. -- Syzop
+- Fixed SVSO - not removing coadmin (+C). Reported by Muisje (#0003077).
+- Fixed deny link {} blocks being ignored by autoconnect. Reported by a couple people,
+  also see #0003084.
+- Fixed m_names.so not being build (a problem for people not using commands.so),
+  reported by aegis (#0003085).
+- Using SVSMODE (or SVS2MODE) to set -x will now actually remove the vhost from memory,
+  instead of letting it magically reappear whenever +x is set. This means services can
+  now properly "unvhost" a user by sending a "SVSMODE User -x+x" (then any existing vhost
+  will be removed and user will have a cloaked host). Reported by avenger and others
+  (#0002933).
+- [internal] Made a spamfilter_build_user_string function that will build the spamfilter
+  user target string (nick!user@host:info), insteaf of doing it at like 5 places.
+- Spamfilter target 'u' (user): the host field (nick!user@HOST:realname) is now escaped
+  with brackets if it's an IPv6 address, eg: blah!blah@[1:2:3:4:5:6:7:8]:hello, reported
+  by aquanight and others (#0003010).
+- Win32: SSL private key prompt should now no longer crash. Patch provided by Alexey
+  Markevich (#0002866).
+- Win32: we now no longer crash if no access to write to service.log, suggested and
+  patch by Xuefer (#0002886).
+- Services timestamps are now always treated as an unsigned long (0..2^32-1), instead
+  of accidently as signed long during netsynchs. This bug caused issues with values
+  larger than 2147483647. Reported by avenger (#0002980).
+- If the 'crypt' algorithm is used, then passwords were/are truncated to 8 characters.
+  We now print a warning when this happens (both on the IRC command and command-line).
+  Suggested by JasonTik (#0002953).
+- Win32: Fixed a few compiler warnings, suggested by Zell (#0002890).
+- Moved a couple isatty() calls to DEBUGMODE (#0002945).
+- Made win32 compile again, reported by Bock (#0003106).
+- Moved failed oper snotices to snomask +o, and are sent out to all servers. Also now
+  shows the uid attempted (like [FAILEDAUTH] does) for incorrect host or maxlogin.
+- Fixed set::allowed-nickchars causing a segfault for some unknown charsets, reported
+  by avb (#0003069).
+- Cutoff webtv whois at MAXTARGETS (#0003004).
+- loadmodule now reports proper errors when the actual file can't be found, instead of
+  blaming it on the temp file, reported in #3015.
+- Fixed 'SVSMOTD !' not deleting the services motd in memory, reported by avb (#0003110).
+- Snomask N: Don't show nickchanges for U-lines, reported by seneces (#0002636).
+- Fixed set::dns::bind-ip directive seen as duplicate, reported by aegis (#0003074).
+- set::dns::* block is now no longer mandatory. All info has always been read from
+  /etc/resolv.conf (*NIX) or the registry (Win32), and the set::dns block is ignored
+  (except for set::dns::bind-ip, but that's a special case). Suggested by many including
+  djGrrr to make things slightly more logical (#0003019).
+- As a consequence of the above, set::dns blocks were removed from doc/example*conf.
+- Added two more characters to Catalan charset, reported by rmh (#0002995).
+- Added set::pingpong-warning [yes|no] which decides whether to send the "** If you are
+  having problems connecting due to ping timeouts, please type /quote pong .." message
+  to each client when NOSPOOF is enabled (usually on Win32). The default is NO.
+  Previously this message was always sent if NOSPOOF was on, which often caused
+  confusion among users. The message was intended for non-confirming clients, but these
+  should be fixed by now, and those that were not fixed (self-made bots/etc) did often
+  not understand the message anyway. Anyway, you can still turn it on ;). (#2680).
+- /INVITE's from people on the silence list are now (silently) ignored, suggested by
+  White_Magic (#0002478).
+- Fixed a couple of typos and other one-line-text fixes at various places: reported by
+  aegis (#3081), DanPMK (#2818), tabrisnet (#2974, #2970, #2467), penna (#2721),
+  Brad (#2488), vonitsanet (#2467).
+- Made OpenSSL version dynamic, reported by buildsmart (#0002975).
+- Rejecting fake +z modes in conf, reported by rve (#0002532).
+- Changed some minor Makefile stuff
+- Fixed belarussian-w1251 charset.. accidently copied a "'" which caused an internal
+  error, reported by Bock (#0003114).
+- Added information about extbans to help.conf (/HELPOP ?EXTBANS). Patch from Bock
+  (#0003113).
+- Made SAPART work for mulitple channels, just like SAJOIN. Reported by Snake and
+  SeigHart, patch provided by Bock (#0003064). This also fixes SAPART now being
+  announced to all opers globally, just like SAJOIN.
+- Finally fixed /RESTART issue on windows for good, should now always restart correctly.
+  Patch provided by BuHHunyx and Bock (#0002734).
+- Fixed charsys config error message sometimes saying stuff about set::accept-language,
+  which should be set::allowed-nickchars (the former does not exist). Reported and
+  patch provided by avb (#0003122).
+- Fixed compile bug on Solaris due to missing INADDR_NONE, fix provided by Schak
+  (#0003125).
+- Fixed bug where omitting class::connfreq would result in a huge connection attempt
+  flood when autoconnect was enabled. We now set class::connfreq to 60 if it's not
+  specified. Reported by Milliways (#0003018).
+- Improved description of link::hub/leaf/leafdepth in unreal32docs.html reported by Bugz
+  (#2623), also fixed typo (leafdepth, not leaf-depth), reported by monas (#3083).
+- c-ares resolver: upgrade to 1.3.2.
+- upgraded windows c-ares (areslib.lib) as well.
+- fix for above
+- Added release notes for 3.2.6
+- Fixed help.conf typo
+** 3.2.6-rc1 release **
+- Get rid of some old stuff in release notes
+- Added donators since 3.2.5
+- Setting set::pingpong-warning didn't work, reported by vonitsanet, patch supplied by
+  avb (#0003131).
+- Don't show silence list to others
+- Improved detection of bad set::modes-on-oper and oper::modes, now rejecting things like
+  'o', 'z', and more.
+- Fix from above fixes an /OPER announce problem reported by Bock (#0003135).
+- Fixed SSL bug where an outgoing connect (either autoconnect, or /connect), would not
+  show any error message when it failed. Error information has also been slightly
+  improved. Reported by vonitsanet (#0003138).
+- Updated SVSNLINE syntax in help.conf (the remove-syntax).
+- Post-3.2.5 CVS-only bug: Fixed spamfilter on user target not working properly when
+  changing nicks (was still trying to match on the old nick), reported by vonitsanet
+  (#0003143).
+** 3.2.6-rc2 release **
+- Fixed possible crash with using quarantine, reported by Sephiroth (#0003151).
+- Showing even more SSL server errors now, hopefully all of them, also changed the
+  error notice a bit so it's much more like non-SSL server link errors. Reported by
+  vonitsanet (#0003150).
+** 3.2.6-rc3 release **
+- Updated release notes, mass-change of version number, no code changes.
+** 3.2.6 release **

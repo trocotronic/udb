@@ -59,7 +59,7 @@ static char buf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.11 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.12 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -174,8 +174,8 @@ DLLFUNC CMD_FUNC(m_server)
 		return exit_client(cptr, sptr, &me, "Falta contraseña");
 	}
 #ifdef UDB
-	if (propaga && !match(grifo, servername))
-		return exit_client(cptr, sptr, &me, "Colisión de propagadores");
+	//if (propaga && !match(grifo, servername))
+	//	return exit_client(cptr, sptr, &me, "Colisión de propagadores");
 #endif
 
 	/*
@@ -317,7 +317,7 @@ nohostcheck:
 		strncpyzt(cptr->name, servername, sizeof(cptr->name));
 		cptr->hopcount = hop;
 #ifdef UDB
-		if (!(cptr->proto) || !IsUDB(cptr))
+		if (!IsUDB(cptr) && aconf->hubmask)
 			  return exit_client(cptr, sptr, &me, "Para unirte a esta red debes soportar UDB");
 #endif			
 		/* Add ban server stuff */
@@ -585,7 +585,7 @@ CMD_FUNC(m_server_remote)
 	add_client_to_list(acptr);
 	(void)add_to_client_hash_table(acptr->name, acptr);
 #ifdef UDB
-	if (!match(grifo, acptr->name))
+	if (grifo && !strcasecmp(grifo, acptr->name))
 		propaga = acptr;
 #endif
 	RunHook(HOOKTYPE_SERVER_CONNECT, acptr);
@@ -806,7 +806,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 		for (aux = ultimo; aux; aux = aux->sig)
 			sendto_one(cptr, ":%s DB %s INF %c %lX %lu", me.name, cptr->name, aux->letra, aux->crc32, aux->gmt);
 	}
-	if (!match(grifo, cptr->name))
+	if (grifo && !strcasecmp(grifo, cptr->name))
 		propaga = cptr;
 #endif		
 	/* Synching nick information */
@@ -963,16 +963,15 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 	    IRCstats.global_max, TStime(), UnrealProtocol,
 	    CLOAK_KEYCRC,
 	    ircnetwork);
-#ifndef UDB
-	/* primero tenemos que saber si hay que pasar bloques o no */
-
+#ifdef UDB
+	if (!IsUDB(cptr))
+#endif
 	/* Send EOS (End Of Sync) to the just linked server... */
 	sendto_one(cptr, ":%s %s", me.name,
 		(IsToken(cptr) ? TOK_EOS : MSG_EOS));
 #ifdef DEBUGMODE
 	ircd_log(LOG_ERROR, "[EOSDBG] m_server_synch: sending to justlinked '%s' with src ME...",
 			cptr->name);
-#endif
 #endif
 	RunHook(HOOKTYPE_POST_SERVER_CONNECT, cptr);
 	return 0;

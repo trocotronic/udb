@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>UDB - 3.3 - Documentaci&oacute;n oficial</title>
+<title>UDB - 3.5 - Documentaci&oacute;n oficial</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <style type="text/css">
  pre { font: "courier new"; font-style: normal;}
@@ -10,13 +10,13 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.8 2006-11-01 00:06:41 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.9 2006-12-22 21:58:57 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
-  <font size="4"><a href="http://www.redyc.com">http://www.redyc.com</a></font><br>
-  <font size="4">Versi&oacute;n: 3.3</font><br>
-  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 12-04-2006</div>
+  <font size="4"><a href="http://www.redyc.com">http://www.redyc.com/</a></font><br>
+  <font size="4">Versi&oacute;n: 3.5</font><br>
+  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 22-12-2006</div>
 <br>
   <b>Programador:</b> Trocotronic<br>
   <b>Contribuciones:</b> MaD <br>
@@ -31,7 +31,6 @@
   -- 3.4. <a href="#negociacion">Negociación</a><br>
   -- 3.5. <a href="#dbq">DBQ</a><br>
   4. <a href="#instalacion">Instalación y descarga</a><br>
-  -- 4.1  <a href="#config">Configuración</a><br>
 </p>
 <p><b><font size="+2"><a name="intro">1.0 Introducción</a></font></b><br></p>
 <div class="desc">
@@ -49,7 +48,7 @@ El sistema Unreal DataBase (en adelante UDB) para UnrealIRCd se utiliza para man
 Esto permite el uso de nicks registrados, ips virtuales e incluso canales persistentes.<BR />
 A simple vista se aprecia el amplio ventanal de opciones que se pueden brindar.<BR />
 Aun así, representa toda una potente herramienta para redes que utilizan este software.<BR />
-Además, el sistema UDB proporciona las siguientes características:<BR />
+Además, el sistema UDB proporciona las siguientes características:<BR /><BR />
 		<li>Sobre nicks:</li>
 		Todas las acciones para nicks se darán automáticamente cuando se identifique como propietario y reciba el modo +r.<br />
 		<ul>
@@ -89,6 +88,8 @@ Además, el sistema UDB proporciona las siguientes características:<BR />
 
 			<li>Usar el comando /invite aunque no se esté dentro del canal con /invite usuario #canal pass (el fundador entra automáticamente sin invite).</li>
 			<li>El fundador e identificados como tal se saltan bans, claves, invites, etc. y pueden poner, dar, cambiar modos y topic aunque no tengan @.</li>
+			<li>Proteger los bans para que sólo su autor pueda quitarlos.</li>
+			<li>Activar un candado de modos para que nadie pueda manipularlos.</li>
 		</ul>
 		<br />
 		<li>Sobre ips:</li>
@@ -110,6 +111,14 @@ Además, el sistema UDB proporciona las siguientes características:<BR />
 			<li>Personalizar los mensajes de desconexión por exceso de clones.</li>
 			<li>Establecer un desafío para encriptar las contraseñas de forma global.</li>
 		</ul>
+		<br />
+		<li>Sobre links:</li>
+		Establece parámetros de configuración relativos a links de servidores.
+		<ul>
+			<li>Establecer un servidor como debug y recibir los cambios de modo de usuarios UDB.</li>
+			<li>Fijar un servidor como propagador para reforzar todavía más la propagación de registros y evitar desincronizaciones.</li>
+			<li>Permitir clientes en servidores no-UDB que sean leafs.</li>
+		</ul>
 Como se puede apreciar, son bastantes las mejoras realizadas que no pueden llevarse a cabo sin unos servicios para IRC adaptados al UDB.<BR />
 </div>
 <p><b><font size="+2"><a name="protocolo">3.0 Protocolo</a></font></b><br></p>
@@ -120,11 +129,11 @@ Una de las formas para distribuir esa información es hacerlo por bloques, permit
 Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por ítems y valores (numéricos y alfanuméricos).
 Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
 Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
-Versión actual: <B>3.3</B><BR /><BR />
+Versión actual: <B>3.5</B><BR /><BR />
 <A name="bloques"></A><BR /><B>Bloques</B><BR />
 Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
 Todos los valores que estén precedidos por el símbolo '*' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
-Existen cuatro bloques: N (nicks), C (canales), I (ips) y S (set).<BR />
+Existen cinco bloques: N (nicks), C (canales), I (ips), S (set) y L (links).<BR /><BR />
 El bloque N contiene los nicks y todo lo que les concierne. Se estructura de la siguiente forma:<BR />
 - N::&lt;nick>::P &lt;contraseña> -> contiene la contraseña del nick<BR />
 - N::&lt;nick>::V &lt;vhost> -> su host virtual<BR />
@@ -157,7 +166,8 @@ El bloque C contiene los canales y todo lo que les concierne. Se estructura de l
 - C::&lt;#canal>::P &lt;contraseña> -> Contraseña del canal para darse +ao. Se usa /join # pass o /invite nick # pass<BR />
 - C::&lt;#canal>::D &lt;desafio> -> Desafío de la contraseña del canal<BR />
 - C::&lt;#canal>::O *&lt;opts> -> Fija distintas opciones para el canal<BR />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BDD_C_OPT_PBAN 0x1 -> Si figura este bit, hay protección de bans: sólo el autor de los bans puede quitarlo (excepto founder y opers).<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C_OPT_PBAN 0x1 -> Si figura este flag, hay protección de bans: sólo el autor de los bans puede quitarlo (excepto founder y opers).<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C_OPT_RMOD 0x2 -> Si figura este flag, los modos que haya en canal estarán bloqueados, no se podrán cambiar (excepto founder y opers).<BR />
 <B>NOTA:</B> se requiere la anteposición de '*' para indicar que es un valor numérico (entero largo).<BR />
 <BR />
 El bloque I contiene las ips y todo lo que las concierne. Se estructura de la siguiente forma:<BR />
@@ -176,18 +186,26 @@ El bloque S contiene aspectos de la configuración de la red. Se estructura de la
 <B>NOTA:</B> se requiere la anteposición de '*' para indicar que es un valor numérico (entero largo).<BR />
 - S::T &lt;mensaje quit> -> mensaje que se muestra si esta conexión sobrepasa su capacidad otorgada<BR />
 - S::Q &lt;mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos<BR />
-- S::D &lt;metodo> -> desafío global con el que se cifran las contraseñas
+- S::D &lt;metodo> -> desafío global con el que se cifran las contraseñas<BR />
+- S::F &lt;v>:&lt;s> -> Si el usuario intenta más de &lt;v> veces durante &lt;s> segundos una contraseña incorrecta, es bloqueado.<BR />
+<BR />
+El bloque L contiene información sobre links de servidores. Se estructura de la siguiente forma:<BR />
+- L::O *&lt;opts> -> Fija distintas opciones para este link</BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L_OPT_DEBG 0x1 -> Establece este servidor como debug. Recibe todos los cambio de usuarios UDB (modo +r por ejemplo).<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L_OPT_PROP 0x2 -> Establece este servidor como propagador. Es el único servidor que puede propagar datos por la red. Sólo puede haber <b>UNO</b>.<BR />
+<B>ATENCIÓN: </B>Si se propaga esta opción y ya hay otro link propagador, el bloque entero se borrará!<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L_OPT_CLNT 0x4 -> Permite la conexión de clientes en el caso de que sea un servidor no-UDB leaf y que a su vez esté configurado como <u>uline</u>.<BR />
 <BR />
 Estos cuatro bloques se guardan en distintos archivos en forma <U>binaria</U>. Es muy importante este dato, puesto que garantiza el mismo tamaño bajo todos los sistemas operativos.<BR />
 Para evitar manipulaciones externas, estos cuatro archivos están controlados por un sistema que detecta si se ha modificado un archivo vía externa. Si se diera este caso, se borra todo el archivo
 y se solicita de nuevo en caso de estar conectado.<BR />
 <BR />
 <A name="tokens"></A><BR /><B>Tokens</B><BR />
-Desde la versión 3.2, los ítems de cada bloque han sido tokenizados para ahorrar espacio tanto en el disco duro como en las negociaciones. 
+Desde la versión 3.5, los ítems de cada bloque pueden tokenizarse (activo por defecto) mediante configuración pre-compilación. Se recomienda usar los ítems tokenizados para ahorrar espacio tanto en el disco duro como en las negociaciones. 
 Su equivalencia se define en la siguiente tabla:<BR />
 <TABLE border="1">
 <TR><TD align="center"><B>Bloque</B></TD><TD align="center"><B>Ítem</B></TD><TD align"center"><B>Token</B></TD></TR>
-<TR><TD rowspan="9">N (nicks)</TD><TD>pass</TD><TD>P</TD></TR>
+<TR><TD rowspan="10">N (nicks)</TD><TD>pass</TD><TD>P</TD></TR>
 <TR><TD>vhost</TD><TD>V</TD></TR>
 <TR><TD>forbid</TD><TD>B</TD></TR>
 <TR><TD>suspendido</TD><TD>S</TD></TR>
@@ -196,6 +214,7 @@ Su equivalencia se define en la siguiente tabla:<BR />
 <TR><TD>modos</TD><TD>M</TD></TR>
 <TR><TD>snomasks</TD><TD>K</TD></TR>
 <TR><TD>swhois</TD><TD>W</TD></TR>
+<TR><TD>acceso</TD><TD>A</TD></TR>
 <TR><TD rowspan="9">C (canales)</TD><TD>fundador</TD><TD>F</TD></TR>
 <TR><TD>modos</TD><TD>M</TD></TR>
 <TR><TD>topic</TD><TD>T</TD></TR>
@@ -208,7 +227,7 @@ Su equivalencia se define en la siguiente tabla:<BR />
 <TR><TD rowspan="3">I (ips)</TD><TD>clones</TD><TD>S</TD></TR>
 <TR><TD>nolines</TD><TD>E</TD></TR>
 <TR><TD>host</TD><TD>H</TD></TR>
-<TR><TD rowspan="9">S (set)</TD><TD>clave_cifrado</TD><TD>L</TD></TR>
+<TR><TD rowspan="10">S (set)</TD><TD>clave_cifrado</TD><TD>L</TD></TR>
 <TR><TD>sufijo</TD><TD>J</TD></TR>
 <TR><TD>NickServ</TD><TD>N</TD></TR>
 <TR><TD>ChanServ</TD><TD>C</TD></TR>
@@ -217,6 +236,8 @@ Su equivalencia se define en la siguiente tabla:<BR />
 <TR><TD>quit_ips</TD><TD>T</TD></TR>
 <TR><TD>quit_clones</TD><TD>Q</TD></TR>
 <TR><TD>desafio</TD><TD>D</TD></TR>
+<TR><TD>flood</TD><TD>F</TD></TR>
+<TR><TD rowspan="1">L (links)</TD><TD>opciones</TD><TD>O</TD></TR>
 </TABLE><BR />
 <BR />
 <A name="comandos"></A><BR /><B>Comandos</B><BR />
@@ -233,11 +254,13 @@ El comando es la orden que se quiere solicitar. Estos comandos son:<BR />
 - ERR: manda un error.<BR />
 - OPT: optimiza.<BR />
 - FDR: fin de resumen.<BR />
+- BCK: copia de seguridad.<BR />
+- RST: restaurar copia de seguridad.<BR />
 <BR />
 <U>INF</U><BR />
 Pide información sobre un bloque. Su sintaxis es:
 <pre>:&lt;servidor> DB &lt;destino> INF &lt;bloque> &lt;crc32> &lt;última-hora-OPT></pre>
-El bloque sólo puede ser N, C, I o S, según se precise. El parámetro crc32 corresponde al valor del cifrado del contenido de su archivo mediante el algoritmo CRC32.<BR />
+El bloque sólo puede ser N, C, I, S o L, según se precise. El parámetro crc32 corresponde al valor del cifrado del contenido de su archivo mediante el algoritmo CRC32.<BR />
 El último parámetro corresponde a la última hora GMT en que se ha recibido un OPT. Si no se ha recibido ninguno, vale 0. Cada vez que se recibe un OPT se guarda
 la hora en que se ha efectuado el comando y es la que se utiliza como último parámetro.<BR />
 Por ejemplo, <pre>:servicios.colossus DB irc.redyc.com INF N 86BDAF5B 0</pre>
@@ -325,18 +348,14 @@ Los servidores que estén compilados con soporte ZLIB, guardarán la copia en un a
 <U>RST</U><BR />
 Restaura una copia de seguridad realizada con BCK.<BR />
 <B>NOTA:</B> el nombre de la copia debe existir. Si se propaga un nombre que no existe, toda la red perderá ese bloque y se propagará de nuevo. 
-Por tanto, si hay algún servidor que no posea esa copia truncará la red a partir de este punto.<BR />
+Por tanto, si hay algún servidor que no posea esa copia, truncará la red a partir de este punto.<BR />
 <pre>:&lt;servidor> DB * RST &lt;bloque> &lt;nombre> &lt;hora></pre>
 La hora que se especifica es la misma que la se usa en un OPT. Todos los servidores actualizarán su hora OPT a ésta.<BR />
 <A name="negociacion"></A><BR /><B>Negociación</B><BR />
 En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
-Lo primero que se manda es la cabecera PROTOCTL UDB3.3=&lt;parámetro1,parámetro2,etc>, antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.3=params TOKEN VL.<BR />
-Los parámetros son configuraciones propias del UDB que requieren que sean las mismas en todos los servidores. En caso de no serlo, no se podrá linkar.<BR />
-Parámetros ordenados por orden de aparición:<BR />
-1- Propagador: nombre del servidor que puede insertar y borrar registros en la red (acepta comodines). Cualquier registro que provenga de otro servidor no será insertado o borrado y no se propagará. Aunque 
-pueda aceptar comodines, sólo podrán estar conectado un sólo propagador. Si otro linka, le dará una colisión de propagadores.<BR />
-2- SD (<i>opcional</i>): tiene soporte S::D.
-Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.3=*.servicios.colossus,SD VL NOQUIT...<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.5[=parámetro1,parámetro2,etc], antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL UDB3.5=params TOKEN VL.<BR />
+De momento está reservado para un uso futuro.<BR />
+Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.5 VL NOQUIT...<BR />
 Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
 sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
 La negociación y consulta del estado de bloques se inicia con el envío de un INF. El servidor de destino debe ser solamente el servidor al que se linka (no usar '*').<BR />
@@ -352,10 +371,12 @@ Un ejemplo clásico sería este:
 :servicios.colossus DB irc.redyc.com INF I 8391F83D2 1107168820<BR />
 :servicios.colossus DB irc.redyc.com INF N 2FE83A7B 0<BR />
 :servicios.colossus DB irc.redyc.com INF S 4E91A417 0<BR />
+:servicios.colossus DB irc.redyc.com INF L 3F12B912 0<BR />
 :irc.redyc.com DB servicios.colossus INF C 86BDAF5B 0<BR />
 :irc.redyc.com DB servicios.colossus INF I 8391F83D2 0<BR />
 :irc.redyc.com DB servicios.colossus INF N 2FE83A7B 0<BR />
 :irc.redyc.com DB servicios.colossus INF S 4E91A417 0<BR />
+:irc.redyc.com DB servicios.colossus INF L 3F12B912 0<BR />
 </pre>
 Como los crc32 coinciden, no se prosigue porque todos los archivos son idénticos (aunque las horas sean distintas).<BR />
 Veamos otro ejemplo:
@@ -363,10 +384,12 @@ Veamos otro ejemplo:
 :servicios.colossus DB irc.redyc.com INF I 8391F83D2 1107168820<BR />
 :servicios.colossus DB irc.redyc.com INF N 2FE83A7B 1107168820<BR />
 :servicios.colossus DB irc.redyc.com INF S 4E91A417 1107168820<BR />
+:servicios.colossus DB irc.redyc.com INF L 3F12B912 1107168820<BR />
 :irc.redyc.com DB servicios.colossus INF C 86BDAF5B 1107168820<BR />
 :irc.redyc.com DB servicios.colossus INF I 8391F83D2 1107168820<BR />
 :irc.redyc.com DB servicios.colossus INF N F97381A8 1107168820<BR />
 :irc.redyc.com DB servicios.colossus INF S 4E91A417 1107168820<BR />
+:irc.redyc.com DB servicios.colossus INF L 3F12B912 1107168820<BR />
 :servicios.colossus DB irc.redyc.com RES N 2738<BR />
 :irc.redyc.com DB servicios.colossus RES N 2338<BR />
 :servicios.colossus DB * INS 2338 N::Trocotronic::M kXW<BR />
@@ -384,7 +407,7 @@ Y así sucesivamente.<BR />
 Este comando proporciona diversa información muy útil. Su sintaxis es:
 <pre>/DBQ [servidor_destino] &lt;bloque>[::contenido]</pre>
 - servidor_destino: es opcional e indica a qué servidor hay que efectuar esta consulta. Acepta comodines.<BR />
-- bloque: corresponde a los bloques soportados: N, C, I o S.<BR />
+- bloque: corresponde a los bloques soportados: N, C, I, S o L.<BR />
 - contenido: devuelve el contenido de una cadena en formato item::item::item valor. Si se especifica un item sin valor, se devolverán los items inferiores, si los hubiere.<BR />
 Por ejemplo, /dbq C::#redyc::F devolvería el fundador de #redyc.<BR />
 /dbq N::Trocotronic devolvería toda la información de Trocotronic (modos, snomasks, oper, etc.).<BR />
@@ -404,19 +427,6 @@ Mencionar, que para una correcta sincronización, al hacer /dbq * &lt;bloque> tod
 <p><b><font size="+2"><a name="instalacion">4.0 Instalación y descarga</a></font></b><br></p>
 <div class="desc">
 Para su instalación debe dirigirse a <a href="http://www.redyc.com" target="_blank">http://www.redyc.com</a> y descargar el programa UnrealIRCd+UDB.<br>
-<BR />
-<A name="config"></A><BR /><B>Configuración</B><BR />
-Toda la configuración perteneciente a UDB se especificará en el bloque udb { }, dentro del bloque set { } del archivo unrealircd.conf.<BR />
-<pre>set {
-	[...]
-	udb {
-		propagador &lt;servidor&gt;;
-		pass-flood &lt;v&gt;:&lt;s&gt;;
-	};
-};</pre>
-<B>propagador</B>: nombre del servidor que insertará y borrará registros por la red (acepta comodines). Normalmente será el servidor de servicios.<BR />
-<B>pass-flood</B>: protección para evitar ataques de fuerza bruta sobre las contraseñas. Cuando un usuario introduce &lt;v&gt; contraseñas incorrectas en menos de &lt;s&gt; segundos, es bloqueado durante este tiempo. 
-Al mismo tiempo, cada vez que introduce una incorrecta, es lagueado durante 3 segundos.
 <BR />
 </div>
 </html>

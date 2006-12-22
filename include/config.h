@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.8 2006-06-15 21:16:12 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.9 2006-12-22 21:58:58 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -428,13 +428,6 @@
  * Disabling this is not supported.
  */
 #define FAST_BADWORD_REPLACE
-
-/*
- * Only important for people using IPv6 (default should be ok for now) -Onliner
- * Because ip6.arpa is still not delegated for the 6bone (3ffe::/16)
- * this options allows you to still resolve it using ip6.int.
- */
-#define SIXBONE_HACK
 
 /*
  * Forces Unreal to use compressed IPv6 addresses rather than expanding them

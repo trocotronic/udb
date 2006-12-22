@@ -65,7 +65,7 @@ DLLFUNC int m_svs3mode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsmode)
   = {
 	"m_svsmode",
-	"$Id: m_svsmode.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $",
+	"$Id: m_svsmode.c,v 1.1.1.9 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /svsmode and svs2mode", 
 	"3.2-b8-1",
 	NULL 
@@ -538,6 +538,38 @@ char *xtok = show_change ? TOK_SVS2MODE : TOK_SVSMODE;
 				{
 					acptr->user->servicestamp = strtoul(parv[3], NULL, 10);
 					break;
+				}
+			case 'x':
+				if (what == MODE_DEL)
+				{
+					/* -x */
+					if (acptr->user->virthost)
+					{
+						/* Removing mode +x and virthost set... recalculate host then (but don't activate it!) */
+						MyFree(acptr->user->virthost);
+						acptr->user->virthost = strdup(acptr->user->cloakedhost);
+					}
+				} else
+				{
+					/* +x */
+					if (!acptr->user->virthost)
+					{
+						/* Hmm... +x but no virthost set, that's bad... use cloakedhost.
+						 * Not sure if this could ever happen, but just in case... -- Syzop
+						 */
+						acptr->user->virthost = strdup(acptr->user->cloakedhost);
+					}
+					/* Announce the new host to VHP servers if we're setting the virthost to the cloakedhost.
+					 * In other cases, we can assume that the host has been broadcasted already (after all,
+					 * how else could it have been changed...?).
+					 * NOTES: we're doing a strcasecmp here instead of simply checking if it's a "+x but
+					 * not -t"-case. The reason for this is that the 't' might follow ("+xt" instead of "+tx"),
+					 * in which case we would have needlessly announced it. Ok I didn't test it but that's
+					 * the idea behind it :P. -- Syzop
+					 */
+					if (MyClient(acptr) && !strcasecmp(acptr->user->virthost, acptr->user->cloakedhost))
+						sendto_serv_butone_token_opt(NULL, OPT_VHP, acptr->name,
+							MSG_SETHOST, TOK_SETHOST, "%s", acptr->user->virthost);
 				}
 			default:
 				setmodex:

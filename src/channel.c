@@ -713,7 +713,7 @@ int  is_chanowner(aClient *cptr, aChannel *chptr)
 #ifdef UDB
 	if ((reg = BuscaBloque(chptr->chname, UDB_CANALES)))
 	{
-		if ((bloq = BuscaBloque(C_FUN_TOK, reg)))
+		if ((bloq = BuscaBloque(C_FUN, reg)))
 		{
 			if (IsARegNick(cptr) && !strcasecmp(bloq->data_char, cptr->name))
 				return 1;

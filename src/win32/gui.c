@@ -193,8 +193,7 @@ LRESULT RESubClassFunc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
 int CloseUnreal(HWND hWnd)
 {
-	if (MessageBox(hWnd, "¿Quieres cerrar UnrealIRCd?", "¿Estás seguro?", MB_YESNO|MB_ICONQUESTION) 
-	    == IDNO)
+	if (MessageBox(hWnd, "¿Quieres cerrar UnrealIRCd?", "¿Estás seguro?", MB_YESNO|MB_ICONQUESTION) == IDNO)
 		 return 0;
 	else 
 	{
@@ -592,7 +591,7 @@ LRESULT CALLBACK MainDLG(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 				case IDM_RHBMOTD:
 					MessageBox(NULL, "Refrescando BotMOTD", "Refrescando", MB_OK);
 					botmotd = (aMotd *) read_file(BPATH, &botmotd);
-					sendto_realops("Refrescando BotMOTD vía consola");			
+					sendto_realops("Refrescando BotMOTD vía consola");
 					break;
 				case IDM_LICENSE: 
 					DialogBox(hInst, "FromVar", hDlg, (DLGPROC)LicenseDLG);
@@ -1051,9 +1050,17 @@ void win_log(unsigned char *format, ...)
 	else 
 	{
 		FILE *fd = fopen("service.log", "a");
-		sprintf(buf,"%s :%i", strerror(GetLastError()), GetLastError());
-		fprintf(fd, "%s\n", buf);
-		fclose(fd);
+		if (fd)
+		{
+			fprintf(fd, "%s\n", buf);
+			fclose(fd);
+		}
+#ifdef _DEBUG
+		else
+		{
+		    OutputDebugString(buf);
+		}
+#endif
 	}
         va_end(ap);
 }

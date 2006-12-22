@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: modules.h,v 1.1.1.11 2006-11-01 00:06:42 Trocotronic Exp $
+ *   $Id: modules.h,v 1.1.1.12 2006-12-22 21:58:58 Trocotronic Exp $
  */
 #ifndef MODULES_H
 #define MODULES_H
@@ -682,6 +682,8 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 #define EFUNC_STRIPBADWORDS_QUIT			30
 #define EFUNC_STRIPCOLORS					31
 #define EFUNC_STRIPCONTROLCODES				32
+#define EFUNC_SPAMFILTER_BUILD_USER_STRING	33
+#define EFUNC_IS_SILENCED					34
 
 /* Module flags */
 #define MODFLAG_NONE	0x0000

@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.6 2006-06-15 21:16:15 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.7 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -819,6 +819,16 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			}
 		} /* not -h self */
 	}
+#ifdef UDB
+	reg = BuscaBloque(chptr->chname, UDB_CANALES);
+	if (!IsOper(cptr) && BuscaOpt(C_OPT_RMOD, reg) && !is_chanowner(cptr, chptr) && !strchr("qaohvebI", modechar))
+	{
+		sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), 
+					   me.name, cptr->name, modechar, "el canal tiene los modos bloqueados");
+		return 1;
+	}
+#endif
+	
 	switch (modetype)
 	{
 	  case MODE_AUDITORIUM:
@@ -1230,7 +1240,7 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		     }
 		  }
 #ifdef UDB
-		if (!bounce && what == MODE_DEL && !IsOper(cptr) && (reg = BuscaBloque(chptr->chname, UDB_CANALES)) && (bloq = BuscaBloque(C_OPT_TOK, reg)) && (bloq->data_long & BDD_C_OPT_PBAN) && (bloq = BuscaBloque(C_FUN_TOK, reg)) && strcasecmp(bloq->data_char, cptr->name))
+		if (!bounce && what == MODE_DEL && !IsOper(cptr) && BuscaOpt(C_OPT_PBAN, reg) && !is_chanowner(cptr, chptr))
 		{
 			Ban *ban;
 			int sale = 0;
@@ -2177,7 +2187,7 @@ DLLFUNC CMD_FUNC(_m_umode)
 		{
 			if (!umode_restrict_err)
 			{
-				sendto_one(sptr, ":%s %s %s :No permite el uso de los modos '%s'.",
+				sendto_one(sptr, ":%s %s %s :No se permite el uso de los modos '%s'.",
 					me.name, IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, RESTRICT_USERMODES);
 				umode_restrict_err = 1;
 			}

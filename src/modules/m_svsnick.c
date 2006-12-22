@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.9 2006-12-22 21:59:01 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 
@@ -153,7 +153,7 @@ aClient *ocptr; /* Other client */
 #ifdef UDB
 	if ((reg = BuscaBloque(parv[2], UDB_NICKS)))
 	{
-		if (!BuscaBloque(N_SUS_TOK, reg))
+		if (!BuscaBloque(N_SUS, reg))
 			val = 2; /* si el nick viene de un servidor lo damos siempre por válido */
 		else
 			val = 1;

@@ -675,7 +675,6 @@ EXPORTS
 	motd
 	motd_tm
 	my_itoa
-	myargv
 	myctime
 	myncmp
 	next_client
@@ -905,4 +904,7 @@ EXPORTS
 	write_pidfile
 	zlinebuf
 	kick_insecure_users
+	spamfilter_build_user_string
+	free_motd
+	is_silenced
 	

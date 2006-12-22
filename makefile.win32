@@ -13,7 +13,7 @@ RC=rc
 #
 #
 #To enable remote includes uncomment the next line:
-USE_REMOTEINC=1
+#USE_REMOTEINC=1
 #
 #If your libcurl library and include files are not in your compiler's
 #default locations, specify the locations here:
@@ -29,7 +29,7 @@ LIBCURL_LIB_DIR="c:\dev\curl\lib\release"
 #
 #
 #To enable ziplinks uncomment the next line:
-USE_ZIPLINKS=1
+#USE_ZIPLINKS=1
 #
 #If your zlib library and include files are not in your compiler's
 #default locations, specify the locations here:
@@ -44,7 +44,7 @@ ZLIB_LIB_DIR="c:\dev\zlib\dll32"
 #
 #
 #To enable SSL uncomment the next line:
-USE_SSL=1
+#USE_SSL=1
 #
 #If your OpenSSL library and include files are not in your compiler's
 #default locations, specify the locations here:
@@ -138,13 +138,13 @@ LFLAGS=kernel32.lib user32.lib gdi32.lib shell32.lib ws2_32.lib advapi32.lib \
  /nologo $(DBGLFLAG) /out:WIRCD.EXE
 MODCFLAGS=$(MODDBGCFLAG) $(SSLCFLAGS) $(ZIPCFLAGS) $(UDBCFLAGS) $(CURLCFLAGS) /J /Fesrc/modules/ \
  /Fosrc/modules/ /nologo $(LIBCURL_INC) $(ZLIB_INC) $(OPENSSL_INC) /I ./INCLUDE /D \
- DYNAMIC_LINKING /D NOSPOOF /D MODULE_COMPILE /D _CRT_SECURE_NO_DEPRECATE /D _USE_32BIT_TIME_T
+ DYNAMIC_LINKING /D NOSPOOF /D MODULE_COMPILE /D _CRT_SECURE_NO_DEPRECATE /D _CRT_NONSTDC_NO_DEPRECATE /D _USE_32BIT_TIME_T
 MODLFLAGS=/link /def:src/modules/module.def wircd.lib $(OPENSSL_LIB) $(SSLLIBS) \
  $(ZLIB_LIB) $(ZIPLIB) $(LIBCURL_LIB) $(CURLLIB)
 
 INCLUDES=./include/struct.h ./include/config.h ./include/sys.h \
  ./include/common.h ./include/version.h ./include/h.h ./include/numeric.h \
- ./include/msg.h ./include/setup.h ./include/dynconf.h
+ ./include/msg.h ./include/setup.h ./include/dynconf.h ./include/s_bdd.h
 
 EXP_OBJ_FILES=SRC/CHANNEL.OBJ SRC/SEND.OBJ SRC/SOCKET.OBJ \
  SRC/S_CONF.OBJ SRC/FDLIST.OBJ SRC/DBUF.OBJ  \

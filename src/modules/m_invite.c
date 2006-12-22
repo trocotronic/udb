@@ -55,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.8 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.9 2006-12-22 21:59:00 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -141,6 +141,7 @@ DLLFUNC CMD_FUNC(m_invite)
 	if (!BadPtr(parv[3]) && IsARegNick(sptr) && (over = TipoDePass(parv[2], parv[3], NULL, NULL)))
 		goto sigue;
 #endif
+
         if (chptr->mode.mode & MODE_NOINVITE && !IsULine(sptr))
         {
 #ifndef NO_OPEROVERRIDE
@@ -174,7 +175,7 @@ DLLFUNC CMD_FUNC(m_invite)
                 if ((MyClient(sptr) ? (IsOper(sptr) && OPCanOverride(sptr)) :
 		    IsOper(sptr)) && sptr == acptr)
 #endif
-                        over = 1;                    
+                        over = 1;
                 else {
 #endif
                         sendto_one(sptr, err_str(ERR_NOTONCHANNEL),
@@ -272,6 +273,7 @@ DLLFUNC CMD_FUNC(m_invite)
 	sigue:
 	if (over == 1 && MyConnect(acptr)) {
 #else
+
 	if (over && MyConnect(acptr)) {
 #endif
         	if ((chptr->mode.mode & MODE_ONLYSECURE) && !IsSecure(acptr))
@@ -393,8 +395,9 @@ DLLFUNC CMD_FUNC(m_invite)
 		        add_invite(acptr, chptr);
 			}
 	}
-        sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0],
-            acptr->name, ((chptr) ? (chptr->chname) : parv[2]));
+	if (!is_silenced(sptr, acptr))
+		sendto_prefix_one(acptr, sptr, ":%s INVITE %s :%s", parv[0],
+			acptr->name, ((chptr) ? (chptr->chname) : parv[2]));
 
         return 0;
 }

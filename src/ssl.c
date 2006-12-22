@@ -54,27 +54,25 @@ typedef struct {
 
 #define CHK_SSL(err) if ((err)==-1) { ERR_print_errors_fp(stderr); }
 #ifdef _WIN32
-static StreamIO *streamp;
 LRESULT SSLPassDLG(HWND hDlg, UINT Message, WPARAM wParam, LPARAM lParam) {
-	StreamIO *stream;
+	static StreamIO *stream;
 	switch (Message) {
 		case WM_INITDIALOG:
+			stream = (StreamIO*)lParam;
 			return TRUE;
 		case WM_COMMAND:
-			stream = (StreamIO *)streamp;
 			if (LOWORD(wParam) == IDCANCEL) {
 				*stream->buffer = NULL;
-				EndDialog(hDlg, TRUE);
+				EndDialog(hDlg, IDCANCEL);
 			}
 			else if (LOWORD(wParam) == IDOK) {
 				GetDlgItemText(hDlg, IDC_PASS, *stream->buffer, *stream->size);
-				EndDialog(hDlg, TRUE);
+				EndDialog(hDlg, IDOK);
 			}
 			return FALSE;
 		case WM_CLOSE:
-			if (stream)
-				*stream->buffer = NULL;
-			EndDialog(hDlg, TRUE);
+			*stream->buffer = NULL;
+			EndDialog(hDlg, IDCANCEL);
 		default:
 			return FALSE;
 	}
@@ -140,8 +138,7 @@ int  ssl_pem_passwd_cb(char *buf, int size, int rwflag, void *password)
 	pass = passbuf;
 	stream.buffer = &pass;
 	stream.size = &passsize;
-	streamp = &stream;
-	DialogBoxParam(hInst, "SSLPass", hwIRCDWnd, (DLGPROC)SSLPassDLG, (LPARAM)NULL); 
+	DialogBoxParam(hInst, "SSLPass", hwIRCDWnd, (DLGPROC)SSLPassDLG, (LPARAM)&stream); 
 #endif
 	if (pass)
 	{
@@ -641,6 +638,13 @@ static int fatal_ssl_error(int ssl_error, int where, aClient *sptr)
 	    break;
 	case SSL_ERROR_SYSCALL:
 	    ssl_errstr = "Underlying syscall error";
+	    /* TODO: then show the REAL socktet error instead...
+	     * unfortunately that means we need to have the 'untouched errno',
+	     * which is not always present since our function is not always
+	     * called directly after a failure. Hence, we should add a new
+	     * parameter to fatal_ssl_error which is called errno, and use
+	     * that here... Something for 3.2.7 ;) -- Syzop
+	     */
 	    break;
 	case SSL_ERROR_ZERO_RETURN:
 	    ssl_errstr = "Underlying socket operation returned zero";
@@ -660,6 +664,27 @@ static int fatal_ssl_error(int ssl_error, int where, aClient *sptr)
     sptr->flags |= FLAGS_DEADSOCKET;
     sendto_snomask(SNO_JUNK, "Exiting ssl client %s: %s: %s",
     	get_client_name(sptr, TRUE), ssl_func, ssl_errstr);
+	
+	if (where == SAFE_SSL_CONNECT)
+	{
+		char *myerr = ssl_errstr;
+		if (ssl_error == SSL_ERROR_SYSCALL)
+			myerr = STRERROR(errtmp);
+		/* sendto_failops_whoare_opers("Closing link: SSL_connect(): %s - %s", myerr, get_client_name(sptr, FALSE)); */
+		sendto_umode(UMODE_OPER, "Lost connection to %s: %s: %s",
+			get_client_name(sptr, FALSE), ssl_func, myerr);
+	} else
+	if ((IsServer(sptr) || (sptr->serv && sptr->serv->conf)) && (where != SAFE_SSL_WRITE))
+	{
+		/* if server (either judged by IsServer() or clearly an outgoing connect),
+		 * and not writing (since otherwise deliver_it will take care of the error), THEN
+		 * send a closing link error...
+		 */
+		sendto_umode(UMODE_OPER, "Lost connection to %s: %s: %s",
+			get_client_name(sptr, FALSE), ssl_func, ssl_errstr);
+		/* sendto_failops_whoare_opers("Closing link: %s: %s - %s", ssl_func, ssl_errstr, get_client_name(sptr, FALSE)); */
+	}
+	
 	if (errtmp)
 	{
 		SET_ERRNO(errtmp);
