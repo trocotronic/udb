@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.13 2006-12-22 21:58:58 Trocotronic Exp $
+ * $Id: s_bdd.h,v 1.1.1.14 2007-03-20 19:34:25 Trocotronic Exp $
  */
 
 /* CONFIGURACIÓN DEL SISTEMA INTERNO UDB */
@@ -37,7 +37,7 @@
 #define DB_DIR "database/"
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
-#define UDB_VER "UDB3.5"
+#define UDB_VER "UDB3.5.1"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb
@@ -162,6 +162,13 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
  * - S::quit_clones <mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos
  * - S::desafio <metodo> -> Desafío global con el que se cifran las contraseñas
  * - S::flood <v>:<s> -> Si el usuario intenta más de <v> veces durante <s> segundos una contraseña incorrecta, es bloqueado.
+ *
+ * Los servidores tienen los siguientes subbloques:
+ * - L::<servidor>::opciones *<opts> -> Fija distintas opciones para este link
+ *    	- L_OPT_DEBG 0x1 -> Establece este servidor como debug. Recibe todos los cambio de usuarios UDB (modo +r por ejemplo).
+ *    	- L_OPT_PROP 0x2 -> Establece este servidor como propagador. Es el único servidor que puede propagar datos por la red. Sólo puede haber UNO.
+ *			ATENCIÓN: Si se propaga esta opción y ya hay otro link propagador, el bloque entero se borrará!
+ *    	- L_OPT_CLNT 0x4 -> Permite la conexión de clientes en el caso de que sea un servidor no-UDB leaf y que a su vez esté configurado como uline.
  */
 
 #define E_UDB_NODB 1 /* no existe bloque */

@@ -17,14 +17,13 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.16 2006-12-22 21:58:59 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.17 2007-03-20 19:34:25 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
 #define __struct_include__
 
 #include "config.h"
-
 /* need to include ssl stuff here coz otherwise you get
  * conflicting types with isalnum/isalpha/etc @ redhat. -- Syzop
  */
@@ -173,7 +172,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define	REALLEN	 	50
 #define	TOPICLEN	307
 #define	CHANNELLEN	32
-#define	PASSWDLEN 	32	/* orig. 20, changed to 32 for nickpasswords */
+#define	PASSWDLEN 	48	/* was 20, then 32, now 48. */
 #define	KEYLEN		23
 #define LINKLEN		32
 #define	BUFSIZE		512	/* WARNING: *DONT* CHANGE THIS!!!! */
@@ -327,7 +326,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #ifdef USE_SSL
 #define FLAGS_SSL        0x10000000
 #endif
-#define FLAGS_UNOCCUP4   0x20000000 /* [FREE] */
+#define FLAGS_NOFAKELAG  0x20000000 /* Exception from fake lag */
 #define FLAGS_DCCBLOCK   0x40000000 /* Block all DCC send requests */
 #define FLAGS_MAP        0x80000000	/* Show this entry in /map */
 /* Dec 26th, 1997 - added flags2 when I ran out of room in flags -DuffJ */
@@ -439,6 +438,11 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define IsZipped(x)		(0)
 #define IsZipStart(x)	(0)
 #endif
+
+/* Fake lag exception */
+#define IsNoFakeLag(x)      ((x)->flags & FLAGS_NOFAKELAG)
+#define SetNoFakeLag(x)     ((x)->flags |= FLAGS_NOFAKELAG)
+#define ClearNoFakeLag(x)   ((x)->flags &= ~FLAGS_NOFAKELAG)
 
 #define IsHybNotice(x)		((x)->flags & FLAGS_HYBNOTICE)
 #define SetHybNotice(x)         ((x)->flags |= FLAGS_HYBNOTICE)

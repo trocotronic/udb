@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.18 2006-12-22 21:58:53 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.19 2007-03-20 19:34:25 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1429,3 +1429,23 @@
 ** 3.2.6-rc3 release **
 - Updated release notes, mass-change of version number, no code changes.
 ** 3.2.6 release **
+- Fixed bug where SVSO was unable to give various operflags such as q, d, X, reported
+  by prodigy2k7 (#0003203).
+- /WHOIS now shows the ident of local users - if ident enabled and they had an ident -
+  instead of always "*" in the 'is connecting from' line. Suggested and patch provided
+  by djGrrr (#0002888).
+- Added ability to enable "no fake lag" for a user through through services via the
+  new commands SVSNOLAG/SVS2NOLAG (syntax: SVSNOLAG [+|-] NickName). Obviously, care
+  should be taken when giving such access to a user since he/she will be able to flood
+  at full speed and could possibly take down the entire IRCd (well, everyone on it).
+  Suggested by avb, coded by djGrrr.
+- Fixed SDESC not messaging +s +s clients on local server when it is used, reported by
+  dre, patch provided by djGrrr.
+- Fixed SAPART causing a flood of notices from all servers, fun. Reported and patch
+  provided by djGrrr.
+- Changed password length from 32 to 48, is allocated dynamically anyway.
+- Fixed file descriptor leakage on rehash. This resulted in [number of modules loaded]
+  file descriptors being leaked upon every /REHASH.
+  So if you, for example, had 3 modules loaded and rehashed 30 times, it would cause
+  the ircd to consume 90 useless file descriptors (which often means 90 less file
+  descriptors being available to clients).

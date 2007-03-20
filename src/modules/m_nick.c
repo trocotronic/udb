@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.9 2006-12-22 21:59:01 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.10 2007-03-20 19:34:26 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -1244,7 +1244,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		if (sptr->flags & FLAGS_SSL)
 			if (sptr->ssl)
 				sendto_one(sptr,
-				    ":%s NOTICE %s :*** You are connected to %s with %s",
+				    ":%s NOTICE %s :*** Estás conectado a %s con %s",
 				    me.name, sptr->name, me.name,
 				    ssl_get_cipher(sptr->ssl));
 #endif
@@ -1341,8 +1341,8 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		sptr->from = NULL;
 		DaleCosas(BuscaBloque(N_SUS, reg) ? 1 : 2, sptr, reg, umodebuf);
 		strcat(buf, &umodebuf[1]);
-		sptr->from = fr;
 		user->virthost = MakeVirtualHost(sptr, user->realhost, user->virthost, 1);
+		sptr->from = fr;
 	}
 #endif
 	/* NICKv2 Servers ! */

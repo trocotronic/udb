@@ -431,7 +431,7 @@ static char *replies[] = {
 #ifdef UDB
 /* 378    RPL_WHOISHOST */ ":%s 378 %s %s :Dirección VIRTUAL %s",
 #else
-/* 378    RPL_WHOISHOST */ ":%s 378 %s %s :conecta desde *@%s %s",
+/* 378    RPL_WHOISHOST */ ":%s 378 %s %s :is connecting from %s@%s %s",
 #endif
 /* 379    RPL_WHOISMODES */ ":%s 379 %s %s :utiliza los modos [%s %s]",
 /* 380 */ NULL, /* aircd, austhex */

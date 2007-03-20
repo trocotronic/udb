@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.6+UDB 3.5es
+AppVerName=UnrealIRCd3.2.6+UDB 3.5.1es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -83,7 +83,7 @@ Source: c:\dev\zlib\dll32\zlibwapi.dll; DestDir: {app}; Flags: ignoreversion
 #ifdef USE_SSL
 #ifdef USE_CURL
 ; curl with ssl support
-Source: c:\dev\curl\lib\release\libcurl.dll; DestDir: {app}; Flags: ignoreversion
+Source: C:\dev\curl\lib\release-dll-ssl-dll-zlib-dll\libcurl.dll; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\curl-ca-bundle.crt; DestDir: {app}; Flags: ignoreversion
 #endif
 #else

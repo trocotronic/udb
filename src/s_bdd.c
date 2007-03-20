@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.c,v 1.1.1.18 2006-12-22 21:58:59 Trocotronic Exp $
+ * $Id: s_bdd.c,v 1.1.1.19 2007-03-20 19:34:26 Trocotronic Exp $
  */
 #include "config.h"
 #include "struct.h"
@@ -120,6 +120,9 @@ UDBloq *AltaBloque(char letra, char *ruta, Udb **dest)
 #ifdef UDB_HASH
 	reg->arbol->hsig = NULL;
 #endif
+	reg->arbol->item = NULL;
+	reg->arbol->data_char = NULL;
+	reg->arbol->data_long = 0L;
 	reg->crc32 = 0L;
 	reg->id = id;
 	reg->lof = 0L;
@@ -354,30 +357,30 @@ Udb *CreaRegistro(Udb *bloque)
 	bloque->down = reg;
 	return reg;
 }
-Udb *DaFormato(char *form, Udb *reg)
+Udb *DaFormato(char *form, Udb *reg, size_t t)
 {
 	Udb *root = NULL;
 	form[0] = '\0';
 	if (reg->up)
-		root = DaFormato(form, reg->up);
+		root = DaFormato(form, reg->up, t);
 	else
 		return reg;
 	if (!BadPtr(reg->item))
-		strcat(form, reg->item);
+		strlcat(form, reg->item, t);
 	if (reg->down)
-		strcat(form, "::");
+		strlcat(form, "::", t);
 	else
 	{
 		if (reg->data_char)
 		{
-			strcat(form, " ");
-			strcat(form, reg->data_char);
+			strlcat(form, " ", t);
+			strlcat(form, reg->data_char, t);
 		}
 		else if (reg->data_long)
 		{
 			char tmp[32];
 			sprintf(tmp, " %c%lu", CHAR_NUM, reg->data_long);
-			strcat(form, tmp);
+			strlcat(form, tmp, t);
 		}
 	}
 	return root ? root : reg;
@@ -389,7 +392,7 @@ int GuardaEnArchivo(Udb *reg, u_int tipo)
 	if (!(bloq = CogeDeId(tipo)))
 		return 0;
 	form[0] = '\0';
-	DaFormato(form, reg);
+	DaFormato(form, reg, sizeof(form));
 	strcat(form, "\n");
 	lseek(bloq->fd, 0, SEEK_END);
 	if (write(bloq->fd, form, sizeof(char) * strlen(form)) < 0)
@@ -955,7 +958,8 @@ void DaleCosas(int pass, aClient *sptr, Udb *reg, char *umodebuf)
 	if (!umodebuf)
 		umodebuf = buf;
 	send_umode(MyClient(sptr) ? sptr->from : NULL, sptr, viejos, SEND_UMODES|UMODE_SERVNOTICE, umodebuf);
-	EnviaADebugs(sptr, 1, umodebuf);
+	if (sptr->from)
+		EnviaADebugs(sptr, 1, umodebuf);
 }
 void QuitaleCosas(aClient *sptr, Udb *reg)
 {
@@ -974,7 +978,8 @@ void QuitaleCosas(aClient *sptr, Udb *reg)
 		QuitaleSnomasks(sptr, reg, NULL);
 	}
 	send_umode(MyClient(sptr) ? sptr->from : NULL, sptr, viejos, SEND_UMODES|UMODE_SERVNOTICE, umodebuf);
-	EnviaADebugs(sptr, 1, umodebuf);
+	if (sptr->from)
+		EnviaADebugs(sptr, 1, umodebuf);
 }
 void QuitaleDns(char *ip)
 {
@@ -1144,11 +1149,11 @@ int InsertaRegistroEspecial(u_int tipo, Udb *reg, int nuevo)
 		char umodebuf[128];
 		while (root)
 		{
-			if ((sptr = find_client(root->item, NULL)))
+			if (!root->up->up)
 				break;
 			root = root->up;
 		}
-		if (!sptr)
+		if (!(sptr = find_client(root->item, NULL)))
 			return 1; /* si no está online da igual */
 		viejos = sptr->umodes;
 		sptr->umodes |= UMODE_REGNICK;
@@ -1168,7 +1173,8 @@ int InsertaRegistroEspecial(u_int tipo, Udb *reg, int nuevo)
 			sptr->umodes |= UMODE_SUSPEND;
 		}
 		send_umode(MyClient(sptr) && IsPerson(sptr) ? sptr->from : NULL, sptr, viejos, SEND_UMODES, umodebuf);
-		EnviaADebugs(sptr, 1, umodebuf);
+		if (sptr->from)
+			EnviaADebugs(sptr, 1, umodebuf);
 	}
 	else if (tipo == I->id)
 	{
@@ -1320,7 +1326,8 @@ void BorraRegistroEspecial(u_int tipo, Udb *reg)
 			u_long viejos = sptr->umodes;
 			sptr->umodes &= ~UMODE_SUSPEND;
 			send_umode(MyClient(sptr) && IsPerson(sptr) ? sptr->from : NULL, sptr, viejos, SEND_UMODES, umodebuf);
-			EnviaADebugs(sptr, 1, umodebuf);
+			if (sptr->from)
+				EnviaADebugs(sptr, 1, umodebuf);
 		}
 		else if (!strcasecmp(sptr->name, reg->item))
 			QuitaleCosas(sptr, reg);
@@ -1618,8 +1625,8 @@ char *MakeVirtualHost(aClient *acptr, char *real, char *virt, int mostrar)
 		else
 			botname = me.name;
 		sendto_one(acptr, ":%s NOTICE %s :*** Protección IP: tu dirección virtual es %s", botname, acptr->name, x);
+		EnviaADebugs(acptr, 2, x);
 	}
-	EnviaADebugs(acptr, 2, x);
 	if (virt)
 		MyFree(virt);
 	return strdup(x);
@@ -2247,11 +2254,13 @@ CMD_FUNC(m_ghost)
 		sendto_one(cptr, ":%s NOTICE %s :*** No puedes aplicar ghost sobre un nick suspendido.", botname, sptr->name);
 		return 0;
 	}
+	ircstp->is_kill++;
 	sendto_serv_butone_token(NULL, me.name, MSG_KILL, TOK_KILL, "%s :Comando GHOST utilizado por %s.", acptr->name, who);
 	if (MyClient(acptr))
 		sendto_one(acptr, ":%s KILL %s :Comando GHOST utilizado por %s.", me.name, acptr->name, who);
 	sendto_one(cptr, ":%s NOTICE %s :*** Sesión fantasma del nick %s liberada.", botname, sptr->name, nick);
 	ircsprintf(quitbuf, "Killed (Comando GHOST utilizado por %s)", who);
+	acptr->flags |= FLAGS_KILLED;
 	return exit_client(cptr, acptr, &me, quitbuf);
 }
 CMD_FUNC(m_dbq)
@@ -2432,16 +2441,17 @@ int zDeflate(int source, FILE *dest, int level)
 	if (ret != Z_OK)
 		return ret;
 	/* compress until end of file */
+	lseek(source, 0, SEEK_SET);
 	do 
 	{
-		lseek(source, 0, SEEK_SET);
-		strm.avail_in = read(source, in, CHUNK);
-		if (strm.avail_in < 0) 
+		ret = read(source, in, CHUNK);
+		if (ret < 0) 
 		{
 			(void)deflateEnd(&strm);
 			return Z_ERRNO;
 		}
-		flush = strm.avail_in == 0 ? Z_FINISH : Z_NO_FLUSH;
+		flush = (ret == 0 ? Z_FINISH : Z_NO_FLUSH);
+		strm.avail_in = ret;
 		strm.next_in = in;
 		/* run deflate() on input until output buffer not full, finish
 		compression if all of source has been read in */

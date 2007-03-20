@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.10 2006-12-22 21:58:54 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.11 2007-03-20 19:34:25 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -240,3 +240,9 @@
 221206225 - Documentación actualizada.
 221206226 - Una pequeña optimización para propagar comandos.
 221206227 - *** Unreal 3.2.6 + UDB 3.5 es
+271206228 - Arreglado un cuelgue al hacer un backup.
+080107229 - Optimizada una función para evitar desbordamientos.
+120107230 - Se modifica la función para buscar clientes cuando se inserta un registro especial.
+160207231 - Arreglado un fallo con el modo server-debug, aviso de ReCoRD y Marquitox (#0000237 y #0000239).
+040207232 - Arreglado un cuelgue al hacer ghost, aviso de Mew y ReCoRD (#0000217 y #0000244).
+210307233 - *** Unreal 3.2.6 + UDB 3.5.1 es

@@ -53,7 +53,7 @@ DLLFUNC int m_sdesc(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sdesc)
   = {
 	"sdesc",	/* Name of module */
-	"$Id: m_sdesc.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_sdesc.c,v 1.1.1.2 2007-03-20 19:34:26 Trocotronic Exp $", /* Version */
 	"command /sdesc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -130,13 +130,11 @@ int m_sdesc(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	    parv[1]);
 
 	if (MyConnect(sptr))
-	{
 		sendto_one(sptr,
-		    ":%s NOTICE %s :Your \"server description\" is now set to be %s - you have to set it manually to undo it",
-		    me.name, parv[0], parv[1]);
-		return 0;
-	}
+			":%s NOTICE %s :Your \"server description\" is now set to be %s - you have to set it manually to undo it",
+			me.name, parv[0], parv[1]);
+
 	sendto_ops("Server description for %s is now '%s' changed by %s",
-	    sptr->srvptr->name, sptr->srvptr->info, parv[0]);
+		sptr->srvptr->name, sptr->srvptr->info, parv[0]);
 	return 0;
 }

@@ -61,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.11 2006-06-15 21:16:14 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.12 2007-03-20 19:34:26 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -121,6 +121,7 @@ extern int m_part_Init(ModuleInfo *modinfo), m_join_Init(ModuleInfo *modinfo);
 extern int m_motd_Init(ModuleInfo *modinfo), m_opermotd_Init(ModuleInfo *modinfo);
 extern int m_botmotd_Init(ModuleInfo *modinfo), m_lusers_Init(ModuleInfo *modinfo);
 extern int m_names_Init(ModuleInfo *modinfo);
+extern int m_svsnolag_Init(ModuleInfo *modinfo);
 #ifdef GUEST
 extern int m_guest_Init(ModuleInfo *modinfo);
 #endif
@@ -169,6 +170,7 @@ extern int m_part_Load(int module_load), m_join_Load(int module_load);
 extern int m_motd_Load(int module_load), m_opermotd_Load(int module_load);
 extern int m_botmotd_Load(int module_load), m_lusers_Load(int module_load);
 extern int m_names_Load(int module_load);
+extern int m_svsnolag_Load(int module_load);
 #ifdef GUEST
 extern int m_guest_Load(int module_load);
 #endif
@@ -203,7 +205,7 @@ extern int m_whowas_Unload(), m_connect_Unload(), m_dccallow_Unload();
 extern int m_nick_Unload(), m_user_Unload(), m_mode_Unload();
 extern int m_watch_Unload(), m_part_Unload(), m_join_Unload();
 extern int m_motd_Unload(), m_opermotd_Unload(), m_botmotd_Unload();
-extern int m_lusers_Unload(), m_names_Unload();
+extern int m_lusers_Unload(), m_names_Unload(), m_svsnolag_Unload();
 #ifdef GUEST
 extern int m_guest_Unload();
 #endif
@@ -344,6 +346,7 @@ int    l_commands_Init(ModuleInfo *modinfo)
 	m_botmotd_Init(ModCmdsInfo);
 	m_lusers_Init(ModCmdsInfo);
 	m_names_Init(ModCmdsInfo);
+	m_svsnolag_Init(ModCmdsInfo);
 #ifdef GUEST
 	m_guest_Init(ModCmdsInfo);
 #endif
@@ -456,6 +459,7 @@ int    l_commands_Load(int module_load)
 	m_botmotd_Load(module_load);
 	m_lusers_Load(module_load);
 	m_names_Load(module_load);
+	m_svsnolag_Load(module_load);
 #ifdef GUEST
 	m_guest_Load(module_load);
 #endif
@@ -568,6 +572,7 @@ int	l_commands_Unload(int module_unload)
 	m_botmotd_Unload();
 	m_lusers_Unload();
 	m_names_Unload();
+	m_svsnolag_Unload();
 #ifdef GUEST
 	m_guest_Unload();
 #endif

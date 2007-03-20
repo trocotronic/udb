@@ -81,14 +81,17 @@ static int oper_access[] = {
         OFLAG_HIDE, 'H',
 	OFLAG_TKL, 't',
 	OFLAG_GZL, 'Z',
-	OFLAG_OVERRIDE, 'v', 
+	OFLAG_OVERRIDE, 'v',
+	OFLAG_UMODEQ, 'q',
+	OFLAG_DCCDENY, 'd',
+	OFLAG_ADDLINE, 'X',
         0, 0
 };
 
 ModuleHeader MOD_HEADER(m_svso)
   = {
 	"m_svso",
-	"$Id: m_svso.c,v 1.1.1.7 2006-12-22 21:59:01 Trocotronic Exp $",
+	"$Id: m_svso.c,v 1.1.1.8 2007-03-20 19:34:26 Trocotronic Exp $",
 	"command /svso", 
 	"3.2-b8-1",
 	NULL 

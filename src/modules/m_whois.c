@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.14 2006-11-01 00:06:45 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.15 2007-03-20 19:34:26 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -205,7 +205,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			{
 				sendto_one(sptr, rpl_str(RPL_WHOISHOST),
 				    me.name, parv[0], acptr->name,
-				    user->realhost, user->ip_str ? user->ip_str : "");
+					(MyConnect(acptr) && strcmp(acptr->username, "unknown")) ? acptr->username : "*",
+					user->realhost, user->ip_str ? user->ip_str : "");
 			}
 
 			if (IsARegNick(acptr))
