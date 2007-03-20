@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: support.c,v 1.1.1.9 2006-12-22 21:59:00 Trocotronic Exp $
+ * $Id: support.c,v 1.1.1.10 2007-03-20 19:34:26 Trocotronic Exp $
  */
 
 #ifndef CLEAN_COMPILE
@@ -1680,9 +1680,8 @@ int file_exists(char* file)
 	FILE *fd;
 	fd = fopen(file, "r");
 	if (!fd)
-	{
 		return 0;
-	}
+	fclose(fd);
 	return 1;
 }
 

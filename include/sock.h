@@ -20,7 +20,7 @@
  */
 
 /*
- * $Id: sock.h,v 1.1.1.20 2006-12-22 21:58:59 Trocotronic Exp $
+ * $Id: sock.h,v 1.1.1.21 2007-03-20 19:34:25 Trocotronic Exp $
  *
  * $Log: not supported by cvs2svn $
  * Revision 1.1.1.1.2.1  2004/02/16 16:48:03  Trocotronic
