@@ -52,7 +52,7 @@ DLLFUNC int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_connect)
   = {
 	"m_connect",
-	"$Id: m_connect.c,v 1.1.4.4 2006-02-15 22:06:18 Trocotronic Exp $",
+	"$Id: m_connect.c,v 1.1.4.5 2007-07-14 13:00:35 Trocotronic Exp $",
 	"command /connect", 
 	"3.2-b8-1",
 	NULL 
@@ -169,6 +169,8 @@ DLLFUNC CMD_FUNC(m_connect)
 		return 0;
 	}
 
+
+
 /* Evaluate deny link */
 	for (deny = conf_deny_link; deny; deny = (ConfigItem_deny_link *) deny->next) {
 		if (deny->flag.type == CRULE_ALL && !match(deny->mask, aconf->servername)
@@ -179,6 +181,13 @@ DLLFUNC CMD_FUNC(m_connect)
 			return 0;
 		}
 	}
+	if (strchr(aconf->hostname, '*') != NULL || strchr(aconf->hostname, '?') != NULL)
+	{
+		sendto_one(sptr,
+			":%s %s %s :*** Connect: No puedes conectar a un servidor con comodines (* and ?) en su hostname",
+			me.name, IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", parv[0]);
+		return 0;
+	}	
 	/*
 	   ** Notify all operators about remote connect requests
 	 */

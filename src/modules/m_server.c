@@ -59,7 +59,7 @@ static char buf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.12 2006-12-22 21:59:01 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.13 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -966,6 +966,7 @@ int	m_server_synch(aClient *cptr, long numeric, ConfigItem_link *aconf)
 #ifdef UDB
 	if (!IsUDB(cptr))
 #endif
+
 	/* Send EOS (End Of Sync) to the just linked server... */
 	sendto_one(cptr, ":%s %s", me.name,
 		(IsToken(cptr) ? TOK_EOS : MSG_EOS));

@@ -59,7 +59,7 @@ DLLFUNC int m_chghost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chghost)
   = {
 	"chghost",	/* Name of module */
-	"$Id: m_chghost.c,v 1.1.1.5 2006-02-15 22:06:18 Trocotronic Exp $", /* Version */
+	"$Id: m_chghost.c,v 1.1.1.6 2007-07-14 13:00:35 Trocotronic Exp $", /* Version */
 	"/chghost", /* Short description of module */
 	"3.2-b8-1",
     };
@@ -147,6 +147,14 @@ DLLFUNC int m_chghost(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	if ((acptr = find_person(parv[1], NULL)))
 	{
 		DYN_LOCAL(char, did_parts, acptr->user->joined);
+		if (MyClient(sptr) && (IsLocOp(sptr) && !MyClient(acptr)))
+		{
+			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
+				parv[0]);
+			DYN_FREE(did_parts);
+			return 0;
+		}
+			
 		if (!strcmp(GetHost(acptr), parv[2]))
 		{
 			sendnotice(sptr, "*** /ChgHost Error: requested host is same as current host.");

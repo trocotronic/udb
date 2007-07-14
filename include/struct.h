@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.17 2007-03-20 19:34:25 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.18 2007-07-14 13:00:32 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -1180,6 +1180,7 @@ struct _configitem_oper_from {
 	ConfigItem       *prev, *next;
 	ConfigFlag 	 flag;
 	char		 *name;
+	struct irc_netmask	*netmask;
 };
 
 struct _configitem_drpass {
@@ -1716,7 +1717,7 @@ struct liststruct {
  */
 #define	MyConnect(x)			((x)->fd != -256)
 #define	MyClient(x)			(MyConnect(x) && IsClient(x))
-#define	MyOper(x)			(MyConnect(x) && IsOper(x))
+#define	MyOper(x)			(MyConnect(x) && IsAnOper(x))
 
 #ifdef CLEAN_COMPILE
 #define TStime() (time(NULL) + TSoffset)

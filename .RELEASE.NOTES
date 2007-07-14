@@ -1,104 +1,77 @@
-Unreal3.2.6 Release Notes
+Unreal3.2.7 Release Notes
 ==========================
 
-==[ GENERAL INFORMATION ]==
-- If you are upgrading on *NIX, make sure you run 'make clean' and './Config'
-  first before doing 'make'
-- The official UnrealIRCd documentation is doc/unreal32docs.html
-  online version at: http://www.vulnscan.org/UnrealIRCd/unreal32docs.html
-  FAQ: http://www.vulnscan.org/UnrealIRCd/faq/
-  Read them before asking for help.
-- Report bugs at http://bugs.unrealircd.org/
-- When upgrading a network, we assume you are upgrading from the previous
-  version (3.2.5). Upgrading from 3.2.3 or 3.2.4 should be ok as well.
-  However, if you have a network running with servers that are several versions behind
-  (eg: 3.2.1) then you might experience small (desynch) problems.
-  Please also minimize the time you have multiple versions running, a few days or
-  one week is generally not a problem, but having mixed versions on a network for several
-  weeks or months is not recommended.
-- The purpose of the sections below (NEW, CHANGED, MINOR, etc) is to be a SUMMARY of
-  the changes in this release. There have been 80+ changes, and trying to mention them
-  all would be useless, see the Changelog for the full list of changes.
+[ New stuff and known issues is listed below ]
 
-==[ NEW ]==
-- None. Except some behavior changes, see next.
 
-==[ CHANGED ]==
-- SSL: The server certificate and keys can now be reloaded via '/REHASH -ssl', no
-  restart needed anymore.
-- IRCOps can now view the bans of a channel ("MODE #channel b") from the outside
-- Moved failed /OPER attempt notices to snomask +o and made them sent to all servers.
-  This means all failed oper attempts can now be seen globally. Plus, the UID is now
-  always shown (like for incorrect host and maxlogin), unless trying an unknown oper acc.
-- The annoying "please type /quote pong" message is now no longer shown on connect, unless
-  explicitly enabled by setting set::pingpong-warning to 'yes'. (mainly Windows)
-- /INVITE's from people on the silence list are now silently ignored
-- SAPART now works for multiple channels (again)
-- Non-SSL users are now kicked when netsynching and channel is +z (SSL only)
-- No longer showing server numerics in /MAP to non-opers (too confusing anyway)
-- Updated ukrainian-w1251, belarussian-w1251 and catalan character sets
-- Spamfilter + IPv6: for target 'u' (nick!user@host:realname bans), the 'host' part
-  is now in brackets if it's an IPv6 address (eg: blah!blah@[1:2:3:4:5:6:7:8]:hello)
-- loadmodule errors are improved
-- Snomask 'N' will no longer show nick changes of U-lined servers
-- The set::dns block is now no longer mandatory, because it is actually not used
-  (except for set::dns::bind-ip) and fetched from /etc/resolv.conf (*NIX) or the
-  registry (Windows) instead. This has always been the case, but has never been documented.
-- Various doc updates ('/HELPOP ?EXTBANS', and some unreal32docs improvements)
+[ Strategy change ]
 
-==[ MAJOR BUGS FIXED ]==
-- Crash if link::options::quarantine was used
-- Another crash which could happen in some rare cases
-- Throttling was not always being applied correctly
-- Windows 2003: Fixed crash on-boot if no nameserver was set
-- Windows: Fixed /RESTART not always working properly (leaving the ircd dead)
+Unreal3.2.7 will be released on 14th July 2007 - marking 8 years since the first UnrealIRCd
+release. With this, we've decided to do a rather big change in strategy. Fact is, the Unreal3 
+code base has gone stale and is not suitable to service your IRC networks for 8 more years.
 
-==[ MINOR BUGS FIXED ]==
-- Remote includes: should now work with latest curl again, due to c-ares upgrade
-- a bunch of OperOverride bugs.. messages being sent when they shouldn't, some things
-  not being logged or broadcasted, and more.
-- Sometimes no message was shown when a link to an SSL server failed
-- Desynch problem caused by +Q
-- SAJOIN now properly deals with +z channels
-- "MODE #channel" showing extended channel mode parameters if not in channel
-- Channel Mode 'f' did not properly eat a parameter on unset (even though it would
-  show like it did), this could have caused desynchs in some cases.
-- Fixed handling of CNAME's once again (now showing original name instead of fwded name)
-- The "looking up your hostname" message was always sent, regardless of show-connect-info
-- deny link { } blocks were being ignored by autoconnect
-- Windows: SSL private key prompt caused a crash
-- Windows: Unable to write to service.log caused a crash
-- set::allowed-nickchars could cause a segfault for some unknown languages
-- If class::connfreq was omitted and used for a server link, this would cause a huge
-  connection flood when autoconnect was used.
-- set::dns::bind-ip was seen as a duplicate when it actually wasn't
-- And more... see Changelog
+We've been working to improve this code base but run into serious issues constantly due to old
+code laying about and design decisions in the past by previous coders that has locked us into 
+an IRCd that can hardly evolve.
 
-==[ KNOWN ISSUES ]==
-- Regexes: Be careful with backreferences (\1, etc), certain regexes can slow the IRCd
-  down considerably and even bring it to a near-halt. In the spamfilter user target it's
-  usually safe though.
-- Regexes: Possessive quantifiers such as, for example, "++" (not to be confused with "+")
-  are not safe to use, they can easily freeze the IRCd.
+In light of this, and through that people have worked on a IRCd from scratch, in C++ - InspIRCd.
+InspIRCd was made by people who initially used Unreal, but foresaw that something radical was 
+needed to fix the IRCd code base so many IRCds share. 
 
-==[ SERVICES / CODERS ]==
-- Note: this is a new section, it describes changes specifically for services coders
-  and unreal module coders. Note that other changes (such as new modes, etc) mentioned
-  elsewhere in this document might affect you as well. For more info about a particular
-  change mentioned below (such as a new hooktype), see the Changelog.
-- New hooktype: HOOKTYPE_SILENCED (called when a message is not delivered due to silence)
-- New hooktype: HOOKTYPE_POST_SERVER_CONNECT (called after users synched to remote server)
-- Fixed CALLBACKTYPE_CLOAK_EX, wasn't working properly at all
-- Fixed SVSNICK: cAsE cHaNgE no longer causes a collision, fixed QUIT not being sent
-- SVSMODE/SVS2MODE: when doing -x on a user, the virthost is removed from memory.
-  This means services can now properly "unvhost" a user and give them back their cloaked
-  host by doing "SVSMODE User -x+x".
-- Services timestamps for users are now properly treated as unsigned long, previously
-  some trouble could arise when netsynching for values larger than 2147483647.
-- 'SVSMOTD !' now removes the svsmotd from memory as well.
-- Fixed SVSMODE -b User not always removing all bans for that user (specifically, bans on
-  the cloaked host, when the user has a vhost).
-- Fixed SVSO - not removing coadmin (+C)
+InspIRCd was partly inspired by Unreal and this means that it will be easier for us to move on
+to the logical step - we're forking InspIRCd (through a tight cooperation with them), to give 
+you Unreal4.0. For more information on the new core, see http://www.inspircd.org - any documents
+dealing with module coding, server protocol, etc, works for Unreal4 too - as we will be 
+the project that extends from bare (InspIRCd) to colourful and featureful (UnrealIRCd),
+and the goal is to be able to move modules from Unreal to InspIRCd without problems.
 
-==[ ADDITIONAL INFO ]==
-* See Changelog for more details
+The target is for both development teams to work what's their speciality - we're dedicated
+to give our users service, implement features and maintain stability and innovate, where
+InspIRCd also has some of these qualities, but focuses more on a base IRCd that can be extended 
+with new features through modularity and maintaining a stable core that just works and performs
+well. 
+
+The fork will not be a hostile one - the idea is to have a shared core (InspIRCd) and we work
+together on inventing and implementing new ideas that can be added through the module system,
+and we will work alone on features that InspIRCd coders may not want to touch and reverse.
+
+We hope to shape InspIRCd in our image and provide an Unreal4 that feels like an Unreal3 - same 
+configuration format, same quality documentation, support, etc, and in the progress give you
+users the ability to have a "modern" IRCd that can handle loads and loads of users, and still
+give you the choice to choose what features your network wants to use.
+
+The Unreal3.2 branch will continue mostly as bug fixes - and adding ability to link to Unreal4,
+so we're not giving up on you people who want to keep on running Unreal3, but when this link is
+stable (in 3.2.8 - based off 3.3), and Unreal4 is as feature complete with Unreal3, we stop
+supporting Unreal3.
+
+So, how will this affect you? We could need a hand. Enter the development wiki on 
+http://dev.unrealircd.com/unreal4_development - aid out and find out what we're missing in 
+Unreal4 to make it an IRCd you'd switch to. Test the SVN, find bugs we introduce, and we hope
+this cooperation between InspIRCd and UnrealIRCd will lead to a new age in IRCd development
+and for IRC networks in general - since we have many new ideas we can try out together.
+
+Hang out in #unreal-devel on irc.unrealircd.com - we're interested in having you along. Making
+modules should be slightly easier from now on.
+
+[ New stuff ]
+
+- Updated c-ares to 1.4.0, TRE to 0.7.5
+- chmode +L does no longer require chmode +l
+- Oper blocks now can have CIDR, as in "userhost *@127.0.0.1/32";
+- Services coders: SVSNOLAG/SVS2NOLAG (described in Changes) will allow a user 
+  to avoid fake lag (ie, flood as much as he/she wants).
+- More intelligent accept() handling - that is, take in multiple times at a time instead of one
+  per I/O loop
+- A lot of bug fixes, basically.
+
+[ Known issues found in testing ]
+
+- CHROOTDIR does not work nicely together with the new patch where you can do hardcoded
+IRC_USER / IRC_GROUP (setuid / setgid with names), due to having to look up password files.
+- Spamfilter warn does not work with /setname
+- Documentation is not complete
+- There is a problem with bans getting truncated we are still trying to investigate. Happens
+  in 3.2.6 too.
+
+

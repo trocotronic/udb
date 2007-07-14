@@ -29,9 +29,10 @@
 
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
-  <font size="4">Version: 3.2.6 </font><br>
-  <b>Letztes Update dieses Handbuchs:</b>                2006-12-22</div>
-  <b>Head Coders:</b> Stskeeps / codemastr / Syzop / Luke<br>
+  <font size="4">Version: 3.2.7</font><br>
+  <b>Letztes Update dieses Handbuchs:</b>                 2007-07-10</div>
+  <b>Head Coders:</b> Stskeeps / codemastr / Syzop / Luke<font face="Helvetica,Arial" size="-1">/
+aquanight / WolfSage</font><br>
   <b>Contributors:</b>  McSkaf / Zogg / NiQuiL / assyrian / chasm / DrBin / llthangel / Griever / nighthawk<br>
 <b>Dokumentation</b><b>:</b> CKnight^ / Syzop<br>
 <b>Deutsche Übersetzung:</b> Stylus740 (irc.smart-irc.net)<br>
@@ -998,7 +999,7 @@ ermöglicht es, IP Bereiche zu bannen. IPs werden an Internet Service Provider (I
 unter Verwendung von CIDR vergeben. Daher ist es möglich unter Verwendung eines
 CIDR basierten Banns auf einfache Weise ganze ISPs zu sperren. Unreal
 unterstützt CIDR sowohl für IPv4 als auch für IPv6. CIDR Masken können
-benutzt werden bei: allow::ip, ban user::mask, ban ip::mask, except ban::mask, except
+benutzt werden bei: allow::ip, oper::from::userhost, ban user::mask, ban ip::mask, except ban::mask, except
 throttle::mask, und except tkl::mask (für gzline, gline, and shun). Zusätzlich
 kann&nbsp; CIDR bei /kline, /gline, /zline, /gzline, und /shun benutzt werden. Unreal
 verwendet die Standard Syntax von IP/bits, z.B. 127.0.0.0/8 (passt auf 127.0.0.0 - 127.255.255.255),
@@ -2025,7 +2026,7 @@ bekannt als T:Line)</font><div class="desc">
 	channel &lt;channel-name&gt;;
 	options {
 		ssl;
-	}
+	};
 };</pre>
 <p>Mit dem TLD Block kann man eine motd (Messageoftheday), rules und channels für
 User basierend auf deren Host festlegen. Das ist nützlich, falls man
@@ -2179,7 +2180,7 @@ Maske kann Wildcards enthalten.<br>
 <b>ban::reason</b> legt den Grund fest, der dem User angezeigt wird.<br>
 <b>ban::action</b> kann ebenfalls festgelegt werden. Dabei ist der Default auf
 &quot;kill&quot;. <i>tempshun</i> setzt ein shun auf die Verbindung des Users
-und arbeitet effektiv gegen zombies und/oder Bots mit dynamischer IP, weil sie
+und arbeitet effektiv gegen Zombies und/oder Bots mit dynamischer IP, weil sie
 unschuldige User nicht beeinträchtigen. <i>shun/kline/zline/gzline</i> setzen
 einen Bann auf die IP (*@IPADDR). Die Dauer dieser Banns kann mit 'set::ban-version-tkl-time'
 konfiguriert werden und beträgt per Default 1 Tag.</p>

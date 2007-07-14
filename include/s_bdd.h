@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.14 2007-03-20 19:34:25 Trocotronic Exp $
+ * $Id: s_bdd.h,v 1.1.1.15 2007-07-14 13:00:32 Trocotronic Exp $
  */
 
 /* CONFIGURACIÓN DEL SISTEMA INTERNO UDB */
@@ -37,7 +37,7 @@
 #define DB_DIR "database/"
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
-#define UDB_VER "UDB3.5.1"
+#define UDB_VER "UDB3.5.2"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb

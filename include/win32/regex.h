@@ -1,7 +1,7 @@
 /*
   regex.h - POSIX.2 compatible regexp interface and TRE extensions
 
-  Copyright (C) 2001-2003 Ville Laurikari <vl@iki.fi>.
+  Copyright (C) 2001-2004 Ville Laurikari <vl@iki.fi>.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2 (June

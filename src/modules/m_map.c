@@ -52,7 +52,7 @@ DLLFUNC int m_map(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_map)
   = {
 	"m_map",
-	"$Id: m_map.c,v 1.1.4.6 2006-11-01 00:06:44 Trocotronic Exp $",
+	"$Id: m_map.c,v 1.1.4.7 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /map", 
 	"3.2-b8-1",
 	NULL 
@@ -130,7 +130,7 @@ static void dump_map(aClient *cptr, aClient *server, char *mask, int prompt_leng
 	for (lp = Servers; lp; lp = lp->next)
 	{
 		acptr = lp->value.cptr;
-		if (IsULine(acptr) && HIDE_ULINES && !IsOper(cptr))
+		if (IsULine(acptr) && HIDE_ULINES && !IsAnOper(cptr))
 			continue;
 		if (acptr->srvptr != server)
 			continue;

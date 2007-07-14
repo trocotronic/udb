@@ -103,7 +103,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.12 2006-12-22 21:59:01 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.13 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -208,6 +208,8 @@ DLLFUNC int m_gline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		tkl_stats(sptr, TKL_KILL|TKL_GLOBAL, NULL);
 		tkl_stats(sptr, TKL_ZAP|TKL_GLOBAL, NULL);
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, sptr->name, 'g');
+		sendto_snomask(SNO_EYES, "Stats \'g\' solicitadas por %s (%s@%s)",
+			sptr->name, sptr->user->username, GetHost(sptr));
 		return 0;
 	}
 
@@ -232,6 +234,8 @@ DLLFUNC int m_gzline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		tkl_stats(sptr, TKL_GLOBAL|TKL_KILL, NULL);
 		tkl_stats(sptr, TKL_GLOBAL|TKL_ZAP, NULL);
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, sptr->name, 'g');
+		sendto_snomask(SNO_EYES, "Stats \'g\' solicitadas por %s (%s@%s)",
+			sptr->name, sptr->user->username, GetHost(sptr));
 		return 0;
 	}
 
@@ -255,6 +259,8 @@ DLLFUNC int m_shun(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	{
 		tkl_stats(sptr, TKL_GLOBAL|TKL_SHUN, NULL);
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, sptr->name, 's');
+		sendto_snomask(SNO_EYES, "Stats \'s\' solicitadas por %s (%s@%s)",
+			sptr->name, sptr->user->username, GetHost(sptr));
 		return 0;
 	}
 
@@ -386,6 +392,8 @@ DLLFUNC int m_tkline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					me.name, sptr->name, "E", excepts->mask, "");
 		}
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, sptr->name, 'k');
+		sendto_snomask(SNO_EYES, "Stats \'k\' solicitadas por %s (%s@%s)",
+			sptr->name, sptr->user->username, GetHost(sptr));
 		return 0;
 	}
 	if (!OPCanUnKline(sptr) && *parv[1] == '-')
@@ -447,6 +455,8 @@ DLLFUNC int m_tzline(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					me.name, sptr->name, "E", excepts->mask, "");
 		}
 		sendto_one(sptr, rpl_str(RPL_ENDOFSTATS), me.name, sptr->name, 'k');
+		sendto_snomask(SNO_EYES, "Stats \'k\' solicitadas por %s (%s@%s)",
+			sptr->name, sptr->user->username, GetHost(sptr));
 		return 0;
 	}
 

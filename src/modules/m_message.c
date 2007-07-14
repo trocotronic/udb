@@ -66,7 +66,7 @@ extern int webtv_parse(aClient *sptr, char *string);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.13 2006-12-22 21:59:00 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.14 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -572,24 +572,6 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 		if ((*nick == '$' || *nick == '#') && (IsAnOper(sptr)
 		    || IsULine(sptr)))
 		{
-			if (IsULine(sptr))
-				goto itsokay;
-			if (!(s = (char *)rindex(nick, '.')))
-			{
-				sendto_one(sptr, err_str(ERR_NOTOPLEVEL),
-				    me.name, parv[0], nick);
-				continue;
-			}
-			while (*++s)
-				if (*s == '.' || *s == '*' || *s == '?')
-					break;
-			if (*s == '*' || *s == '?')
-			{
-				sendto_one(sptr, err_str(ERR_WILDTOPLEVEL),
-				    me.name, parv[0], nick);
-				continue;
-			}
-		      itsokay:
 			sendto_match_butone(IsServer(cptr) ? cptr : NULL,
 			    sptr, nick + 1,
 			    (*nick == '#') ? MATCH_HOST :

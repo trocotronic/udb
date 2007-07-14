@@ -60,7 +60,7 @@ DLLFUNC int m_chgident(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgident)
   = {
 	"chgident",	/* Name of module */
-	"$Id: m_chgident.c,v 1.1.1.5 2006-02-15 22:06:18 Trocotronic Exp $", /* Version */
+	"$Id: m_chgident.c,v 1.1.1.6 2007-07-14 13:00:35 Trocotronic Exp $", /* Version */
 	"/chgident", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -159,6 +159,14 @@ int  legalident = 1;
 	if ((acptr = find_person(parv[1], NULL)))
 	{
 		DYN_LOCAL(char, did_parts, acptr->user->joined);
+		if (MyClient(sptr) && (IsLocOp(sptr) && !MyClient(acptr)))
+		{
+			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
+				parv[0]);
+			DYN_FREE(did_parts);
+			return 0;
+		}
+
 		switch (UHOST_ALLOWED)
 		{
 			case UHALLOW_NEVER:

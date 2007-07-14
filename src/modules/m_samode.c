@@ -52,7 +52,7 @@ DLLFUNC int m_samode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_samode)
   = {
 	"m_samode",
-	"$Id: m_samode.c,v 1.1.4.4 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_samode.c,v 1.1.4.5 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /samode", 
 	"3.2-b8-1",
 	NULL 
@@ -106,7 +106,7 @@ DLLFUNC CMD_FUNC(m_samode)
 	else
 	{
 		sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS),
-		    me.name, parv[0], "MODE");
+		    me.name, parv[0], "SAMODE");
 		return 0;
 	}
 	opermode = 0;

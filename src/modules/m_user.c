@@ -55,7 +55,7 @@ DLLFUNC CMD_FUNC(m_user);
 ModuleHeader MOD_HEADER(m_user)
   = {
 	"m_user",
-	"$Id: m_user.c,v 1.1.4.3 2006-05-15 19:49:46 Trocotronic Exp $",
+	"$Id: m_user.c,v 1.1.4.4 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /user", 
 	"3.2-b8-1",
 	NULL 
@@ -133,14 +133,14 @@ DLLFUNC CMD_FUNC(m_user)
 	if (parc == 6 && IsServer(cptr))
 	{
 		if (isdigit(*parv[4]))
-			sstamp = atol(parv[4]);
+			sstamp = strtoul(parv[4], NULL, 10);
 		realname = (BadPtr(parv[5])) ? "<bad-realname>" : parv[5];
 		umodex = NULL;
 	}
 	else if (parc == 8 && IsServer(cptr))
 	{
 		if (isdigit(*parv[4]))
-			sstamp = atol(parv[4]);
+			sstamp = strtoul(parv[4], NULL, 10);
 		realname = (BadPtr(parv[7])) ? "<bad-realname>" : parv[7];
 		umodex = parv[5];
 		virthost = parv[6];
@@ -148,7 +148,7 @@ DLLFUNC CMD_FUNC(m_user)
 	else if (parc == 9 && IsServer(cptr))
 	{
 		if (isdigit(*parv[4]))
-			sstamp = atol(parv[4]);
+			sstamp = strtoul(parv[4], NULL, 10);
 		realname = (BadPtr(parv[8])) ? "<bad-realname>" : parv[8];
 		umodex = parv[5];
 		virthost = parv[6];

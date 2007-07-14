@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.19 2007-03-20 19:34:25 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.20 2007-07-14 13:00:25 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1449,3 +1449,84 @@
   So if you, for example, had 3 modules loaded and rehashed 30 times, it would cause
   the ircd to consume 90 useless file descriptors (which often means 90 less file
   descriptors being available to clients).
+- Fixed #0003171 reported by danieldg (typo) doc/technical
+- #0003146 reported by vonitsanet, regarding Modes O,S (etc) not rejected for modes-on-connect
+  fixed by djGrrr
+- #0002932 reported by therock247uk, patched by WolfSage, regarding Local
+  opers can /chghost /chgident /chgname on someone thats on another server on
+  the network.
+- #0003212 patched by Grunt, regarding /userip <someone_else> seemingly
+  shows your own (cloaked) IP.
+- #0002846 reported by alex323, patched by WolfSage, regarding local ircop cannot issue CLOSE command
+- #3272 patched by w00t, regarding remove restrictions on NOTICE/PRIVMSG $* for opers.
+- Fixed SVSKILL sending an illegal (wrong direction) QUIT right after, #0003307
+- xx reported and fixed by WolfSage (addmotd, addomotd in help.conf)
+- #0003159 reported by aegis and Bock, regarding typos in documentation
+- #0002560 reported and patched by w00t, regarding a typo in /SAMODE
+- #0002844 reported by RandomNumber: make spamfilter actions case insensitive
+- help.conf updates... #0002420 reported by KnuX fixed by WolfSage
+- #0003264 reported by Robby22 regarding help.conf typo
+- Updated c-ares to version 1.4.0
+- Updated tre to version 0.7.5
+- help.conf updates. Missing some ;'s.
+- #0003027 reported by Trocotronic, regarding doing -l <para> on SJOIN,
+  and not -l as supposed. This may have caused desyncs
+- #0003368 patched by Stealth giving users access to do /module on remote
+  servers
+- #0002533 reported by Dodge_Ram, patched by WolfSage, regarding notices
+  not being sent when /*line and /shun are used to request stats
+- Now using #0003028, with more intelligent accept() handling. The IRCd
+  will now attempt to accept() up to LISTEN_SIZE (possibly saving CPU
+  through this under load, and speeding up connection).
+- IRCd now also sets the &me fd as being non blocking (wasn't before, that
+  was odd..)
+- #0003139 reported by vonitsanet, improving error messages on /connect
+  when trying to /connect to a server with wildcards (* and ?) in the link
+  block. We also raise an error if link::options::autoconnect is used
+  together with wildcards in hostname.
+- #0002040 reported by aquanight, removing dependancy on +l for +L. This
+  will be backwards compatible as well, SJOIN doesn't care (TM) and mode
+  doesn't either in case of a server sending it. So this will be just a
+  client protocol modification. 
+- Fixed SVSKILL sending an illegal QUIT
+- #0003216 patched by djGrrr, regarding when you run ./Config for a second
+  time after settings are saved in config.settings, the SSLDIR and ZIPLINKSDIR
+  defaults are basically completely ignored.
+- #0002420 reported by KnuX fixed by WolfSage
+- #0003147 reported by vonitsanet, fixed by djGrrr regarding making
+  spamfilters work in case of /setname
+- Added oper CIDR
+- #0001317 reported by thilo regarding removal of (username) being
+  appended to topics set by U:Lined servers, patched by WolfSage
+- #0003382 reported by stealth regarding nested C-style comments messing
+  up example.conf parsing
+- #0003092 reported by tabrisnet, patched by WolfSage, regarding
+  documentation says
+  link::bind-ip is optional, but not specifying it produces an error
+- #0003232 reported by vonitsanet patched by djGrr, regarding /map is not
+  shown u:lined servers to local opers and /links does
+- #0003363 patched by adrianp, changing IRC_UID and IRC_GID into
+  defines IRC_USER, IRC_GROUP which is a string specifiying what user name/
+  group name that should be changed into, instead of a hardcoded gid/uid.
+  This should make it easier for packaged binary releases to work (even
+  though this probably means Debian will take us in, ick .. Can't we pull
+  a new fight with debian-legal again?)
+- #0003244 reported by CuLpA about grammar errors in webtv outputs
+- Entering 3.2.7 RC1 phase
+- Applied patch to fix some win32 problems reported by Bock, fixed by fez 
+- #0003405 repoted by Stealth regarding wildcards and autoconnect being an 
+  ||
+- Fixed irc_uid|gid being defined on win32
+- Win32 library updates from Bock
+- #0003429 reported by Bock about appearing to accept multiple auth blocks.
+- Fixed fixed #003244 fix.
+- Applied #0003422 help.conf patches by Bock
+- Applied #0002999 patch by Bock, fixing a fd leak.
+- Applied #0003144 patch by Bock, fixing win32 install and such
+- Applied #0003392 patch by Bock, adding some stuff to help.conf
+- Entering 3.2.7 RC2 phase
+- Fix, fix #0003421 patch
+- Fixed wolfsage eff-up in c-ares.tar.gz, not running make distclean
+- Updated /info
+- Updated release notes
+*** 3.2.7 release ***

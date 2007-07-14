@@ -1825,11 +1825,8 @@ void	config_rehash()
 	aTKline *tk, *tk_next;
 	SpamExcept *spamex_ptr;
 	int i;
-#ifdef UDB
-	USE_BAN_VERSION = 1;
-#else
+
 	USE_BAN_VERSION = 0;
-#endif
 	/* clean out stuff that we don't use */	
 	for (admin_ptr = conf_admin; admin_ptr; admin_ptr = (ConfigItem_admin *)next)
 	{
@@ -1851,6 +1848,10 @@ void	config_rehash()
 		{
 			next2 = (ListStruct *)oper_from->next;
 			ircfree(oper_from->name);
+			if (oper_from->netmask)
+			{
+				MyFree(oper_from->netmask);
+			}
 			DelListItem(oper_from, oper_ptr->from);
 			MyFree(oper_from);
 		}
@@ -2256,9 +2257,6 @@ int	config_run()
 	ConfigCommand	*cc;
 	int		errors = 0;
 	Hook *h;
-#ifdef UDB
-	tempiConf.use_ban_version = 1;
-#endif
 	for (cfptr = conf; cfptr; cfptr = cfptr->cf_next)
 	{
 		if (config_verbose > 1)
@@ -3214,6 +3212,7 @@ int	_conf_oper(ConfigFile *conf, ConfigEntry *ce)
 	ConfigItem_oper *oper = NULL;
 	ConfigItem_oper_from *from;
 	OperFlag *ofp = NULL;
+	struct irc_netmask tmp;
 
 	oper =  MyMallocEx(sizeof(ConfigItem_oper));
 	oper->name = strdup(ce->ce_vardata);
@@ -3283,6 +3282,12 @@ int	_conf_oper(ConfigFile *conf, ConfigEntry *ce)
 				{
 					from = MyMallocEx(sizeof(ConfigItem_oper_from));
 					ircstrdup(from->name, cepp->ce_vardata);
+					tmp.type = parse_netmask(from->name, &tmp);
+					if (tmp.type != HM_HOST)
+					{
+						from->netmask = MyMallocEx(sizeof(struct irc_netmask));
+						bcopy(&tmp, from->netmask, sizeof(struct irc_netmask));
+					}
 					AddListItem(from, oper->from);
 				}
 			}
@@ -6006,6 +6011,8 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 	char has_passwordreceive = 0, has_passwordconnect = 0, has_class = 0;
 	char has_hub = 0, has_leaf = 0, has_leafdepth = 0, has_ciphers = 0;
 	char has_options = 0;
+	char has_autoconnect = 0;
+	char has_hostname_wildcards = 0;
 #ifdef ZIP_LINKS
 	char has_compressionlevel = 0;
 #endif
@@ -6072,7 +6079,11 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
 					errors++;
 				}
-#endif
+#endif				
+				if (ofp->flag == CONNECT_AUTO)
+				{
+					has_autoconnect = 1;
+				}
 			}
 			continue;
 		}
@@ -6115,6 +6126,10 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 #endif
+			if (strchr(cep->ce_vardata, '*') != NULL || strchr(cep->ce_vardata, '?'))
+			{
+				has_hostname_wildcards = 1;
+			}
 		}
 		else if (!strcmp(cep->ce_varname, "bind-ip"))
 		{
@@ -6251,12 +6266,6 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 			"link::hostname");
 		errors++;
 	}
-	if (!has_bindip)
-	{
-		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
-			"link::bind-ip");
-		errors++;
-	}
 	if (!has_port)
 	{
 		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
@@ -6279,6 +6288,12 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 	{
 		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
 			"link::class");
+		errors++;
+	}
+	if (has_autoconnect && has_hostname_wildcards)
+	{
+		config_error("%s:%i: link block tiene autoconnect y comodines (* o ? en hostname)",
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 		errors++;
 	}
 	if (errors > 0)
@@ -7144,23 +7159,17 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-connect")) {
+			char *p;
 			CheckNull(cep);
 			CheckDuplicate(cep, modes_on_connect, "modes-on-connect");
-			if (strchr(cep->ce_vardata, 'z'))
-			{
-				config_error("%s:%i: set::modes-on-connect no puede tener +z",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++;
-			}
+			for (p = cep->ce_vardata; *p; p++)
+				if (strchr("oOaANCrzSgHhqtW", *p))
+				{
+					config_error("%s:%i: set::modes-on-connect no puede tener '%s'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+				}
 			templong = (long) set_usermode(cep->ce_vardata);
-			if (templong & UMODE_OPER)
-			{
-				config_error("%s:%i: set::modes-on-connect contiene el modo +o",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum);
-				errors++;
-				continue;
-			}
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-join")) {
 			char *c;

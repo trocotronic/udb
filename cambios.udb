@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.11 2007-03-20 19:34:25 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.12 2007-07-14 13:00:25 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -246,3 +246,8 @@
 160207231 - Arreglado un fallo con el modo server-debug, aviso de ReCoRD y Marquitox (#0000237 y #0000239).
 040207232 - Arreglado un cuelgue al hacer ghost, aviso de Mew y ReCoRD (#0000217 y #0000244).
 210307233 - *** Unreal 3.2.6 + UDB 3.5.1 es
+250507234 - Se elimina el CTCP Version al conectar.
+170607235 - Se precisa los mensajes de /dbq si tiene subbloques.
+220607236 - Arreglado un fallo en el que no se enviaba -r cuando se dropaba un canal.
+220607237 - Arreglado un fallo en el que no se borraba un canal cuando se dropaba, aviso de Mew (#0000266).
+140707238 - *** Unreal 3.2.7 + UDB 3.5.2 es

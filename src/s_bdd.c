@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.c,v 1.1.1.19 2007-03-20 19:34:26 Trocotronic Exp $
+ * $Id: s_bdd.c,v 1.1.1.20 2007-07-14 13:00:34 Trocotronic Exp $
  */
 #include "config.h"
 #include "struct.h"
@@ -1024,11 +1024,13 @@ int InsertaRegistroEspecial(u_int tipo, Udb *reg, int nuevo)
 		aChannel *chptr;
 		Udb *root = reg;
 		char *botnick = ChanNick(1), *botmask = ChanMask(1);
-		while (*root->item != '#')
+		while (root->item && *root->item != '#')
 		{
 			if (!(root = root->up))
 				return 0;
 		}
+		if (!root->item)
+			return 0;
 		buf[0] = '+';
 		buf[1] = '\0';
 		chptr = get_channel(&me, root->item, CREATE);
@@ -1122,14 +1124,14 @@ int InsertaRegistroEspecial(u_int tipo, Udb *reg, int nuevo)
 				strncpyzt(chptr->topic, reg->data_char, topiclen + 1);
 				chptr->topic_nick = MyMalloc(nicklen + 1);
 				strncpyzt(chptr->topic_nick, botnick, nicklen + 1);
-				if (chptr->members)
+				if (chptr->users)
 					sendto_channel_butserv(chptr, &me, ":%s TOPIC %s :%s", botmask, chptr->chname, chptr->topic);
 			}
 			MyFree(tmp);
 		}
 		if (!chptr->creationtime)
 			chptr->creationtime = TStime();
-		if (buf[1] && chptr->members)
+		if (buf[1] && chptr->users)
 			sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", botmask, chptr->chname, buf);
 	}
 	else if (tipo == S->id)
@@ -1259,14 +1261,14 @@ void BorraRegistroEspecial(u_int tipo, Udb *reg)
 	{
 		aChannel *chptr;
 		Udb *root = reg;
-		while (*root->item != '#')
+		while (root->item && *root->item != '#')
 		{
 			if (!(root = root->up))
 				return;
 		}
 		if (!(chptr = get_channel(&me, root->item, !CREATE)))
 			return;
-		if (!strcmp(C_MOD, reg->item) || (*reg->item == '#' && (bloq = BuscaBloque(C_MOD, reg))))
+/*		if (!strcmp(C_MOD, reg->item) || (*reg->item == '#' && (bloq = BuscaBloque(C_MOD, reg))))
 		{
 #ifdef EXTCMODE
 			extcmode_free_paramlist(chptr->mode.extmodeparam);
@@ -1290,12 +1292,14 @@ void BorraRegistroEspecial(u_int tipo, Udb *reg)
 				chptr->topic = NULL;
 				chptr->topic_time = 0;
 			}
-		}
+		}*/
 		if (*reg->item == '#')
 		{
 			chptr->mode.mode &= ~MODE_RGSTR;
-			if (!chptr->members) /* si hay gente no tocamos nada */
+			if (!chptr->users) /* si hay gente no tocamos nada */
 				sub1_from_channel(chptr);
+			else
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s -r", ChanMask(1), chptr->chname);
 		}
 	}
 	else if (tipo == N->id)
@@ -1411,10 +1415,10 @@ Udb *BorraRegistro(u_int tipo, Udb *reg, int archivo)
 	Udb *aux, *down, *prev = NULL, *up;
 	if (!(up = reg->up)) /* estamos arriba de todo */
 		return NULL;
-	BorraRegistroEspecial(tipo, reg);
 #ifdef UDB_HASH
 	BorraRegistroDeHash(reg, tipo, reg->item);
 #endif
+	BorraRegistroEspecial(tipo, reg);
 	if (reg->data_char)
 		MyFree(reg->data_char);
 	reg->data_char = NULL;
@@ -2340,8 +2344,8 @@ CMD_FUNC(m_dbq)
 						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s %lu", me.name, sptr->name, parv[1], aux->item, aux->data_long);
 					else if (!BadPtr(aux->data_char))
 						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s %s", me.name, sptr->name, parv[1], aux->item, aux->data_char);
-					else
-						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s (no tiene datos)", me.name, sptr->name, parv[1], aux->item);
+					else if (aux->down)
+						sendto_one(sptr, ":%s 339 %s :DBQ %s::%s (tiene subbloques)", me.name, sptr->name, parv[1], aux->item);
 				}
 			}
 		}

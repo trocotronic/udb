@@ -51,7 +51,7 @@ DLLFUNC int m_svskill(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svskill)
   = {
 	"svskill",	/* Name of module */
-	"$Id: m_svskill.c,v 1.1.4.3 2006-02-15 22:06:20 Trocotronic Exp $", /* Version */
+	"$Id: m_svskill.c,v 1.1.4.4 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
 	"command /svskill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -118,6 +118,10 @@ CMD_FUNC(m_svskill)
 
 	sendto_serv_butone_token(cptr, parv[0],
 	    MSG_SVSKILL, TOK_SVSKILL, "%s :%s", parv[1], comment);
+
+	acptr->flags |= FLAGS_KILLED;
+
+	acptr->flags |= FLAGS_KILLED;
 
 	return exit_client(cptr, acptr, sptr, comment);
 

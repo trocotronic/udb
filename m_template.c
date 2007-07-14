@@ -1,6 +1,6 @@
 /*
  *   IRC - Internet Relay Chat, src/modules/%FILE%
- *   (C) 2004 The UnrealIRCd Team
+ *   (C) 2005 The UnrealIRCd Team
  *
  *   See file AUTHORS in IRC package for additional names of
  *   the programmers.
@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_%COMMAND%);
 ModuleHeader MOD_HEADER(m_%COMMAND%)
   = {
 	"m_%COMMAND%",
-	"$Id: m_template.c,v 1.1.1.10 2006-02-15 22:06:13 Trocotronic Exp $",
+	"$Id: m_template.c,v 1.1.1.11 2007-07-14 13:00:26 Trocotronic Exp $",
 	"command /%COMMAND%", 
 	"3.2-b8-1",
 	NULL 
@@ -60,7 +60,7 @@ ModuleHeader MOD_HEADER(m_%COMMAND%)
 
 DLLFUNC int MOD_INIT(m_%COMMAND%)(ModuleInfo *modinfo)
 {
-	add_Command(MSG_%UCOMMAND%, TOK_%UCOMMAND%, m_%COMMAND%, %MAXPARA%);
+	CommandAdd(modinfo->handle, MSG_%UCOMMAND%, TOK_%UCOMMAND%, m_%COMMAND%, %MAXPARA%, M_USER|M_SERVER);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }

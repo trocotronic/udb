@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.7 2006-05-15 19:49:45 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.8 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -193,6 +193,7 @@ DLLFUNC int  m_kill(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #ifdef UDB
 		if (IsServices(acptr) && !(IsNetAdmin(sptr) || IsServer(sptr))) /* hay mensajes que vienen de nick!pass o /ghost */
 #else
+
 		if (IsServices(acptr) && !(IsNetAdmin(sptr) || IsULine(sptr)))
 #endif
 		{

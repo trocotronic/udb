@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.15 2006-12-22 21:58:59 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.16 2007-07-14 13:00:33 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -1030,10 +1030,9 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #endif
 
 	/* Opers can do /module <servername> */
-	if ((parc > 1) && (IsServer(cptr) || IsOper(sptr)) &&
-	    (hunt_server_token(cptr, sptr, MSG_MODULE, TOK_MODULE, ":%s", 1, parc, parv) != HUNTED_ISME))
-		return 0;
-	
+        if ((parc > 1) && (hunt_server_token(cptr, sptr, MSG_MODULE, TOK_MODULE, ":%s", 1, parc,
+             parv) != HUNTED_ISME))
+		return 0;	
 	if (!Modules)
 	{
 		sendto_one(sptr, ":%s NOTICE %s :*** No modules loaded", me.name, sptr->name);

@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.4.9 2006-11-01 00:06:45 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.4.10 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 
@@ -228,14 +228,13 @@ long flags = 0; /* cache: membership flags */
 				    chptr->chname, chptr->topic_nick,
 				    chptr->topic_time, chptr->topic);
 				sendto_channel_butserv(chptr, sptr,
-				    ":%s TOPIC %s :%s (%s)", parv[0],
-				    chptr->chname, chptr->topic,
-				    chptr->topic_nick);
+				    ":%s TOPIC %s :%s", parv[0],
+				    chptr->chname, chptr->topic);
 #ifdef UDB
 			}
 #endif
-			}
 		}
+	}
 		else if (((chptr->mode.mode & MODE_TOPICLIMIT) == 0 ||
 		    (is_chan_op(sptr, chptr)) || IsOper(sptr)
 		    || IsULine(sptr) || is_halfop(sptr, chptr)) && topic)

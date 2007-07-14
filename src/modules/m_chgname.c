@@ -58,7 +58,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgname)
   = {
 	"chgname",	/* Name of module */
-	"$Id: m_chgname.c,v 1.1.1.6 2006-11-01 00:06:44 Trocotronic Exp $", /* Version */
+	"$Id: m_chgname.c,v 1.1.1.7 2007-07-14 13:00:35 Trocotronic Exp $", /* Version */
 	"command /chgname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -146,6 +146,13 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
 	if ((acptr = find_person(parv[1], NULL)))
 	{
+		if (MyClient(sptr) && (IsLocOp(sptr) && !MyClient(acptr)))
+		{
+			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
+				parv[0]);
+			return 0;
+		}
+
 		/* set the realname first to make n:line checking work */
 		ircsprintf(acptr->info, "%s", parv[2]);
 		/* only check for n:lines if the person who's name is being changed is not an oper */

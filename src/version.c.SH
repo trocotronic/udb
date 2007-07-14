@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.8 2006-06-15 21:16:14 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.9 2007-07-14 13:00:35 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -44,7 +44,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.8 2006-06-15 21:16:14 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.9 2007-07-14 13:00:35 Trocotronic Exp $
  */
 
 /*
@@ -120,6 +120,9 @@ char *unrealcredits[] =
 	"LFS - www.linuxfromscratch.org, The_devil - chat.snyggast.se,",
 	"Stephen - dirac.betas-online.com, NationWars - www.nationwars.com",
 	"SurrealChat.net - www.surrealchat.net, NamesDir - www.namesdir.com",
+	"Muisje - www.elitez0r.com, Jaya Sri - www.krisna.cc",
+	"DiabloClone.Org - irc.diabloclone.org, RisingNet - www.RisingNet.net",
+	"DCloneIRC.net - irc.dcloneirc.net, L.E.-Nation - irc.le-nation.de",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",

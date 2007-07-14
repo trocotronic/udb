@@ -3472,7 +3472,8 @@ seen. gmtime warning still there
   more channels on connect, read networks/unrealircd.conf for more info
 - Added networks/axenet.network
 - Possible change in the -1 operator bug
-- /info changes- Unreal3.1-beta1 release
+- /info changes
+- Unreal3.1-beta1 release
 - Added a bunch of networks
 - Updated doc/conf.doc
 - Updated networks/networks.ndx cause someone *cough* sts *cough* forgot

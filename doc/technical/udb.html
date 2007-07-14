@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>UDB - 3.5.1 - Documentaci&oacute;n oficial</title>
+<title>UDB - 3.5.2 - Documentaci&oacute;n oficial</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <style type="text/css">
  pre { font: "courier new"; font-style: normal;}
@@ -10,13 +10,13 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.10 2007-03-20 19:34:25 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.11 2007-07-14 13:00:30 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
   <font size="4"><a href="http://www.redyc.com">http://www.redyc.com/</a></font><br>
-  <font size="4">Versi&oacute;n: 3.5.1</font><br>
-  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 22-12-2006</div>
+  <font size="4">Versi&oacute;n: 3.5.2</font><br>
+  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 14-07-2007</div>
 <br>
   <b>Programador:</b> Trocotronic<br>
   <b>Contribuciones:</b> MaD <br>
@@ -129,7 +129,7 @@ Una de las formas para distribuir esa información es hacerlo por bloques, permit
 Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por ítems y valores (numéricos y alfanuméricos).
 Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
 Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
-Versión actual: <B>3.5.1</B><BR /><BR />
+Versión actual: <B>3.5.2</B><BR /><BR />
 <A name="bloques"></A><BR /><B>Bloques</B><BR />
 Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
 Todos los valores que estén precedidos por el símbolo '*' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
@@ -160,7 +160,7 @@ El bloque C contiene los canales y todo lo que les concierne. Se estructura de l
 - C::&lt;#canal>::M &lt;modos> -> modos del canal<BR />
 - C::&lt;#canal>::T &lt;topic> -> topic del canal<BR />
 - C::&lt;#canal>::A::&lt;usuario> NULL -> es un subloque que contiene los nicks de las personas que pueden entrar (no precisa contenido). Si este bloque está presente sólo podrán entrar en el canal los nicks que figuren en sus subloques.<BR />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Por ejemplo C::&lt#canal>::accesos::Trocotronic NULL -> Sólo Trocotronic, con el modo +r, podrá entrar en el canal.<BR />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Por ejemplo C::&lt#canal>::A::Trocotronic NULL -> Sólo Trocotronic, con el modo +r, podrá entrar en el canal.<BR />
 - C::&lt;#canal>::B &lt;motivo> -> #canal prohibido<BR />
 - C::&lt;#canal>::S &lt;motivo> -> no da +oq al fundador<BR />
 - C::&lt;#canal>::P &lt;contraseña> -> Contraseña del canal para darse +ao. Se usa /join # pass o /invite nick # pass<BR />
@@ -353,9 +353,9 @@ Por tanto, si hay algún servidor que no posea esa copia, truncará la red a parti
 La hora que se especifica es la misma que la se usa en un OPT. Todos los servidores actualizarán su hora OPT a ésta.<BR />
 <A name="negociacion"></A><BR /><B>Negociación</B><BR />
 En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
-Lo primero que se manda es la cabecera PROTOCTL UDB3.5.1[=parámetro1,parámetro2,etc], antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL U3.5.1=params TOKEN VL.<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.5.2[=parámetro1,parámetro2,etc], antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL U3.5.2=params TOKEN VL.<BR />
 De momento está reservado para un uso futuro.<BR />
-Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.5.1 VL NOQUIT...<BR />
+Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.5.2 VL NOQUIT...<BR />
 Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
 sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
 La negociación y consulta del estado de bloques se inicia con el envío de un INF. El servidor de destino debe ser solamente el servidor al que se linka (no usar '*').<BR />

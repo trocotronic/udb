@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.11 2006-12-22 21:59:01 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.12 2007-07-14 13:00:36 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -664,7 +664,7 @@ docontinue:
 		/* however, is this really going to happen at all? may be unneeded */
 		if (oldmode.limit && !chptr->mode.limit)
 		{
-			Addit('l', (char *)my_itoa(oldmode.limit));
+			Addsingle('l');
 		}
 		if (oldmode.key[0] && !chptr->mode.key[0])
 		{

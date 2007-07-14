@@ -69,6 +69,12 @@ struct tm smotd_tm;
 aMotd *read_file(char *filename, aMotd **list);
 aMotd *read_file_ex(char *filename, aMotd **list, struct tm *);
 extern aMotd *Find_file(char *, short);
+
+#ifdef USE_SSL
+extern void reinit_ssl(aClient *);
+#endif
+
+
 /*
 ** m_functions execute protocol messages on this server:
 **      CMD_FUNC(functionname) causes it to use the header
@@ -221,47 +227,36 @@ void m_info_send(aClient *sptr)
 {
 	sendto_one(sptr, ":%s %d %s :=-=-=-= %s =-=-=-=",
 	    me.name, RPL_INFO, sptr->name, IRCDTOTALVERSION);
-	sendto_one(sptr, ":%s %d %s :| Brought to you by the following people:",
+	sendto_one(sptr, ":%s %d %s :| This release was brought to you by the following people:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Head coders:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Committers:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Stskeeps     <stskeeps@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * codemastr    <codemastr@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Syzop        <syzop@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Luke         <luke@unrealircd.com>",
+	sendto_one(sptr, ":%s %d %s :| * aquanight    <wolfsage@unrealircd.com>",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * WolfSage     <wolfsage@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Contributors:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * djGrrr, w00t, Stealth, adrianp, Bock, fez,",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|   Trocotronic",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| RC Testers:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * Grunt, Bock, craftsman, Stealth, vonitsanet",
+	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * McSkaf       <mcskaf@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Zogg         <zogg@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * NiQuiL       <niquil@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * assyrian     <assyrian@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * chasm        <chasm@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * DrBin        <drbin@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * llthangel    <llthangel@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Griever      <griever@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * nighthawk    <nighthawk@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Credits - Type /Credits",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| DALnet Credits - Type /DalInfo",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| This is an UnrealIRCD-style server",
+	sendto_one(sptr, ":%s %d %s :| This is an UnrealIRCd-style server",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| If you find any bugs, please report them at:",
 	    me.name, RPL_INFO, sptr->name);
@@ -292,7 +287,7 @@ void m_info_send(aClient *sptr)
 	sendto_one(sptr,
 	    ":%s %d %s :|          * MaD (mad@madito.net)", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.redyc.com", me.name, RPL_INFO, sptr->name, 31);
+	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.redyc.com/", me.name, RPL_INFO, sptr->name, 31);
 #endif
 	sendto_one(sptr,
 	    ":%s %d %s :-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=", me.name,
@@ -699,7 +694,6 @@ CMD_FUNC(m_rehash)
 			if (!_match("-ssl*", parv[1]))
 			{
 #ifdef USE_SSL
-				extern void reinit_ssl(aClient *);
 				reinit_ssl(sptr);
 #else
 				sendnotice(sptr, "SSL no activo en este servidor");
