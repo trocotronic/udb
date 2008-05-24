@@ -23,7 +23,7 @@
 /* rewritten 06/02 by larne, the old one was unreadable. */
 /* changed indentation + some parts rewritten by Syzop. */
 
-/* $Id: m_who.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $ */
+/* $Id: m_who.c,v 1.1.1.9 2008-05-24 23:48:34 Trocotronic Exp $ */
 
 #include "config.h"
 #include "struct.h"
@@ -49,6 +49,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "udb.h"
+#endif
 
 DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -59,7 +62,7 @@ DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_who)
   = {
 	"who",	/* Name of module */
-	"$Id: m_who.c,v 1.1.1.8 2006-11-01 00:06:45 Trocotronic Exp $", /* Version */
+	"$Id: m_who.c,v 1.1.1.9 2008-05-24 23:48:34 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -637,13 +640,24 @@ int i = 0;
 
 	if (cm)
         {
+#ifdef UDB
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
-#ifdef UDB
-			status[i++] = '.';
-#else
-			status[i++] = '~';
+			status[i++] = PF_OWN;
+		else if (cm->flags & CHFL_CHANPROT)
+			status[i++] = PF_ADMIN;
+		else
 #endif
+		if (cm->flags & CHFL_CHANOP)
+			status[i++] = PF_OP;
+		else if (cm->flags & CHFL_HALFOP)
+			status[i++] = PF_HALF;
+		else if (cm->flags & CHFL_VOICE)
+			status[i++] = PF_VOICE;
+#else
+#ifdef PREFIX_AQ
+		if (cm->flags & CHFL_CHANOWNER)
+			status[i++] = '~';
 		else if (cm->flags & CHFL_CHANPROT)
 			status[i++] = '&';
 		else
@@ -654,6 +668,7 @@ int i = 0;
 			status[i++] = '%';
 		else if (cm->flags & CHFL_VOICE)
 			status[i++] = '+';
+#endif
 	}
 
 	status[i] = '\0';

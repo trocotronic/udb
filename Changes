@@ -2,7 +2,7 @@
  * UnrealIRCd Changes File - (C) Carsten Munk 1999-2005 &
  *                               The UnrealIRCd Team
  *                              
- * $Id: Changes,v 1.1.1.20 2007-07-14 13:00:25 Trocotronic Exp $
+ * $Id: Changes,v 1.1.1.21 2008-05-24 23:48:25 Trocotronic Exp $
  *                              
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1530,3 +1530,98 @@
 - Updated /info
 - Updated release notes
 *** 3.2.7 release ***
+- Fix aquanight's email
+- #0003351 reported by Mareo regarding m_addmotd.so and m_svslusers.so 
+  not being created
+- Fixed bug in SJOIN, possibly causing things like odd bans showing up in
+  some circumstances. Reported by Hurga, patch provided by fbi.
+- Now allowing '1.2.3.4' ips again in IPv6 mode as well (instead of enforcing
+  '::ffff:1.2.3.4' ips in the conf, they are now auto-converted to that).
+  Based on patch from tabrisnet.
+- Fixed issue where the cgiirc block did not work with IPv6, reported by
+  djGrrr, fixed by previous change.
+- Fixed CHROOTDIR, which was broken in 3.2.7: IRC_USER/IRC_GROUP did not work
+  properly when CHROOTDIR was in use (#0003454).
+- Fixed oper block bug where ip masks in oper::from::userhost did not always
+  work succesfully (ex: 192.168.* worked, but 192.168.*.* didn't). Issue was
+  introduced in 3.2.7, reported by tabrisnet (#0003494).
+- CGI:IRC + IPv6: Fixed cgiirc block hostname never matching ipv4 cgiirc
+  gateway properly (..again..), this was previously reported by pv2b.
+- CGI:IRC + IPv6: Fixed issue where all cgiirc ipv4 clients were rejected with
+  the message 'Invalid IP address', reported by stskeeps (#0003311), nate
+  (#0003533) and others.
+- Document CHROOTDIR in unreal32docs, reported by Beastie (#0002446).
+- Fixed Mac OS X issue where "access denied" errors were encountered when 
+  trying to read unrealircd.conf. All due to strange chmod() behavior. We now no
+  longer try to set permissions on Mac OS X. Patch provided by Tibby (#3489).
+- Hopefully fixed 'Overflowed unzipbuf increase UNZIP_BUFFER_SIZE' issue,
+  reported by Monk (#0003453). It should be large enough now. Also changed the
+  way we deal with this when it happens (if it ever happens again..): we now
+  close the server connection, instead of trying to continue, because continueing
+  is too dangerous.
+- Remove part reason when user is banned, suggested by vonitsanet (#0003354).
+- Fixed set::modes-on-join: could crash or disfunction with certain
+  parameter mode combinations.
+- Minor source cleanup in src/modules/m_map.c, suggested by fez (#0003540).
+- Usermode modules now no longer have to be permanent (#3174), this was
+  simply a bug that was introduced when adding remote includes support years
+  ago.
+- Channelmode modules without parameters (like: +X, but not: +X 1) no longer
+  have to be permanent. Channelmodes with parameters still have to be PERM
+  however, and there are currently no plans to change it.
+- Fixed bug (in all Unreal versions) with parameter channelmodes, any 3rd
+  party module which adds an extra parameter chanmode could cause crashes.
+- Added set::level-on-join: which level should the user get when (s)he's is
+  the first to enter a channel. Currently only 'none' and 'op' are supported.
+- unreal32docs.html: doubt it will help much but at least this makes it a
+  little bit more clear (#3548), chatops vs globops.
+- ChanMode +S/+c: reverse is now stripped/blocked as well, because it's
+  similar to color, and is just as annoying (..if not worse).
+- So called 'smart' banning is now disabled by default, this means you can
+  now set a ban on *!*@*h.com and then later add one on *!*@*blah.com without
+  any trouble. Previously the second one was rejected due to the former
+  already matching it. To change it back edit the include/config.h setting
+  SOCALLEDSMARTBANNING.
+- Fixed (G)ZLINE check.. it was incorrectly rejecting many IPv6 bans.
+  Reported by guigui (#0003572).
+- Backport from 3.3 away notification from Oct 2006, this is v0, a further
+  patch will follow soon and the numerics will be changed.
+- Ok, finished away notification in WATCH. It now shows the away reasons too.
+  This new feature (away notify) is announced in 005 (ISUPPORT) as: WATCHOPTS=A
+
+  Format is: WATCH A +UserOne +UserTwo
+  
+  New numerics to cope with away notification in WATCH are:
+  RPL_NOWISAWAY: to indicate the user is away _when adding_ it to WATCH list
+  RPL_GONEAWAY:  user was not away, but is now
+  RPL_NOTAWAY:   user was away, but is no longer away
+  RPL_NOWISAWAY: user was away, and still is, but the reason changed
+  Example:
+
+  WATCH A +Target
+  Request to add user 'Target' to the watch list with away notification
+
+  :maintest.test.net 609 MySelf Target ~blih test.testnet 1204309588 :not here atm
+  Reply to watch add: user is online and away, reason is provided
+
+  :maintest.test.net 599 MySelf Target ~blih test.testnet 1204309588 :is no longer away
+  User is back (no longer away)
+
+  :maintest.test.net 598 MySelf Target ~blih test.testnet 1204309722 :lunch
+  State change: user is now away, reason is provided
+
+  :maintest.test.net 597 MySelf Target ~blih test.testnet 1204309738 :shopping, bbl
+  User is still away, but reason changed.
+
+  The syntax for each numeric is:
+  <nickname> <username> <hostname> <awaysince> :<away reason>
+  In case of 599 (RPL_NOTAWAY) it is:
+  <nickname> <username> <hostname> <awaysince> :is no longer away
+
+  For the record, this is all based on a draft from codemastr from 2004, which was
+  implemented in Unreal3.3 (devel branch) in 2006. Today, in 2008 it was updated
+  with away reason support and backported to Unreal3.2. Because away notification
+  hasn't been used until now (due to it only being in Unreal3.3) we felt it was
+  safe to break some numerics.
+- Upgraded c-ares to 1.5.1, thanks to aegis for the partial patch (#0003671).
+  This also fixed a curl compile/run issue, reported by static-x (#0003545).

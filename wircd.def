@@ -435,6 +435,7 @@ EXPORTS
 	dopacket
 	dospamfilter
 	dospamfilter_viruschan
+        download_file_async
 	e_check_fdlists
 	e_clean_out_throttling_buckets
 	e_unload_module_delayed

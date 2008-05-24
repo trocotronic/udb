@@ -103,7 +103,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.13 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.14 2008-05-24 23:48:34 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -564,7 +564,7 @@ DLLFUNC int  m_tkl_line(aClient *cptr, aClient *sptr, int parc, char *parv[], ch
 				return -1;
 			}
 			for (p=hostmask; *p; p++)
-				if (isalpha(*p))
+				if (isalpha(*p) && !isxdigit(*p))
 				{
 					sendnotice(sptr, "ERROR: (g)zlines deben ponerse a *@\037IPMASK\037, no *@\037HOSTMASK\037 "
 					                 "(ej: *@192.168.* correcto, pero *@*.aol.com no). "

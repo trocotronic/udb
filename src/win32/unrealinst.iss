@@ -11,7 +11,7 @@
 
 [Setup]
 AppName=UnrealIRCd
-AppVerName=UnrealIRCd3.2.7+UDB 3.5.2es
+AppVerName=UnrealIRCd3.2.7+UDB 3.6es
 AppPublisher=UnrealIRCd Team
 AppPublisherURL=http://www.unrealircd.com
 AppSupportURL=http://www.unrealircd.com
@@ -36,7 +36,7 @@ Name: "desktopicon"; Description: "Crear un icono en el &escritorio"; GroupDescr
 Name: "quicklaunchicon"; Description: "Crear un icono en la barra de menú &rápido"; GroupDescription: "Iconos adicionales:"; Flags: unchecked
 Name: "installservice"; Description: "Instalarlo como &servicio (no principiantes)"; GroupDescription: "Soporte servicio:"; Flags: unchecked; MinVersion: 0,4.0
 Name: "installservice/startboot"; Description: "&Iniciar UnrealIRCd cuando Windows arranca"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive unchecked
-Name: "installservice/startdemand"; Description: "Iniciar UnrealIRCd por &petición; GroupDescription": "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive unchecked
+Name: "installservice/startdemand"; Description: "Iniciar UnrealIRCd por &petición"; GroupDescription: "Soporte servicio:"; MinVersion: 0,4.0; Flags: exclusive unchecked
 Name: "installservice/crashrestart"; Description: "Reiniciar UnrealIRCd si se cierra inesperadamente"; GroupDescription: "Soporte servicio:"; Flags: unchecked; MinVersion: 0,5.0;
 #ifdef USE_SSL
 Name: "makecert"; Description: "&Crear certificado"; GroupDescription: "Opciones SSL:";
@@ -93,7 +93,7 @@ Source: "c:\dev\curl\lib\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 #endif
 Source: isxdl.dll; DestDir: {tmp}; Flags: dontcopy
-Source: "..\..\..\dbghelp.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dbghelp.dll"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\tmp"

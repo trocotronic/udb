@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: api-isupport.c,v 1.1.4.4 2006-05-15 19:49:43 Trocotronic Exp $
+ * $Id: api-isupport.c,v 1.1.4.5 2008-05-24 23:48:30 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -38,6 +38,9 @@
 #include <fcntl.h>
 #include "h.h"
 #include "proto.h"
+#ifdef UDB
+#include "udb.h"
+#endif
 
 Isupport *Isupports; /* List of ISUPPORT (005) tokens */
 MODVAR char *IsupportStrings[5] = {0,0,0,0,0}; /* If we get more than 5 strings, God help us! */
@@ -117,7 +120,7 @@ void isupport_init(void)
 	IsupportAdd(NULL, "EXCEPTS", NULL);
 #ifdef PREFIX_AQ
 #ifdef UDB
-	IsupportAdd(NULL, "STATUSMSG", ".&@%+");
+	IsupportAdd(NULL, "STATUSMSG", pfxs);
 #else
 	IsupportAdd(NULL, "STATUSMSG", "~&@%+");
 #endif
@@ -132,10 +135,19 @@ void isupport_init(void)
 	ircsprintf(tmpbuf, CHPAR1 "%s," CHPAR2 "%s," CHPAR3 "%s," CHPAR4 "%s",
  			EXPAR1, EXPAR2, EXPAR3, EXPAR4);
 	IsupportAdd(NULL, "CHANMODES", tmpbuf);
+#ifdef UDB
+	if (!pfxs)
+		strcpy(tmpbuf, "(qaohv)~&@%+");
+	else
+		ircsprintf(tmpbuf, "(qaohv)%s", pfxs);
+	IsupportAdd(NULL, "PREFIX", tmpbuf);
+#else
 	IsupportAdd(NULL, "PREFIX", CHPFIX);
+#endif
 	IsupportAdd(NULL, "CHANTYPES", "#");
 	IsupportAdd(NULL, "MODES", my_itoa(MAXMODEPARAMS));
 	IsupportAdd(NULL, "SILENCE", my_itoa(SILENCE_LIMIT));
+	IsupportAdd(NULL, "WATCHOPTS", "A");
 	IsupportAdd(NULL, "WATCH", my_itoa(MAXWATCH));
 	IsupportAdd(NULL, "WALLCHOPS", NULL);
 	IsupportAdd(NULL, "MAXTARGETS", my_itoa(MAXTARGETS));

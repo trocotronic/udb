@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 DLLFUNC int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
@@ -55,7 +55,7 @@ DLLFUNC int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_links)
   = {
 	"m_links",
-	"$Id: m_links.c,v 1.1.4.6 2005-09-22 20:08:13 Trocotronic Exp $",
+	"$Id: m_links.c,v 1.1.4.7 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /links", 
 	"3.2-b8-1",
 	NULL 

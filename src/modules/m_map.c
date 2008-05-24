@@ -52,7 +52,7 @@ DLLFUNC int m_map(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_map)
   = {
 	"m_map",
-	"$Id: m_map.c,v 1.1.4.7 2007-07-14 13:00:36 Trocotronic Exp $",
+	"$Id: m_map.c,v 1.1.4.8 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /map", 
 	"3.2-b8-1",
 	NULL 
@@ -74,10 +74,6 @@ DLLFUNC int MOD_UNLOAD(m_map)(int module_unload)
 {
 	return MOD_SUCCESS;
 }
-
-char servername[128][128];
-int  server_usercount[128];
-int  numservers = 0;
 
 /*
  * New /MAP format -Potvin

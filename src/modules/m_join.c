@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 int fakefund = 0; /* fundador por contraseña */
 #endif
 
@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.4.9 2006-12-22 21:59:00 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.4.10 2008-05-24 23:48:32 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 
@@ -379,12 +379,12 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			if ((f = is_chanowner(sptr, chptr)) && !bloq)
 			{
 				udbflags |= (CHFL_CHANOP | CHFL_CHANOWNER);
-				s = ".@";
+				s = "*@";
 			}
 			else if (fakefund == 2)
 			{
 				udbflags |= (CHFL_CHANOP | CHFL_CHANPROT);
-				s = "$@";
+				s = "~@";
 			}
 			else
 				udbflags |= CHFL_DEOPPED;
@@ -473,13 +473,13 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 #ifdef UDB
 		if (udbflags & CHFL_CHANOWNER)
 			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
-			    ChanNick(0),
+			    BotNick(S_CHA, 0),
 			    MSG_MODE, TOK_MODE, "%s +oq %s %s %lu",
 			    chptr->chname, sptr->name, sptr->name, 
 			    chptr->creationtime);
 		else if (udbflags & CHFL_CHANPROT)
 			sendto_serv_butone_token_opt(cptr, OPT_NOT_SJ3, 
-			    ChanNick(0),
+			    BotNick(S_CHA, 0),
 			    MSG_MODE, TOK_MODE, "%s +ao %s %s %lu",
 			    chptr->chname, sptr->name, sptr->name, 
 			    chptr->creationtime);
@@ -560,7 +560,7 @@ DLLFUNC void _join_channel(aChannel *chptr, aClient *cptr, aClient *sptr, int fl
 			else if (chptr->users == 1)
 				ircsprintf(buf, "-o %s", sptr->name);
 			if (buf[0] != '\0')
-				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", ChanMask(0), chptr->chname, buf);
+				sendto_channel_butserv(chptr, &me, ":%s MODE %s %s", BotMask(S_CHA, 0), chptr->chname, buf);
 		}
 #endif
 		parv[0] = sptr->name;
@@ -712,7 +712,7 @@ DLLFUNC CMD_FUNC(_do_join)
 			 */
 
 			flags =
-			    (ChannelExists(name)) ? CHFL_DEOPPED : CHFL_CHANOP;
+			    (ChannelExists(name)) ? CHFL_DEOPPED : LEVEL_ON_JOIN;
 
 			if (!IsAnOper(sptr)
 #ifdef UDB
@@ -763,7 +763,7 @@ DLLFUNC CMD_FUNC(_do_join)
 				Udb *reg, *bloq;
 				if ((reg = BuscaBloque(name, UDB_CANALES)) && (bloq = BuscaBloque(C_FOR, reg)))
 				{
-					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", ChanMask(1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
+					sendto_one(sptr, ":%s %s %s :*** No puedes entrar en %s: %s", BotMask(S_CHA, 1), IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name, name, bloq->data_char);
 					continue;
 				}
 			}

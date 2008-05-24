@@ -41,6 +41,9 @@
 #endif
 #include <fcntl.h>
 #include "h.h"
+#ifdef UDB
+#include "udb.h"
+#endif
 
 Extban MODVAR ExtBan_Table[EXTBANTABLESZ]; /* this should be fastest */
 unsigned MODVAR short ExtBan_highest = 0;
@@ -160,10 +163,11 @@ char *chan, *p, symbol='\0';
 	strncpyzt(retbuf, para, sizeof(retbuf));
 	chan = retbuf+3;
 
-	if ((*chan == '+') || (*chan == '%') || (*chan == '%') ||
 #ifdef UDB
-		(*chan == '@') || (*chan == '&') || (*chan == '.'))
+	if ((*chan == PF_VOICE) || (*chan == PF_HALF) ||
+	    (*chan == PF_OP) || (*chan == PF_ADMIN) || (*chan == PF_OWN))
 #else
+	if ((*chan == '+') || (*chan == '%') || (*chan == '%') ||
 	    (*chan == '@') || (*chan == '&') || (*chan == '~'))
 #endif
 	    chan++;
@@ -189,8 +193,14 @@ char *p;
 	if ((checkt == EXBCHK_PARAM) && MyClient(sptr) && (what == MODE_ADD) && (strlen(para) > 3))
 	{
 		p = para + 3;
+		
+#ifdef UDB
+		if ((*p == PF_VOICE) || (*p == PF_HALF) || (*p == PF_OP) ||
+		    (*p == PF_OP) || (*p == PF_ADMIN) || (*p == PF_OWN))
+#else
 		if ((*p == '+') || (*p == '%') || (*p == '%') ||
 		    (*p == '@') || (*p == '&') || (*p == '~'))
+#endif
 		    p++;
 
 		if (*p != '#')
@@ -207,6 +217,18 @@ static int extban_modec_compareflags(char symbol, int flags)
 {
 int require=0;
 
+#ifdef UDB
+	if (symbol == PF_VOICE)
+		require = CHFL_VOICE|CHFL_HALFOP|CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER;
+	else if (symbol == PF_HALF)
+		require = CHFL_HALFOP|CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER;
+	else if (symbol == PF_OP)
+		require = CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER;
+	else if (symbol == PF_ADMIN)
+		require = CHFL_CHANPROT|CHFL_CHANOWNER;
+	else if (symbol == PF_OWN)
+		require = CHFL_CHANOWNER;
+#else
 	if (symbol == '+')
 		require = CHFL_VOICE|CHFL_HALFOP|CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER;
 	else if (symbol == '%')
@@ -215,12 +237,9 @@ int require=0;
 		require = CHFL_CHANOP|CHFL_CHANPROT|CHFL_CHANOWNER;
 	else if (symbol == '&')
 		require = CHFL_CHANPROT|CHFL_CHANOWNER;
-#ifdef UDB
-	else if (symbol == '.')
-#else
 	else if (symbol == '~')
-#endif
 		require = CHFL_CHANOWNER;
+#endif
 
 	if (flags & require)
 		return 1;

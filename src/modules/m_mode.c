@@ -45,7 +45,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 /* Forward declarations */
@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.4.8 2007-07-14 13:00:36 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.4.9 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 
@@ -510,16 +510,16 @@ creationtime = sendts;
 	if (samode)
 	{
 		sendto_channel_butserv(chptr, sptr, ":%s MODE %s %s %s",
-	    		ChanNick(0), chptr->chname, modebuf, parabuf);
+	    		BotNick(S_CHA, 0), chptr->chname, modebuf, parabuf);
 		if (IsServer(sptr) && sendts != -1)
-			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, BotNick(S_CHA, 0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s %lu", chptr->chname, isbounce ? "&" : "",
 			    	modebuf, parabuf, sendts);
 		else if (samode && IsMe(sptr)) /* SAMODE is a special case: always send a TS of 0 (omitting TS==desynch) */
-			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, BotNick(S_CHA, 0), MSG_MODE, TOK_MODE,
 		   		 "%s %s %s 0", chptr->chname, modebuf, parabuf);
 		else
-			sendto_serv_butone_token(cptr, ChanNick(0), MSG_MODE, TOK_MODE,
+			sendto_serv_butone_token(cptr, BotNick(S_CHA, 0), MSG_MODE, TOK_MODE,
 		    		"%s %s%s %s", chptr->chname, isbounce ? "&" : "",
 		    		modebuf, parabuf);
 	}

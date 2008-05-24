@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_part);
 ModuleHeader MOD_HEADER(m_part)
   = {
 	"m_part",
-	"$Id: m_part.c,v 1.1.4.4 2006-02-15 22:06:19 Trocotronic Exp $",
+	"$Id: m_part.c,v 1.1.4.5 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /part", 
 	"3.2-b8-1",
 	NULL 
@@ -155,6 +155,10 @@ DLLFUNC CMD_FUNC(m_part)
 #ifdef STRIPBADWORDS
 			int blocked = 0;
 #endif
+			/* Banned? No comment allowed ;) */
+			if (comment && is_banned(sptr, chptr, BANCHK_MSG))
+				comment = NULL;
+			/* And other things... */
 			if ((chptr->mode.mode & MODE_NOCOLOR) && comment) {
 				if (strchr((char *)comment, 3) || strchr((char *)comment, 27)) {
 					comment = NULL;

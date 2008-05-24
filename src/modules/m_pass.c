@@ -60,7 +60,7 @@ extern MODVAR char zlinebuf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_pass)
   = {
 	"m_pass",
-	"$Id: m_pass.c,v 1.1.4.5 2006-05-15 19:49:45 Trocotronic Exp $",
+	"$Id: m_pass.c,v 1.1.4.6 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /pass", 
 	"3.2-b8-1",
 	NULL 
@@ -147,6 +147,9 @@ ConfigItem_ban *bconf;
 /* Does the CGI:IRC host spoofing work */
 int docgiirc(aClient *cptr, char *ip, char *host)
 {
+#ifdef INET6
+char ipbuf[64], crap[32];
+#endif
 
 	if (IsCGIIRC(cptr))
 		return exit_client(cptr, cptr, &me, "Petición doble CGI:IRC (ya está identificado)");
@@ -155,6 +158,15 @@ int docgiirc(aClient *cptr, char *ip, char *host)
 		host = NULL; /* host did not resolve, make it NULL */
 
 	/* STEP 1: Update cptr->ip */
+#ifdef INET6
+	/* Transform ipv4 to ::ffff:ipv4 if needed */
+	if (inet_pton(AF_INET, ip, crap) != 0)
+	{
+		snprintf(ipbuf, sizeof(ipbuf), "::ffff:%s", ip);
+		ip = ipbuf;
+	}
+#endif
+
 	if (inet_pton(AFINET, ip, &cptr->ip) <= 0)
 		return exit_client(cptr, cptr, &me, "Invalid IP address");
 

@@ -55,7 +55,7 @@ Computing Center and Jarkko Oikarinen";
 #include "channel.h"
 #include <string.h>
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 #ifndef NO_FDLIST

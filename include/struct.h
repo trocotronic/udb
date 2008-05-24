@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: struct.h,v 1.1.1.18 2007-07-14 13:00:32 Trocotronic Exp $
+ *   $Id: struct.h,v 1.1.1.19 2008-05-24 23:48:29 Trocotronic Exp $
  */
 
 #ifndef	__struct_include__
@@ -799,6 +799,7 @@ struct User {
 #ifdef JOINTHROTTLE
 	aJFlood *jflood;
 #endif
+	TS lastaway;
 };
 
 struct Server {

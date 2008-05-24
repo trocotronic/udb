@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 DLLFUNC CMD_FUNC(m_nick);
@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.4.10 2007-03-20 19:34:26 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.4.11 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 
@@ -686,16 +686,16 @@ DLLFUNC CMD_FUNC(m_nick)
 			{
 				Udb *bline;
 				if (!(bline = BuscaBloque(N_FOR, reg))) /* esto no debería pasar nunca */
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com/.", botname, sptr->name, nick);
+					sendto_one(sptr, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com/.", botname, sptr->name, nick);
 				else
 				{
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Este nick está prohibido", botname, sptr->name);
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
+					sendto_one(sptr, ":%s NOTICE %s :*** Este nick está prohibido", botname, sptr->name);
+					sendto_one(sptr, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
 				}
 				return 0;
 			}
 			case -2:
-				sendto_one(sptr->from, ":%s NOTICE %s :*** Contraseña incorrecta para el nick %s.", botname, sptr->name, nick);
+				sendto_one(sptr, ":%s NOTICE %s :*** Contraseña incorrecta para el nick %s.", botname, sptr->name, nick);
 				if (sptr->user && !IsAnOper(sptr) && pases && intervalo)
 				{
 					if (TStime() - sptr->user->flood.udb_t >= intervalo)
@@ -712,27 +712,12 @@ DLLFUNC CMD_FUNC(m_nick)
 				}
 				return 0;
 			case -3:
-				sendto_one(sptr->from, ":%s NOTICE %s :*** El nick %s está registrado, necesitas contraseña.", botname, sptr->name, nick);
-				sendto_one(sptr->from, ":%s NOTICE %s :*** Utiliza \002/NICK %s%cclave\002 para identificarte.", botname, sptr->name, nick, strchr(parv[1], '!') ? '!' : ':');
+				sendto_one(sptr, ":%s NOTICE %s :*** El nick %s está registrado, necesitas contraseña.", botname, sptr->name, nick);
+				sendto_one(sptr, ":%s NOTICE %s :*** Utiliza \002/NICK %s%cclave\002 para identificarte.", botname, sptr->name, nick, strchr(parv[1], '!') ? '!' : ':');
 				return 0;
 			case -4:
-				sendto_one(sptr->from, ":%s NOTICE %s :*** No se permite el uso de este nick desde su ip.", botname, sptr->name);
+				sendto_one(sptr, ":%s NOTICE %s :*** No se permite el uso de este nick desde su ip.", botname, sptr->name);
 				return 0;
-			case 1:
-			{
-				Udb *bline;
-				if (!(bline = BuscaBloque(N_SUS, reg))) /* esto no debería pasar */
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.redyc.com.", botname, sptr->name, nick);
-				else
-				{
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Este nick está SUSPENDido", botname, sptr->name);
-					sendto_one(sptr->from, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
-				}
-				break;
-			}
-			case 2:
-				sendto_one(sptr->from, ":%s NOTICE %s :*** Contraseña aceptada. Bienvenid@ a casa ;)", botname, sptr->name);
-				break;
 		}
 	}
 #endif
@@ -949,6 +934,27 @@ DLLFUNC CMD_FUNC(m_nick)
 	}
 #endif
 #ifdef UDB
+	if (!IsServer(sptr) && MyConnect(sptr) && sptr != acptr)
+	{
+		switch (val)
+		{
+			case 1:
+			{
+				Udb *bline;
+				if (!(bline = BuscaBloque(N_SUS, reg))) /* esto no debería pasar */
+					sendto_one(sptr, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (2). Informe de esto en http://www.redyc.com.", botname, sptr->name, nick);
+				else
+				{
+					sendto_one(sptr, ":%s NOTICE %s :*** Este nick está SUSPENDido", botname, sptr->name);
+					sendto_one(sptr, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
+				}
+				break;
+			}
+			case 2:
+				sendto_one(sptr, ":%s NOTICE %s :*** Contraseña aceptada. Bienvenid@ a casa ;)", botname, sptr->name);
+				break;
+		}
+	}
 	if (IsPerson(sptr) && parc < 5 && sptr != acptr)
 		DaleCosas(val, sptr, reg, NULL);
 	if (IsHidden(sptr))

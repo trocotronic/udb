@@ -43,6 +43,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "udb.h"
+#endif
 
 typedef struct zMessage aMessage;
 struct zMessage {
@@ -311,17 +314,33 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '^';
 #else
+  #ifdef UDB
+					if (access & CHFL_CHANOWNER)
+						*(buf + len++) = PF_OWN;
+					else if (access & CHFL_CHANPROT)
+						*(buf + len++) = PF_ADMIN;
+  #else
 					if (access & CHFL_CHANOWNER)
 						*(buf + len++) = '~';
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '&';
+  #endif
 #endif
+#ifdef UDB
+					else if (access & CHFL_CHANOP)
+						*(buf + len++) = PF_OP;
+					else if (access & CHFL_HALFOP)
+						*(buf + len++) = PF_HALF;
+					else if (access & CHFL_VOICE)
+						*(buf + len++) = PF_VOICE;
+#else
 					else if (access & CHFL_CHANOP)
 						*(buf + len++) = '@';
 					else if (access & CHFL_HALFOP)
 						*(buf + len++) = '%';
 					else if (access & CHFL_VOICE)
 						*(buf + len++) = '+';
+#endif
 					if (len)
 						*(buf + len) = '\0';
 					(void)strcpy(buf + len, chptr->chname);

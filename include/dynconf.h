@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.12 2006-12-22 21:58:58 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.13 2008-05-24 23:48:29 Trocotronic Exp $
  */
 
 
@@ -124,6 +124,7 @@ struct zConfiguration {
 	long unknown_flood_bantime;
 	long unknown_flood_amount;
 	struct ChMode modes_on_join;
+	int level_on_join;
 #ifdef NO_FLOOD_AWAY
 	unsigned char away_count;
 	long away_period;
@@ -221,6 +222,7 @@ extern MODVAR aConfiguration iConf;
 #define UNKNOWN_FLOOD_BANTIME		iConf.unknown_flood_bantime
 #define UNKNOWN_FLOOD_AMOUNT		iConf.unknown_flood_amount
 #define MODES_ON_JOIN			iConf.modes_on_join.mode
+#define LEVEL_ON_JOIN			iConf.level_on_join
 
 #ifdef NO_FLOOD_AWAY
 #define AWAY_PERIOD			iConf.away_period
@@ -318,6 +320,7 @@ struct SetCheck {
 	unsigned has_anti_flood_unknown_flood_bantime:1;
 	unsigned has_anti_flood_unknown_flood_amount:1;
 	unsigned has_modes_on_join:1;
+	unsigned has_level_on_join:1;
 #ifdef NO_FLOOD_AWAY
 	unsigned has_anti_flood_away_count:1;
 	unsigned has_anti_flood_away_period:1;

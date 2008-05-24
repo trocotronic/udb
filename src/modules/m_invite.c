@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
@@ -55,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.4.9 2006-12-22 21:59:00 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.4.10 2008-05-24 23:48:32 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 
@@ -367,7 +367,7 @@ DLLFUNC CMD_FUNC(m_invite)
 		    )) {
 #ifdef UDB
 			char *botname;
-			botname = ChanNick(0);
+			botname = BotNick(S_CHA, 0);
 			if (over == 2)
 				sendto_channelprefix_butone(NULL, &me, chptr, PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER, 
 					":%s NOTICE @%s :FounderOverride -- %s se invita al canal.", 

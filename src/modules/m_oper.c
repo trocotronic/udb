@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.11 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.12 2008-05-24 23:48:33 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -218,7 +218,8 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 	for (oper_from = (ConfigItem_oper_from *) aconf->from;
 	    oper_from; oper_from = (ConfigItem_oper_from *) oper_from->next)
 		/* if (!match(oper_from->name, nuhhost) || !match(oper_from->name, nuhhost2)) */
-		if (match_ip(sptr->ip, nuhhost, oper_from->name, oper_from->netmask))
+		if (match_ip(sptr->ip, nuhhost, oper_from->name, oper_from->netmask) ||
+		    !match(oper_from->name, nuhhost2))
 			break;
 	if (!oper_from)	{
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);

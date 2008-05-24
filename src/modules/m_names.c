@@ -43,6 +43,9 @@
 #ifdef _WIN32
 #include "version.h"
 #endif
+#ifdef UDB
+#include "udb.h"
+#endif
 
 DLLFUNC CMD_FUNC(m_names);
 
@@ -52,7 +55,7 @@ DLLFUNC CMD_FUNC(m_names);
 ModuleHeader MOD_HEADER(m_names)
   = {
 	"m_names",
-	"$Id: m_names.c,v 1.1.4.3 2006-12-22 21:59:01 Trocotronic Exp $",
+	"$Id: m_names.c,v 1.1.4.4 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /names", 
 	"3.2-b8-1",
 	NULL 
@@ -174,13 +177,38 @@ DLLFUNC CMD_FUNC(m_names)
 		if (!SupportNAMESX(sptr))
 		{
 			/* Standard NAMES reply */
+#ifdef UDB
 #ifdef PREFIX_AQ
 			if (cm->flags & CHFL_CHANOWNER)
-#ifdef UDB
-				buf[idx++] = '.';
-#else
-				buf[idx++] = '~';
+				buf[idx++] = PF_OWN;
+			else if (cm->flags & CHFL_CHANPROT)
+				buf[idx++] = PF_ADMIN;
+			else
 #endif
+			if (cm->flags & CHFL_CHANOP)
+				buf[idx++] = PF_OP;
+			else if (cm->flags & CHFL_HALFOP)
+				buf[idx++] = PF_HALF;
+			else if (cm->flags & CHFL_VOICE)
+				buf[idx++] = PF_VOICE;
+		} else {
+			/* NAMES reply with all rights included (NAMESX) */
+#ifdef PREFIX_AQ
+			if (cm->flags & CHFL_CHANOWNER)
+				buf[idx++] = PF_OWN;
+			if (cm->flags & CHFL_CHANPROT)
+				buf[idx++] = PF_ADMIN;
+#endif
+			if (cm->flags & CHFL_CHANOP)
+				buf[idx++] = PF_OP;
+			if (cm->flags & CHFL_HALFOP)
+				buf[idx++] = PF_HALF;
+			if (cm->flags & CHFL_VOICE)
+				buf[idx++] = PF_VOICE;
+#else
+#ifdef PREFIX_AQ
+			if (cm->flags & CHFL_CHANOWNER)
+				buf[idx++] = '~';
 			else if (cm->flags & CHFL_CHANPROT)
 				buf[idx++] = '&';
 			else
@@ -195,11 +223,7 @@ DLLFUNC CMD_FUNC(m_names)
 			/* NAMES reply with all rights included (NAMESX) */
 #ifdef PREFIX_AQ
 			if (cm->flags & CHFL_CHANOWNER)
-#ifdef UDB
-				buf[idx++] = '.';
-#else
 				buf[idx++] = '~';
-#endif
 			if (cm->flags & CHFL_CHANPROT)
 				buf[idx++] = '&';
 #endif
@@ -209,6 +233,7 @@ DLLFUNC CMD_FUNC(m_names)
 				buf[idx++] = '%';
 			if (cm->flags & CHFL_VOICE)
 				buf[idx++] = '+';
+#endif
 		}
 		for (s = acptr->name; *s; s++)
 			buf[idx++] = *s;

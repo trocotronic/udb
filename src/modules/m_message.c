@@ -43,6 +43,9 @@
 #include "version.h"
 #endif
 #include "badwords.h"
+#ifdef UDB
+#include "udb.h"
+#endif
 
 int _is_silenced(aClient *, aClient *);
 char *_stripbadwords_channel(char *str, int *blocked);
@@ -66,7 +69,7 @@ extern int webtv_parse(aClient *sptr, char *string);
 ModuleHeader MOD_HEADER(m_message)
   = {
 	"message",	/* Name of module */
-	"$Id: m_message.c,v 1.1.1.14 2007-07-14 13:00:36 Trocotronic Exp $", /* Version */
+	"$Id: m_message.c,v 1.1.1.15 2008-05-24 23:48:33 Trocotronic Exp $", /* Version */
 	"private message and notice", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -355,8 +358,28 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 #else
  #define PREFIX_REST (0)
 #endif
+#ifdef UDB
+					if (*pc == PF_VOICE)
+						prefix |= PREFIX_VOICE | PREFIX_HALFOP | PREFIX_OP | PREFIX_REST;
+					else if (*pc == PF_HALF)
+						prefix |= PREFIX_HALFOP | PREFIX_OP | PREFIX_REST;
+					else if (*pc == PF_OP)
+						prefix |= PREFIX_OP | PREFIX_REST;
+  #ifdef PREFIX_AQ
+					else if (*pc == PF_ADMIN)
+						prefix |= PREFIX_ADMIN | PREFIX_OWNER;
+					else if (*pc == PF_OWN)
+						prefix |= PREFIX_OWNER;
+  #else
+					else if (*pc == PF_ADMIN)
+						prefix |= PREFIX_OP | PREFIX_REST;
+					else if (*pc == PF_OWN)
+						prefix |= PREFIX_OP | PREFIX_REST;
+  #endif
+#else
 					switch (*pc)
 					{
+
 					  case '+':
 						  prefix |= PREFIX_VOICE | PREFIX_HALFOP | PREFIX_OP | PREFIX_REST;
 						  break;
@@ -370,11 +393,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					  case '&':
 						  prefix |= PREFIX_ADMIN | PREFIX_OWNER;
 					  	  break;
-#ifdef UDB
-					  case '.':
-#else					  							  	  
 					  case '~':
-#endif	
 						  prefix |= PREFIX_OWNER;
 						  break;
 #else
@@ -388,6 +407,7 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					  default:
 						  break;	/* ignore it :P */
 					}
+#endif /* UDB */
 				}
 				
 				if (prefix)
@@ -414,6 +434,20 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 						}
 					}
 					/* Now find out the lowest prefix and use that.. (so @&~#chan becomes @#chan) */
+#ifdef UDB
+					if (prefix & PREFIX_VOICE)
+						pfixchan[0] = PF_VOICE;
+					else if (prefix & PREFIX_HALFOP)
+						pfixchan[0] = PF_HALF;
+					else if (prefix & PREFIX_OP)
+						pfixchan[0] = PF_OP;
+#ifdef PREFIX_AQ
+					else if (prefix & PREFIX_ADMIN)
+						pfixchan[0] = PF_ADMIN;
+					else if (prefix & PREFIX_OWNER)
+						pfixchan[0] = PF_OWN;
+#endif
+#else
 					if (prefix & PREFIX_VOICE)
 						pfixchan[0] = '+';
 					else if (prefix & PREFIX_HALFOP)
@@ -424,9 +458,6 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 					else if (prefix & PREFIX_ADMIN)
 						pfixchan[0] = '&';
 					else if (prefix & PREFIX_OWNER)
-#ifdef UDB
-						pfixchan[0] = '.';
-#else
 						pfixchan[0] = '~';
 #endif
 #endif
@@ -576,7 +607,11 @@ DLLFUNC int m_message(aClient *cptr, aClient *sptr, int parc, char *parv[], int 
 			    sptr, nick + 1,
 			    (*nick == '#') ? MATCH_HOST :
 			    MATCH_SERVER,
+#ifdef UDB
+				":%s %s %s :*** Mensaje Global: %s", parv[0], cmd, nick, parv[2]);
+#else
 			    ":%s %s %s :%s", parv[0], cmd, nick, parv[2]);
+#endif
 			continue;
 		}
 
@@ -1251,7 +1286,7 @@ char *_StripColors(unsigned char *text) {
 				rgb = 1;
 				nc = 0;
 			}
-			else 
+			else if (*text != '\026') /* (strip reverse too) */
 			{
 				new_str[i] = *text;
 				i++;

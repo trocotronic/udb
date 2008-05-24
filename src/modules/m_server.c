@@ -41,7 +41,7 @@
 #include "badwords.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 #include "version.h"
 
@@ -59,7 +59,7 @@ static char buf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.4.13 2007-07-14 13:00:36 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.4.14 2008-05-24 23:48:33 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 
@@ -1290,7 +1290,6 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 	n = 1;
 #endif
 
-
 	if (*chptr->chname != '#')
 		return;
 
@@ -1329,19 +1328,10 @@ void send_channel_modes_sjoin(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_HALFOP)
 			*bufptr++ = '%';
 		if (lp->flags & MODE_CHANOWNER)
-#ifdef UDB
-			*bufptr++ = '.';
-#else
 			*bufptr++ = '*';
-#endif
 		if (lp->flags & MODE_CHANPROT)
-#ifdef UDB
-			*bufptr++ = '$';
-#else
 			*bufptr++ = '~';
 
-
-#endif
 
 		name = lp->cptr->name;
 
@@ -1438,21 +1428,21 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 	if (nomode && nopara)
 	{
 		ircsprintf(buf,
-		    (cptr->proto & PROTO_SJB64 ? "%s %B %s :" : "%s %ld %s :"),
+		    (cptr->proto & PROTO_SJB64 ? ":%s %s %B %s :" : ":%s %s %ld %s :"), me.name,
 		    (IsToken(cptr) ? TOK_SJOIN : MSG_SJOIN),
 		    (long)chptr->creationtime, chptr->chname);
 	}
 	if (nopara && !nomode)
 	{
 		ircsprintf(buf, 
-		    (cptr->proto & PROTO_SJB64 ? "%s %B %s %s :" : "%s %ld %s %s :"),
+		    (cptr->proto & PROTO_SJB64 ? ":%s %s %B %s %s :" : ":%s %s %ld %s %s :"), me.name,
 		    (IsToken(cptr) ? TOK_SJOIN : MSG_SJOIN),
 		    (long)chptr->creationtime, chptr->chname, modebuf);
 	}
 	if (!nopara && !nomode)
 	{
 		ircsprintf(buf,
-		    (cptr->proto & PROTO_SJB64 ? "%s %B %s %s %s :" : "%s %ld %s %s %s :"),
+		    (cptr->proto & PROTO_SJB64 ? ":%s %s %B %s %s %s :" : ":%s %s %ld %s %s %s :"), me.name,
 		    (IsToken(cptr) ? TOK_SJOIN : MSG_SJOIN),
 		    (long)chptr->creationtime, chptr->chname, modebuf, parabuf);
 	}
@@ -1492,17 +1482,10 @@ void send_channel_modes_sjoin3(aClient *cptr, aChannel *chptr)
 		if (lp->flags & MODE_HALFOP)
 			*p++ = '%';
 		if (lp->flags & MODE_CHANOWNER)
-#ifdef UDB
-			*p++ = '.';
-#else
 			*p++ = '*';
-#endif
 		if (lp->flags & MODE_CHANPROT)
-#ifdef UDB
-			*p++ = '$';
-#else		
+
 			*p++ = '~';
-#endif		
 
 		p = mystpcpy(p, lp->cptr->name);
 		*p++ = ' ';

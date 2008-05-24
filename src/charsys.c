@@ -149,7 +149,7 @@ static int do_nick_name_standard(char *nick);
  *  VIOLATE YOUR ""RIGHT"" ON SUPPORT IMMEDIATELY]
  */
 #ifdef UDB
-const char *illegalnickchars = "\xA0+%@&#$'\"?*,.";
+const char *illegalnickchars = "\xA0+%@&~#$'\"?*,.";
 #else
 const char *illegalnickchars = "\xA0!+%@&~#$:'\"?*,.";
 #endif
@@ -171,7 +171,7 @@ MBList *m, *m_next;
 	mblist=mblist_tail=NULL;
 	/* Then add the default which will always be allowed */
 #ifdef UDB
-	charsys_addallowed("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzy{|}~:!");
+	charsys_addallowed("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzy{|}:!");
 #else
 	charsys_addallowed("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzy{|}");
 #endif

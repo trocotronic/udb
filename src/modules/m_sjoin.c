@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.4.12 2007-07-14 13:00:36 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.4.13 2008-05-24 23:48:34 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 
@@ -412,12 +412,8 @@ CMD_FUNC(m_sjoin)
 		i = 0;
 		tp = s;
 		while (
-		    (*tp == '@') || (*tp == '+') || (*tp == '%')
-#ifdef UDB		    
-		    || (*tp == '.') || (*tp == '$') || (*tp == '&')
-#else		    
-		    || (*tp == '*') || (*tp == '~') || (*tp == '&')
-#endif		    
+		    (*tp == '@') || (*tp == '+') || (*tp == '%')  
+		    || (*tp == '*') || (*tp == '~') || (*tp == '&')    
 		    || (*tp == '"') || (*tp == '\''))
 		{
 			switch (*(tp++))
@@ -431,18 +427,10 @@ CMD_FUNC(m_sjoin)
 			  case '+':
 				  modeflags |= CHFL_VOICE;
 				  break;
-#ifdef UDB
-			  case '.':
-#else
 			  case '*':
-#endif
 				  modeflags |= CHFL_CHANOWNER;
-				  break;
-#ifdef UDB
-			  case '$':
-#else			  					  
-			  case '~':
-#endif			  	
+				  break; 					  
+			  case '~':	  	
 				  modeflags |= CHFL_CHANPROT;
 				  break;
 			  case '&':

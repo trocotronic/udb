@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-<title>UDB - 3.5.2 - Documentaci&oacute;n oficial</title>
+<title>UDB - 3.6 - Documentaci&oacute;n oficial</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 <style type="text/css">
  pre { font: "courier new"; font-style: normal;}
@@ -10,13 +10,13 @@
 </style>
 </head>
 
-<!-- $Id: udb.html,v 1.1.2.11 2007-07-14 13:00:30 Trocotronic Exp $ -->
+<!-- $Id: udb.html,v 1.1.2.12 2008-05-24 23:48:28 Trocotronic Exp $ -->
 
 <body>
 <div align="center"><b><font size="7">UDB</font></b><br>
   <font size="4"><a href="http://www.redyc.com">http://www.redyc.com/</a></font><br>
-  <font size="4">Versi&oacute;n: 3.5.2</font><br>
-  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 14-07-2007</div>
+  <font size="4">Versi&oacute;n: 3.6</font><br>
+  <b>&Uacute;ltima actualizaci&oacute;n del documento:</b> 11-04-2008</div>
 <br>
   <b>Programador:</b> Trocotronic<br>
   <b>Contribuciones:</b> MaD <br>
@@ -106,10 +106,12 @@ Además, el sistema UDB proporciona las siguientes características:<BR /><BR />
 			<li>Establecer una clave de cifrado global.</li>
 
 			<li>Fijar un sufijo automático para ips virtuales (modo +x).</li>
-			<li>Personalizar de las máscaras NickServ, ChanServ e IpServ.</li>
+			<li>Personalizar de las máscaras NickServ, ChanServ y IpServ.</li>
 			<li>Fijar un número de clones global.</li>
 			<li>Personalizar los mensajes de desconexión por exceso de clones.</li>
 			<li>Establecer un desafío para encriptar las contraseñas de forma global.</li>
+			<li>Fijar los parámetros de flood evitar intentos de robo por fuerza bruta.</li>
+			<li>Cambiar los prefijos de los modos +qaohv (cambiar los símbolos .&@%+).</li>
 		</ul>
 		<br />
 		<li>Sobre links:</li>
@@ -118,6 +120,16 @@ Además, el sistema UDB proporciona las siguientes características:<BR /><BR />
 			<li>Establecer un servidor como debug y recibir los cambios de modo de usuarios UDB.</li>
 			<li>Fijar un servidor como propagador para reforzar todavía más la propagación de registros y evitar desincronizaciones.</li>
 			<li>Permitir clientes en servidores no-UDB que sean leafs.</li>
+		</ul>
+		<li>Sobre *lines:</li>
+		Permite poner *lines (glines, zlines, spamfilters, shuns y qlines) de forma permanente en toda la red. Estas *lines se mantienen aunque se reinicie el servidor.
+		<ul>
+			<li>Propagar un spamfilter indefinido por la red.</li>
+			<li>Propagar una zline indefinida por la red.</li>
+			<li>Propagar un shun indefinido por la red.</li>
+			<li>Propagar una gline indefinida por la red.</li>
+			<li>Propagar una qline indefinida por la red.</li>
+			<li>Guardar todas las *lines y recuperarlas en caso de reiniciar el servidor o la red entera.</li>
 		</ul>
 Como se puede apreciar, son bastantes las mejoras realizadas que no pueden llevarse a cabo sin unos servicios para IRC adaptados al UDB.<BR />
 </div>
@@ -129,10 +141,11 @@ Una de las formas para distribuir esa información es hacerlo por bloques, permit
 Al tratar la información por bloques permite una gran y plena flexibilidad. Los bloques se estructuran por ítems y valores (numéricos y alfanuméricos).
 Así pues, estos bloques se estructuran de forma jerárquica en árbol. Puede imaginarse como un árbol que se va ramificando, cuyas ramas son los items y sus hojas los contenidos.<BR />
 Esta enorme versatilidad ofrece un sinfín de posibilidades.<BR /><BR />
-Versión actual: <B>3.5.2</B><BR /><BR />
+Versión actual: <B>3.6</B><BR /><BR />
 <A name="bloques"></A><BR /><B>Bloques</B><BR />
 Puesto que existen dos clases de valores (numéricos y alfanuméricos) es necesario distinguirlos de alguna forma.
-Todos los valores que estén precedidos por el símbolo '*' se tomarán como valores numéricos. De otra forma, alfanuméricos.<BR />
+Todos los valores que estén precedidos por el símbolo '*' se tomarán como valores numéricos. De otra forma, alfanuméricos. 
+No obstante, si son datos alfanuméricos que empiezan por '*' y deben ser tratados como tales, deben escaparse, es decir, utilizar \*.<BR />
 Existen cinco bloques: N (nicks), C (canales), I (ips), S (set) y L (links).<BR /><BR />
 El bloque N contiene los nicks y todo lo que les concierne. Se estructura de la siguiente forma:<BR />
 - N::&lt;nick>::P &lt;contraseña> -> contiene la contraseña del nick<BR />
@@ -188,6 +201,7 @@ El bloque S contiene aspectos de la configuración de la red. Se estructura de la
 - S::Q &lt;mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos<BR />
 - S::D &lt;metodo> -> desafío global con el que se cifran las contraseñas<BR />
 - S::F &lt;v>:&lt;s> -> Si el usuario intenta más de &lt;v> veces durante &lt;s> segundos una contraseña incorrecta, es bloqueado.<BR />
+- S::P &lt;prefijos> -> Prefijos para los modos qaohv en este orden. Por defecto, ~&@%+.
 <BR />
 El bloque L contiene información sobre links de servidores. Se estructura de la siguiente forma:<BR />
 - L::&lt;servidor>::O *&lt;opts> -> Fija distintas opciones para este link</BR />
@@ -195,6 +209,21 @@ El bloque L contiene información sobre links de servidores. Se estructura de la 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L_OPT_PROP 0x2 -> Establece este servidor como propagador. Es el único servidor que puede propagar datos por la red. Sólo puede haber <b>UNO</b>.<BR />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<B>ATENCIÓN: </B>Si se propaga esta opción y ya hay otro link propagador, el bloque entero se borrará!<BR />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L_OPT_CLNT 0x4 -> Permite la conexión de clientes en el caso de que sea un servidor no-UDB leaf y que a su vez esté configurado como <u>uline</u>.<BR />
+<BR />
+El bloque K contiene las diferentes *lines que se desean guardar. Se estructura de la siguiente forma:<BR />
+- K::F::=&lt;regexp>::T &lt;tipo -> Tipo de target al que afecta la regexp. Misma sintaxis que /spamfilter.<BR />
+- K::F::=&lt;regexp>::A &lt;accion -> Acción a tomar. Misma sintaxis que /spamfilter.<BR />
+- K::F::=&lt;regexp>::K *&lt;tkltime -> Duracción de la *line si se usa. Misma sintaxis que /spamfilter.<BR />
+<B>NOTA:</B> se requiere la anteposición de '*' para indicar que es un valor numérico (entero largo).<BR />
+- K::F::=&lt;regexp>::R &lt;razon> -> Razón de la line. Misma sintaxis que /spamfilter.<BR />
+- K::G::&lt;hostmask>::R &lt;razon> -> Razón para la gline.<BR />
+- K::Z::&lt;ip>::R &lt;razon> -> Razón para la zline.<BR />
+- K::S::&lt;hostmask>::R &lt;razon> -> Razón para el shun.<BR />
+- K::Q::&lt;nick>::R &lt;razon> -> Razón para la qline.<BR />
+<BR />
+<B>NOTA SOBRE EL SPAMFILTER:</B><BR />
+Puesto que las regexp pueden contener espacios, deberán cifrarse en BASE64 y mandarse con el símbolo '=' delante para indicar que están cifradas y deben descifrarse.<BR />
+La línea de spamfilter no se ejecuta hasta que no se recibe la línea correspondiente a la razón (R). Es decir, si no se recibe esta línea, el spamfilter no actuará. Por esta razón, la línea R debe ser la última en enviarse.<BR />
 <BR />
 Estos cuatro bloques se guardan en distintos archivos en forma <U>binaria</U>. Es muy importante este dato, puesto que garantiza el mismo tamaño bajo todos los sistemas operativos.<BR />
 Para evitar manipulaciones externas, estos cuatro archivos están controlados por un sistema que detecta si se ha modificado un archivo vía externa. Si se diera este caso, se borra todo el archivo
@@ -227,7 +256,7 @@ Su equivalencia se define en la siguiente tabla:<BR />
 <TR><TD rowspan="3">I (ips)</TD><TD>clones</TD><TD>S</TD></TR>
 <TR><TD>nolines</TD><TD>E</TD></TR>
 <TR><TD>host</TD><TD>H</TD></TR>
-<TR><TD rowspan="10">S (set)</TD><TD>clave_cifrado</TD><TD>L</TD></TR>
+<TR><TD rowspan="11">S (set)</TD><TD>clave_cifrado</TD><TD>L</TD></TR>
 <TR><TD>sufijo</TD><TD>J</TD></TR>
 <TR><TD>NickServ</TD><TD>N</TD></TR>
 <TR><TD>ChanServ</TD><TD>C</TD></TR>
@@ -237,7 +266,12 @@ Su equivalencia se define en la siguiente tabla:<BR />
 <TR><TD>quit_clones</TD><TD>Q</TD></TR>
 <TR><TD>desafio</TD><TD>D</TD></TR>
 <TR><TD>flood</TD><TD>F</TD></TR>
+<TR><TD>prefijos</TD><TD>P</TD></TR>
 <TR><TD rowspan="1">L (links)</TD><TD>opciones</TD><TD>O</TD></TR>
+<TR><TD rowspan="4">K (*lines)</TD><TD>tipo</TD><TD>T</TD></TR>
+<TR><TD>accion</TD><TD>A</TD></TR>
+<TR><TD>tkltime</TD><TD>K</TD></TR>
+<TR><TD>razon</TD><TD>R</TD></TR>
 </TABLE><BR />
 <BR />
 <A name="comandos"></A><BR /><B>Comandos</B><BR />
@@ -353,9 +387,9 @@ Por tanto, si hay algún servidor que no posea esa copia, truncará la red a parti
 La hora que se especifica es la misma que la se usa en un OPT. Todos los servidores actualizarán su hora OPT a ésta.<BR />
 <A name="negociacion"></A><BR /><B>Negociación</B><BR />
 En el momento que se unen dos servidores hay que seguir unos pasos para sincronizar los bloques.<BR />
-Lo primero que se manda es la cabecera PROTOCTL UDB3.5.2[=parámetro1,parámetro2,etc], antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL U3.5.2=params TOKEN VL.<BR />
+Lo primero que se manda es la cabecera PROTOCTL UDB3.6[=parámetro1,parámetro2,etc], antes de PASS y de SERVER. Si se soportan más protocolos se usarán a continuación. Por ejemplo PROTOCTL U3.6=params TOKEN VL.<BR />
 De momento está reservado para un uso futuro.<BR />
-Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.5.2 VL NOQUIT...<BR />
+Por ejemplo, para el caso de Colossus, sería PROTOCTL UDB3.6 VL NOQUIT...<BR />
 Una vez se han linkado empieza la sincronización. Es muy importante que <U>toda</U> la negociación se haga antes de recibir el EOS (End Of Synch). Si se inserta (y en tal caso, se propaga) un registro antes del EOS,
 sus efectos son impredecibles. Así, que es bueno tener un control para que si no se ha recibido el EOS no se propaguen registros nuevos (menos los que se resumen, obviamente).<BR />
 La negociación y consulta del estado de bloques se inicia con el envío de un INF. El servidor de destino debe ser solamente el servidor al que se linka (no usar '*').<BR />

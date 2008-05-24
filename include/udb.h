@@ -1,5 +1,5 @@
 /*
- *   Unreal Internet Relay Chat Daemon, src/s_bdd.c
+ *   Unreal Internet Relay Chat Daemon, src/udb.c
  *   Copyright (C) 1990 Jarkko Oikarinen and
  *                      University of Oulu, Computing Center
  *
@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: s_bdd.h,v 1.1.1.15 2007-07-14 13:00:32 Trocotronic Exp $
+ * $Id: udb.h,v 1.1.4.1 2008-05-24 23:48:30 Trocotronic Exp $
  */
 
 /* CONFIGURACIÓN DEL SISTEMA INTERNO UDB */
@@ -37,7 +37,7 @@
 #define DB_DIR "database/"
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
-#define UDB_VER "UDB3.5.2"
+#define UDB_VER "UDB3.6"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb
@@ -50,6 +50,7 @@ struct _udb
 	struct _udb *hsig;
 #endif
 	struct _udb *up, *mid, *down;
+	unsigned b64:1; /* 1 si el item está en b64 */
 };
 struct _bloque
 {
@@ -77,24 +78,32 @@ DLLEXP extern MODVAR UDBloq *C;
 DLLEXP extern MODVAR UDBloq *S;
 DLLEXP extern MODVAR UDBloq *I;
 DLLEXP extern MODVAR UDBloq *L;
+DLLEXP extern MODVAR UDBloq *K;
 DLLEXP extern MODVAR UDBloq *ultimo;
 DLLEXP extern MODVAR Udb *UDB_NICKS;
 DLLEXP extern MODVAR Udb *UDB_CANALES;
 DLLEXP extern MODVAR Udb *UDB_IPS;
 DLLEXP extern MODVAR Udb *UDB_SET;
 DLLEXP extern MODVAR Udb *UDB_LINKS;
+DLLEXP extern MODVAR Udb *UDB_LINES;
 DLLEXP extern MODVAR char *grifo;
 DLLEXP extern MODVAR int pases;
 DLLEXP extern MODVAR int intervalo;
 DLLEXP extern MODVAR aClient *propaga;
+DLLEXP extern MODVAR char *pfxs;
+DLLEXP extern MODVAR char PF_VOICE;
+DLLEXP extern MODVAR char PF_HALF;
+DLLEXP extern MODVAR char PF_OP;
+DLLEXP extern MODVAR char PF_ADMIN;
+DLLEXP extern MODVAR char PF_OWN;
 
 DLLFUNC extern char *MakeVirtualHost(aClient *, char *, char *, int);
 DLLFUNC extern Udb *BuscaBloque(char *, Udb *);
 DLLFUNC extern u_int LevelOperUdb(char *);
 DLLFUNC char *GetVisibleHost(aClient *, aClient *);
-DLLFUNC extern char *ChanNick(int);
-DLLFUNC extern char *ChanMask(int);
-DLLFUNC extern aClient *ChanClient();
+DLLFUNC extern char *BotNick(char *, int);
+DLLFUNC extern char *BotMask(char *, int);
+DLLFUNC extern aClient *BotClient(char *);
 DLLFUNC extern void DaleCosas(int, aClient *, Udb *, char *);
 DLLFUNC extern void QuitaleCosas(aClient *, Udb *);
 DLLFUNC extern int TipoDePass(char *, char *, Udb *, aClient *);
@@ -105,6 +114,7 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define BDD_ROOT 0x4
 
 #define CHAR_NUM '*' /* caracter para indicar que se trata de un entero largo */
+#define CHAR_B64 '=' /* caracter para indicar que la cadena está cifrada en b64 */
 
 /*
  * Vamos a explicar un poco los bloques de cada bloque principal.
@@ -162,6 +172,7 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
  * - S::quit_clones <mensaje quit> -> mensaje que se muestra si se rebasa los clones permitidos
  * - S::desafio <metodo> -> Desafío global con el que se cifran las contraseñas
  * - S::flood <v>:<s> -> Si el usuario intenta más de <v> veces durante <s> segundos una contraseña incorrecta, es bloqueado.
+ * - S::prefijos <prefijos> -> Prefijos para los modos qaohv en este orden. Por defecto, ~&@%+.
  *
  * Los servidores tienen los siguientes subbloques:
  * - L::<servidor>::opciones *<opts> -> Fija distintas opciones para este link
@@ -169,6 +180,16 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
  *    	- L_OPT_PROP 0x2 -> Establece este servidor como propagador. Es el único servidor que puede propagar datos por la red. Sólo puede haber UNO.
  *			ATENCIÓN: Si se propaga esta opción y ya hay otro link propagador, el bloque entero se borrará!
  *    	- L_OPT_CLNT 0x4 -> Permite la conexión de clientes en el caso de que sea un servidor no-UDB leaf y que a su vez esté configurado como uline.
+ *
+ * Bloque de *lines
+ * - K::F::<regexp>::tipo <tipo> -> Tipo de target al que afecta la regexp. Misma sintaxis que /spamfilter.
+ * - K::F::<regexp>::accion <accion> -> Acción a tomar. Misma sintaxis que /spamfilter.
+ * - K::F::<regexp>::tkltime <tkltime> -> Duracción de la *line si se usa. Misma sintaxis que /spamfilter.
+ * - K::F::<regexp>::razon <razon> -> Razón de la line. Misma sintaxis que /spamfilter.
+ * - K::G::<hostmask>::razon <razon> -> Razón para la gline.
+ * - K::Z::<ip>::razon <razon> -> Razón para la zline.
+ * - K::S::<hostmask>::razon <razon> -> Razón para el shun.
+ * - K::Q::<nick>::razon <razon> -> Razón para la qline.
  */
 
 #define E_UDB_NODB 1 /* no existe bloque */
@@ -183,6 +204,7 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define E_UDB_REP 10 /* dato repetido */
 
 #ifdef UDB_TOK
+
 #define C_FUN "F"	/* fundador */
 #define C_MOD "M"	/* modos */
 #define C_TOP "T"	/* topic */
@@ -192,6 +214,7 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define C_PAS "P"	/* pass */
 #define C_DES "D"	/* desafio */
 #define C_OPT "O"	/* opciones */
+
 #define N_ALL "A"	/* acceso */
 #define N_PAS "P"	/* pass */
 #define N_VHO "V"	/* vhost */
@@ -202,9 +225,11 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define N_MOD "M"	/* modos */
 #define N_SNO "K"	/* snomasks */
 #define N_SWO "W"	/* swhois */
+
 #define I_CLO "S"	/* nº clones */
 #define I_NOL "E"	/* nolines */
 #define I_HOS "H"	/* host reverso */
+
 #define S_CLA "L"	/* clave de cifrado */
 #define S_SUF "J"	/* sufijo */
 #define S_NIC "N"	/* nickserv */
@@ -215,8 +240,17 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define S_QCL "Q"	/* quit por clones */
 #define S_DES "D"	/* desafio global */
 #define S_FLO "F"	/* pass-flood */
+#define S_PRE "P" /* prefijos */
+
 #define L_OPT "O"	/* opciones */
+
+#define K_TIP "T"
+#define K_ACC "A"
+#define K_TKL "K"
+#define K_RAZ "R"
+
 #else
+
 #define C_FUN "fundador"
 #define C_MOD "modos"
 #define C_TOP "topic"
@@ -226,6 +260,7 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define C_PAS "pass"
 #define C_DES "desafio"
 #define C_OPT "opciones"
+
 #define N_ALL "acceso"
 #define N_PAS "pass"
 #define N_VHO "vhost"
@@ -236,9 +271,11 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define N_MOD "modos"
 #define N_SNO "snomasks"
 #define N_SWO "swhois"
+
 #define I_CLO "clones"
 #define I_NOL "nolines"
 #define I_HOS "host"
+
 #define S_CLA "clave_cifrado"
 #define S_SUF "sufijo"
 #define S_NIC "NickServ"
@@ -249,7 +286,15 @@ DLLFUNC extern int BuscaOpt(int, Udb *);
 #define S_QCL "quit_clones"
 #define S_DES "desafio"
 #define S_FLO "flood"
+#define S_PRE "prefijos"
+
 #define L_OPT "opciones"
+
+#define K_TIP "tipo"
+#define K_ACC "accion"
+#define K_TKL "tkltime"
+#define K_RAZ "razon"
+
 #endif
 
 #define C_OPT_PBAN 0x1

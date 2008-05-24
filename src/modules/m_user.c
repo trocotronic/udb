@@ -44,7 +44,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 DLLFUNC CMD_FUNC(m_user);
@@ -55,7 +55,7 @@ DLLFUNC CMD_FUNC(m_user);
 ModuleHeader MOD_HEADER(m_user)
   = {
 	"m_user",
-	"$Id: m_user.c,v 1.1.4.4 2007-07-14 13:00:36 Trocotronic Exp $",
+	"$Id: m_user.c,v 1.1.4.5 2008-05-24 23:48:34 Trocotronic Exp $",
 	"command /user", 
 	"3.2-b8-1",
 	NULL 

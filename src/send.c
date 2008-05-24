@@ -1304,6 +1304,7 @@ void sendto_match_butone(aClient *one, aClient *from, char *mask, int what,
 				    && match_it(acptr, mask, what)
 				    && acptr->from == cptr)
 					break;
+
 			/* a person on that server matches the mask, so we
 			   ** send *one* msg to that server ...
 			 */

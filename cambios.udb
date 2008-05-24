@@ -2,7 +2,7 @@
  * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
  * 21/03/2004 Trocotronic
  *
- * $Id: cambios.udb,v 1.1.2.12 2007-07-14 13:00:25 Trocotronic Exp $
+ * $Id: cambios.udb,v 1.1.2.13 2008-05-24 23:48:26 Trocotronic Exp $
  */
 
 210305001 - Paso toda la documentación de la web a doc/technical/udb.html
@@ -251,3 +251,16 @@
 220607236 - Arreglado un fallo en el que no se enviaba -r cuando se dropaba un canal.
 220607237 - Arreglado un fallo en el que no se borraba un canal cuando se dropaba, aviso de Mew (#0000266).
 140707238 - *** Unreal 3.2.7 + UDB 3.5.2 es
+011207239 - Arreglado un fallo al mostrar el mensaje de contraseña correcta, aviso de Mew (#0000291).
+080308240 - Añadida el subbloque S::GlobalServ para mandar mensajes globales de la forma $*máscara*, sugerencia de Mew (#0000293).
+080308241 - Se sube a la versión UDB 3.5.3
+090408242 - Se añade el subloque S::prefijos para fijar los prefijos de los modos qaohv (#0000296).
+090408243 - Se sube el protocolo a UDB 3.6
+090408244 - Se elimina la opción de poner ~ en los nicks.
+090408245 - Para poder escribir campos en UDB que empiecen por * y no sean numéricos, deben escaparse mediante \*.
+110408246 - Se quita el bloque GlobalServ porque técnicamente es imposible mandar mensajes con otro nick.
+240408247 - Se añade el soporte Base 64 para items UDB. Deben ir precedidos por '=' (necesario para enviar spamfilters con espacio).
+250408248 - Arreglado un fallo grave en el protocolo UDB. Cuando se resume, las líneas no deben parsearse. Sólo guardarlas en el archivo. Cuando se recibe el FDR, se recarga el bloque.
+100508249 - Un arreglo para acelerar la optimización.
+110508250 - Añadido el bloque K para poner *lines permanentes y fijas a nivel de red, sugerencia de MaD (#0000295).
+250508251 - *** Unreal 3.2.7 + UDB 3.6 es

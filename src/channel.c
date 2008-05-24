@@ -47,7 +47,7 @@
 #include "proto.h"
 #include <string.h>
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 ID_Copyright
@@ -394,10 +394,14 @@ int add_listmode(Ban **list, aClient *cptr, aChannel *chptr, char *banid)
 			}
 			else
 			{
+#ifdef SOCALLEDSMARTBANNING
 			  /* Temp workaround added in b19. -- Syzop */
 			  if (!mycmp(ban->banstr, banid) || (!strchr(banid, '\\') && !strchr(ban->banstr, '\\')))
 				if (!match(ban->banstr, banid))
 					return -1;
+#endif
+			  if (!mycmp(ban->banstr, banid))
+			  	return -1;
 			}
 		else if (!mycmp(ban->banstr, banid))
 			return -1;
@@ -812,7 +816,7 @@ int  can_send(aClient *cptr, aChannel *chptr, char *msgtext, int notice)
 		char *c;
 		for (c = msgtext; *c; c++)
 		{
-			if (*c == 3 || *c == 27 || *c == 4)
+			if (*c == 3 || *c == 27 || *c == 4 || *c == 22) /* mirc color, ansi, rgb, reverse */
 				return (CANNOT_SEND_NOCOLOR);
 		}
 	}
@@ -1496,8 +1500,8 @@ int  check_for_chan_flood(aClient *cptr, aClient *sptr, aChannel *chptr)
 		char comment[1024], mask[1024];
 #ifdef UDB
 		char *botname, *botnick;
-		botname = ChanMask(0);
-		botnick = ChanNick(0);
+		botname = BotMask(S_CHA, 0);
+		botnick = BotNick(S_CHA, 0);
 #endif
 		ircsprintf(comment,
 		    "Flood (Límite en %i líneas cada %i segundos)",
@@ -1784,8 +1788,8 @@ long mode;
 			if (e->chptr->mode.mode & mode)
 			{
 #ifdef UDB
-				sendto_serv_butone(&me, ":%s MODE %s -%c 0", ChanNick(0), e->chptr->chname, e->m);
-				sendto_channel_butserv(e->chptr, &me, ":%s MODE %s -%c", ChanMask(0), e->chptr->chname, e->m);
+				sendto_serv_butone(&me, ":%s MODE %s -%c 0", BotNick(S_CHA, 0), e->chptr->chname, e->m);
+				sendto_channel_butserv(e->chptr, &me, ":%s MODE %s -%c", BotMask(S_CHA, 0), e->chptr->chname, e->m);
 #else
 				sendto_serv_butone(&me, ":%s MODE %s -%c 0", me.name, e->chptr->chname, e->m);
 				sendto_channel_butserv(e->chptr, &me, ":%s MODE %s -%c", me.name, e->chptr->chname, e->m);
@@ -1885,11 +1889,11 @@ char m;
 			text, chptr->mode.floodprot->l[what], chptr->mode.floodprot->per, m);
 		ircsprintf(target, "%%%s", chptr->chname);
 #ifdef UDB
-		sendto_channelprefix_butone_tok(NULL, ChanClient(), chptr,
+		sendto_channelprefix_butone_tok(NULL, BotClient(S_CHA), chptr,
 			PREFIX_HALFOP|PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,
 			MSG_NOTICE, TOK_NOTICE, target, comment, 0);
-		sendto_serv_butone(&me, ":%s MODE %s +%c 0", ChanNick(0), chptr->chname, m);
-		sendto_channel_butserv(chptr, &me, ":%s MODE %s +%c", ChanMask(0), chptr->chname, m);
+		sendto_serv_butone(&me, ":%s MODE %s +%c 0", BotNick(S_CHA, 0), chptr->chname, m);
+		sendto_channel_butserv(chptr, &me, ":%s MODE %s +%c", BotMask(S_CHA, 0), chptr->chname, m);
 #else
 		sendto_channelprefix_butone_tok(NULL, &me, chptr,
 			PREFIX_HALFOP|PREFIX_OP|PREFIX_ADMIN|PREFIX_OWNER,

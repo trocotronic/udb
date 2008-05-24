@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.10 2007-07-14 13:00:32 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.11 2008-05-24 23:48:29 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -140,6 +140,13 @@
  * Use JOIN instead of SJOIN on every remotely sent JOIN
 */
 #undef JOIN_INSTEAD_OF_SJOIN_ON_REMOTEJOIN
+
+/*
+ * So called 'smart' banning: if this is enabled and a ban on like *!*@*h.com is present,
+ * then you cannot add a ban like *!*@*blah.com. In other words.. the ircd tries to be "smart".
+ * In general this is considered quite annoying. This was on by default until Unreal 3.2.8.
+ */
+#define SOCALLEDSMARTBANNING
 
 /*
 ** Freelinks garbage collector -Stskeeps

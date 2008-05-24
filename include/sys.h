@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.5 2005-09-22 20:08:10 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.6 2008-05-24 23:48:30 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
@@ -130,6 +130,13 @@ extern	char	*rindex(char *, char);
  */
 #if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__bsdi__) || defined(__linux__) || defined(__APPLE__)
 #define dn_skipname  __dn_skipname
+#endif
+
+/*
+ * Mac OS X Tiger Support (Intel Only)
+ */
+#if defined(macosx) || (defined(__APPLE__) && defined(__MACH__))
+#define OSXTIGER
 #endif
 
 #ifndef _WIN32

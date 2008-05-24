@@ -1,4 +1,4 @@
-/* $Id: ares.h,v 1.2.2.3 2006-05-15 19:49:43 Trocotronic Exp $ */
+/* $Id: ares.h,v 1.2.2.4 2008-05-24 23:48:30 Trocotronic Exp $ */
 
 /* Copyright 1998 by the Massachusetts Institute of Technology.
  *
@@ -138,7 +138,7 @@ struct ares_channeldata;
 typedef struct ares_channeldata *ares_channel;
 typedef void (*ares_callback)(void *arg, int status, unsigned char *abuf,
                               int alen);
-typedef void (*ares_host_callback)(void *arg, int status,
+typedef void (*ares_host_callback)(void *arg, int status,  int timeouts, 
                                    struct hostent *hostent);
 typedef void (*ares_nameinfo_callback)(void *arg, int status,
                                        char *node, char *service);

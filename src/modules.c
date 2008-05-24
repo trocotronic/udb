@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.16 2007-07-14 13:00:33 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.17 2008-05-24 23:48:31 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -607,6 +607,9 @@ void Unload_all_loaded_modules(void)
 			else if (objs->type == MOBJ_UMODE) {
 				UmodeDel(objs->object.umode);
 			}
+			else if (objs->type == MOBJ_CMODE) {
+				CmodeDel(objs->object.cmode);
+			}
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
 			}
@@ -674,6 +677,9 @@ void Unload_all_testing_modules(void)
 			}
 			else if (objs->type == MOBJ_UMODE) {
 				UmodeDel(objs->object.umode);
+			}
+			else if (objs->type == MOBJ_CMODE) {
+				CmodeDel(objs->object.cmode);
 			}
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
@@ -746,6 +752,9 @@ int    Module_free(Module *mod)
 		}
 		else if (objs->type == MOBJ_UMODE) {
 			UmodeDel(objs->object.umode);
+		}
+		else if (objs->type == MOBJ_CMODE) {
+			CmodeDel(objs->object.cmode);
 		}
 		else if (objs->type == MOBJ_CMDOVERRIDE) {
 			CmdoverrideDel(objs->object.cmdoverride);

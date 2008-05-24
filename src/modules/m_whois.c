@@ -43,7 +43,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 static char buf[BUFSIZE];
@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.15 2007-03-20 19:34:26 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.16 2008-05-24 23:48:34 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -264,15 +264,25 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					)
 						*(buf + len++) = '!';
 					access = get_access(acptr, chptr);
+#ifdef UDB
 #ifdef PREFIX_AQ
 					if (access & CHFL_CHANOWNER)
-#ifdef UDB
-						*(buf + len++) = '.';
-#else
-						*(buf + len++) = '~';
-#endif
+						*(buf + len++) = PF_OWN;
 					else if (access & CHFL_CHANPROT)
-
+						*(buf + len++) = PF_ADMIN;
+					else
+#endif
+					if (access & CHFL_CHANOP)
+						*(buf + len++) = PF_OP;
+					else if (access & CHFL_HALFOP)
+						*(buf + len++) = PF_HALF;
+					else if (access & CHFL_VOICE)
+						*(buf + len++) = PF_VOICE;
+#else
+#ifdef PREFIX_AQ
+					if (access & CHFL_CHANOWNER)
+						*(buf + len++) = '~';
+					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '&';
 					else
 #endif
@@ -282,6 +292,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 						*(buf + len++) = '%';
 					else if (access & CHFL_VOICE)
 						*(buf + len++) = '+';
+#endif
 					if (len)
 						*(buf + len) = '\0';
 					(void)strcpy(buf + len, chptr->chname);

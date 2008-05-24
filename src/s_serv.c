@@ -48,7 +48,7 @@ static char sccsid[] =
 #endif
 extern VOIDSIG s_die();
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 static char buf[BUFSIZE];
@@ -236,7 +236,7 @@ void m_info_send(aClient *sptr)
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Syzop        <syzop@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * aquanight    <wolfsage@unrealircd.com>",
+	sendto_one(sptr, ":%s %d %s :| * aquanight    <aquanight@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * WolfSage     <wolfsage@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
@@ -248,6 +248,12 @@ void m_info_send(aClient *sptr)
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| RC Testers:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Grunt, Bock, craftsman, Stealth, vonitsanet",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Past UnrealIRCd3.2* coders/contributors:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * codemastr (ret. u3.2 head coder)",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * McSkaf, Zogg, NiQuiL, chasm, llthangel, nighthawk, ..",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
@@ -283,7 +289,7 @@ void m_info_send(aClient *sptr)
 	sendto_one(sptr,
 	    ":%s %d %s :|          * Trocotronic (trocotronic@redyc.com)", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Otras colaboraciones:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Beta tester:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
 	    ":%s %d %s :|          * MaD (mad@madito.net)", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);

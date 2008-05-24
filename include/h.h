@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: h.h,v 1.1.1.17 2006-12-22 21:58:58 Trocotronic Exp $
+ *   $Id: h.h,v 1.1.1.18 2008-05-24 23:48:29 Trocotronic Exp $
  */
 
 /*
@@ -391,7 +391,7 @@ extern int add_to_client_hash_table(char *, aClient *);
 extern int del_from_client_hash_table(char *, aClient *);
 extern int add_to_channel_hash_table(char *, aChannel *);
 extern int del_from_channel_hash_table(char *, aChannel *);
-extern int add_to_watch_hash_table(char *, aClient *);
+extern int add_to_watch_hash_table(char *, aClient *, int);
 extern int del_from_watch_hash_table(char *, aClient *);
 extern int hash_check_watch(aClient *, int);
 extern int hash_del_watch_list(aClient *);

@@ -53,7 +53,7 @@
 #endif
 #include "badwords.h"
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 #define ircstrdup(x,y) do { if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); } while(0)
@@ -336,6 +336,7 @@ extern void		win_error();
 extern void add_entropy_configfile(struct stat st, char *buf);
 extern void unload_all_unused_snomasks();
 extern void unload_all_unused_umodes();
+extern void unload_all_unused_extcmodes(void);
 
 extern int charsys_test_language(char *name);
 extern void charsys_add_language(char *name);
@@ -627,12 +628,16 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 	char *params = strchr(modes, ' ');
 	char *parambuf = NULL;
 	char *param = NULL;
+	char *save = NULL;
+	
+	warn = 0; // warn is broken
+	
 	if (params)
 	{
 		params++;
 		parambuf = MyMalloc(strlen(params)+1);
 		strcpy(parambuf, params);
-		param = strtok(parambuf, " ");
+		param = strtoken(&save, parambuf, " ");
 	}		
 
 	for (; *modes && *modes != ' '; modes++)
@@ -661,7 +666,7 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 				if (!myparam)
 					break;
 				/* Go to next parameter */
-				param = strtok(NULL, " ");
+				param = strtoken(&save, NULL, " ");
 
 				if (myparam[0] != '[')
 				{
@@ -805,7 +810,7 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 				if (!myparam)
 					break;
 				/* Go to next parameter */
-				param = strtok(NULL, " ");
+				param = strtoken(&save, NULL, " ");
 
 				if (*myparam == '*')
 					kmode = 1;
@@ -844,6 +849,11 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 				{
 					if (tab->flag == *modes)
 					{
+						if (tab->parameters)
+						{
+							/* INCOMPATIBLE */
+							break;
+						}
 						store->mode |= tab->mode;
 						break;
 					}
@@ -863,9 +873,12 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 							{
 								if (!param)
 									break;
-								store->extparams[i] = strdup(Channelmode_Table[i].conv_param(param));
+								param = Channelmode_Table[i].conv_param(param);
+								if (!param)
+									break; /* invalid parameter fmt, do not set mode. */
+								store->extparams[i] = strdup(param);
 								/* Get next parameter */
-								param = strtok(NULL, " ");
+								param = strtoken(&save, NULL, " ");
 							}
 							store->extmodes |= Channelmode_Table[i].mode;
 							break;
@@ -928,6 +941,15 @@ void chmode_str(struct ChMode modes, char *mbuf, char *pbuf)
 	}
 #endif
 	*mbuf++=0;
+}
+
+int channellevel_to_int(char *s)
+{
+	if (!strcmp(s, "none"))
+		return CHFL_DEOPPED;
+	if (!strcmp(s, "op") || !strcmp(s, "chanop"))
+		return CHFL_CHANOP;
+	return 0; /* unknown or unsupported */
 }
 
 ConfigFile *config_load(char *filename)
@@ -1538,6 +1560,7 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->timesynch_timeout = 3;
 	i->timesynch_server = strdup("193.67.79.202,192.43.244.18,128.250.36.3"); /* nlnet (EU), NIST (US), uni melbourne (AU). All open acces, nonotify, nodns. */
 	i->name_server = strdup("127.0.0.1"); /* default, especially needed for w2003+ in some rare cases */
+	i->level_on_join = CHFL_CHANOP;
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -2565,6 +2588,16 @@ ConfigItem_link *Find_link(char *username,
 
 }
 
+/* ugly ugly ugly */
+int match_ip46(char *a, char *b)
+{
+#ifdef INET6
+	if (!strncmp(a, "::ffff:", 7) && !strcmp(a+7, b))
+		return 0; // match
+#endif
+	return 1; //nomatch
+}
+
 ConfigItem_cgiirc *Find_cgiirc(char *username, char *hostname, char *ip, CGIIRCType type)
 {
 ConfigItem_cgiirc *e;
@@ -2575,7 +2608,7 @@ ConfigItem_cgiirc *e;
 	for (e = conf_cgiirc; e; e = (ConfigItem_cgiirc *)e->next)
 	{
 		if ((e->type == type) && (!e->username || !match(e->username, username)) &&
-		    (!match(e->hostname, hostname) || !match(e->hostname, ip)))
+		    (!match(e->hostname, hostname) || !match(e->hostname, ip) || !match_ip46(e->hostname, ip)))
 			return e;
 	}
 
@@ -2907,7 +2940,7 @@ int	_conf_include(ConfigFile *conf, ConfigEntry *ce)
 	if (url_is_valid(ce->ce_vardata))
 		return remote_include(ce);
 #endif
-#if !defined(_WIN32) && !defined(_AMIGA) && DEFAULT_PERMISSIONS != 0
+#if !defined(_WIN32) && !defined(_AMIGA) && !defined(OSXTIGER) && DEFAULT_PERMISSIONS != 0
 	chmod(ce->ce_vardata, DEFAULT_PERMISSIONS);
 #endif
 #ifdef GLOBH
@@ -4239,10 +4272,18 @@ int	_test_listen(ConfigFile *conf, ConfigEntry *ce)
 #ifdef INET6
 	if ((strlen(ip) > 6) && !strchr(ip, ':') && isdigit(ip[strlen(ip)-1]))
 	{
-		config_error("%s:%i: listen: ip fijada en '%s' (ipv4) en un ircd IPv6, "
-		              "usa ::ffff:1.2.3.4",
+		char crap[32];
+		if (inet_pton(AF_INET, ip, crap) != 0)
+		{
+			char ipv6buf[128];
+			snprintf(ipv6buf, sizeof(ipv6buf), "[::ffff:%s]:%s", ip, port);
+			ce->ce_vardata = strdup(ipv6buf);
+		} else {
+		/* Insert IPv6 validation here */
+			config_error("%s:%i: listen: '%s' parece IPv4 pero no es una dirección correcta.",
 					ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ip);
-		return 1;
+			return 1;
+		}
 	}
 #endif
 	port_range(port, &start, &end);
@@ -6119,11 +6160,20 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 			if (cep->ce_vardata && (strlen(cep->ce_vardata) > 6) && !strchr(cep->ce_vardata, ':') &&
 			    isdigit(cep->ce_vardata[strlen(cep->ce_vardata)-1]))
 			{
-				config_error("%s:%i: link %s has link::hostname set to '%s' (IPv4) on a IPv6 compile, "
-				              "use the ::ffff:1.2.3.4 form instead",
-							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata,
-							cep->ce_vardata);
-				errors++;
+				char crap[32];
+				if (inet_pton(AF_INET, cep->ce_vardata, crap) != 0)
+				{
+					char ipv6buf[48];
+					snprintf(ipv6buf, sizeof(ipv6buf), "::ffff:%s", cep->ce_vardata);
+					cep->ce_vardata = strdup(ipv6buf);
+				} else {
+				/* Insert IPv6 validation here */
+					config_error( "%s:%i: listen: '%s' parece "
+						"IPv4 pero no es una dirección correcta.",
+						ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+						cep->ce_vardata);
+					errors++;
+				}
 			}
 #endif
 			if (strchr(cep->ce_vardata, '*') != NULL || strchr(cep->ce_vardata, '?'))
@@ -6390,10 +6440,20 @@ int	_test_cgiirc(ConfigFile *conf, ConfigEntry *ce)
 			if (cep->ce_vardata && (strlen(cep->ce_vardata) > 6) && !strchr(cep->ce_vardata, ':') &&
 			    isdigit(cep->ce_vardata[strlen(cep->ce_vardata)-1]))
 			{
-				config_error("%s:%i: cgiirc block has cgiirc::hostname set to '%s' (IPv4) on a IPv6 compile, "
-				              "use the ::ffff:1.2.3.4 form instead",
-							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
-				errors++;
+				char crap[32];
+				if (inet_pton(AF_INET, cep->ce_vardata, crap) != 0)
+				{
+					char ipv6buf[48];
+					snprintf(ipv6buf, sizeof(ipv6buf), "::ffff:%s", cep->ce_vardata);
+					cep->ce_vardata = strdup(ipv6buf);
+				} else {
+				/* Insert IPv6 validation here */
+					config_error( "%s:%i: cgiirc::hostname: '%s' parece "
+						"IPv4 pero no es una dirección correcta.",
+						ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+						cep->ce_vardata);
+					errors++;
+				}
 			}
 #endif
 		}
@@ -6698,6 +6758,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		}
 		else if (!strcmp(cep->ce_varname, "snomask-on-connect")) {
 			ircstrdup(tempiConf.user_snomask, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "level-on-join")) {
+			tempiConf.level_on_join = channellevel_to_int(cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "static-quit")) {
 			ircstrdup(tempiConf.static_quit, cep->ce_vardata);
@@ -7244,6 +7307,17 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "snomask-on-connect")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, snomask_on_connect, "snomask-on-connect");
+		}
+		else if (!strcmp(cep->ce_varname, "level-on-join")) {
+			char *p;
+			CheckNull(cep);
+			CheckDuplicate(cep, level_on_join, "level-on-join");
+			if (!channellevel_to_int(cep->ce_vardata))
+			{
+				config_error("%s:%i: set::level-on-join: valor desconocido '%s', debería ser: none, op",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
+				errors++;
+			}
 		}
 		else if (!strcmp(cep->ce_varname, "static-quit")) {
 			CheckNull(cep);
@@ -9108,6 +9182,7 @@ int     rehash(aClient *cptr, aClient *sptr, int sig)
 		return rehash_internal(cptr, sptr, sig);
 	return 0;
 #else
+	loop.ircd_rehashing = 1;
 	return rehash_internal(cptr, sptr, sig);
 #endif
 }
@@ -9124,12 +9199,14 @@ int	rehash_internal(aClient *cptr, aClient *sptr, int sig)
 		write_pidfile();
 #endif
 	}
+	loop.ircd_rehashing = 1; /* double checking.. */
 	if (init_conf(configfile, 1) == 0)
 		run_configuration();
 	if (sig == 1)
 		reread_motdsandrules();
 	unload_all_unused_snomasks();
 	unload_all_unused_umodes();
+	unload_all_unused_extcmodes();
 #ifdef UDB
 	loop.ircd_rehashing = 1;
 	CargaBloques();

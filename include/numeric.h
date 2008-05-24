@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.1.1.7 2006-05-15 19:49:42 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.8 2008-05-24 23:48:29 Trocotronic Exp $
  */
 
 /*
@@ -347,6 +347,9 @@
  * These are also in the range 600-799.
  */
 
+#define RPL_REAWAY           597
+#define RPL_GONEAWAY         598
+#define RPL_NOTAWAY          599
 #define RPL_LOGON            600
 #define RPL_LOGOFF           601
 #define RPL_WATCHOFF         602
@@ -355,6 +358,8 @@
 #define RPL_NOWOFF           605
 #define RPL_WATCHLIST        606
 #define RPL_ENDOFWATCHLIST   607
+#define RPL_CLEARWATCH       608
+#define RPL_NOWISAWAY        609
 
 #define RPL_DCCSTATUS        617
 #define RPL_DCCLIST          618
