@@ -54,7 +54,7 @@ DLLFUNC int m_mkpasswd(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_mkpasswd)
   = {
 	"m_mkpasswd",
-	"$Id: m_mkpasswd.c,v 1.1.1.1.2.2 2006-11-26 22:21:57 Trocotronic Exp $",
+	"$Id: m_mkpasswd.c,v 1.1.1.1.2.2 2006/11/26 22:21:57 Trocotronic Exp $",
 	"command /mkpasswd", 
 	"3.2-b8-1",
 	NULL 

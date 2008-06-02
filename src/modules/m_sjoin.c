@@ -55,7 +55,7 @@ DLLFUNC int m_sjoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sjoin)
   = {
 	"m_sjoin",
-	"$Id: m_sjoin.c,v 1.1.2.25 2008-04-23 18:44:30 Trocotronic Exp $",
+	"$Id: m_sjoin.c,v 1.1.2.25 2008/04/23 18:44:30 Trocotronic Exp $",
 	"command /sjoin", 
 	"3.2-b8-1",
 	NULL 

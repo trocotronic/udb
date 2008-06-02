@@ -57,7 +57,7 @@ DLLFUNC int m_svsnick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnick)
   = {
 	"m_svsnick",
-	"$Id: m_svsnick.c,v 1.1.1.1.2.15 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_svsnick.c,v 1.1.1.1.2.15 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /svsnick", 
 	"3.2-b8-1",
 	NULL 

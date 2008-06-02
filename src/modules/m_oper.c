@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.1.1.1.2.16 2007-11-09 19:41:47 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.1.2.16 2007/11/09 19:41:47 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

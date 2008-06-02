@@ -52,7 +52,7 @@ DLLFUNC int m_kick(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_kick)
   = {
 	"m_kick",
-	"$Id: m_kick.c,v 1.1.2.8 2006-09-07 11:27:47 Trocotronic Exp $",
+	"$Id: m_kick.c,v 1.1.2.8 2006/09/07 11:27:47 Trocotronic Exp $",
 	"command /kick", 
 	"3.2-b8-1",
 	NULL 

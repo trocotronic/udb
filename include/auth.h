@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: auth.h,v 1.1.1.1.2.2 2004-09-20 10:24:55 Trocotronic Exp $
+ *   $Id: auth.h,v 1.1.1.1.2.2 2004/09/20 10:24:55 Trocotronic Exp $
  */
 
 typedef	struct {

@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: api-isupport.c,v 1.1.2.12 2008-04-23 18:44:31 Trocotronic Exp $
+ * $Id: api-isupport.c,v 1.1.2.12 2008/04/23 18:44:31 Trocotronic Exp $
  */
 
 #include "struct.h"

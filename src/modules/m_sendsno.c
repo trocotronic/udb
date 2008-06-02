@@ -52,7 +52,7 @@ DLLFUNC int m_sendsno(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sendsno)
   = {
 	"sendsno",	/* Name of module */
-	"$Id: m_sendsno.c,v 1.1.2.1 2004-02-17 23:18:53 Trocotronic Exp $", /* Version */
+	"$Id: m_sendsno.c,v 1.1.2.1 2004/02/17 23:18:53 Trocotronic Exp $", /* Version */
 	"command /sendsno", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

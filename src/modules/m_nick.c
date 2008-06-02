@@ -56,7 +56,7 @@ DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *usern
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
-	"$Id: m_nick.c,v 1.1.2.80 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_nick.c,v 1.1.2.80 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /nick", 
 	"3.2-b8-1",
 	NULL 

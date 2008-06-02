@@ -37,7 +37,7 @@ DLLFUNC int m_dummy(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_dummy)
   = {
 	"dummy",	/* Name of module */
-	"$Id: m_dummy.c,v 1.1.1.1.2.1 2004-02-16 16:47:59 Trocotronic Exp $", /* Version */
+	"$Id: m_dummy.c,v 1.1.1.1.2.1 2004/02/16 16:47:59 Trocotronic Exp $", /* Version */
 	"command /dummy", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

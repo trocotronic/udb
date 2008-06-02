@@ -52,7 +52,7 @@ DLLFUNC int m_connect(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_connect)
   = {
 	"m_connect",
-	"$Id: m_connect.c,v 1.1.2.5 2007-06-29 22:39:54 Trocotronic Exp $",
+	"$Id: m_connect.c,v 1.1.2.5 2007/06/29 22:39:54 Trocotronic Exp $",
 	"command /connect", 
 	"3.2-b8-1",
 	NULL 

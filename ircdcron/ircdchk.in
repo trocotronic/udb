@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # UnrealIRCD Crontab v2.1
-# $Id: ircdchk.in,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+# $Id: ircdchk.in,v 1.1.1.1 2003/11/28 22:55:50 Trocotronic Exp $
 #
 # This is a script suitable for use in a crontab.  It checks to make sure
 # your ircd is running.  YOU NEED A SEPARATE CRON JOB FOR EACH IRCD.  If your

@@ -80,7 +80,7 @@ static int samode_in_progress = 0;
 ModuleHeader MOD_HEADER(m_mode)
   = {
 	"m_mode",
-	"$Id: m_mode.c,v 1.1.2.22 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_mode.c,v 1.1.2.22 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /mode", 
 	"3.2-b8-1",
 	NULL 

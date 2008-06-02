@@ -54,7 +54,7 @@ DLLFUNC int m_swhois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_swhois)
   = {
 	"m_swhois",
-	"$Id: m_swhois.c,v 1.1.1.1.2.1 2004-02-16 16:47:58 Trocotronic Exp $",
+	"$Id: m_swhois.c,v 1.1.1.1.2.1 2004/02/16 16:47:58 Trocotronic Exp $",
 	"command /swhois", 
 	"3.2-b8-1",
 	NULL 

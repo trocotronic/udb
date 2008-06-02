@@ -52,7 +52,7 @@ DLLFUNC int m_svspart(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svspart)
   = {
 	"svspart",	/* Name of module */
-	"$Id: m_svspart.c,v 1.1.1.1.2.4 2005-02-09 22:32:47 Trocotronic Exp $", /* Version */
+	"$Id: m_svspart.c,v 1.1.1.1.2.4 2005/02/09 22:32:47 Trocotronic Exp $", /* Version */
 	"command /svspart", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

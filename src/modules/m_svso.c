@@ -91,7 +91,7 @@ static int oper_access[] = {
 ModuleHeader MOD_HEADER(m_svso)
   = {
 	"m_svso",
-	"$Id: m_svso.c,v 1.1.1.1.2.5 2007-03-20 14:50:15 Trocotronic Exp $",
+	"$Id: m_svso.c,v 1.1.1.1.2.5 2007/03/20 14:50:15 Trocotronic Exp $",
 	"command /svso", 
 	"3.2-b8-1",
 	NULL 

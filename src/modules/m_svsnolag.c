@@ -54,7 +54,7 @@ DLLFUNC int m_svs2nolag(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnolag)
   = {
 	"m_svsnolag",
-	"$Id: m_svsnolag.c,v 1.1.2.1 2007-03-20 14:50:16 Trocotronic Exp $",
+	"$Id: m_svsnolag.c,v 1.1.2.1 2007/01/22 12:46:54 syzop Exp $",
 	"commands /svsnolag and /svs2nolag", 
 	"3.2-b8-1",
 	NULL

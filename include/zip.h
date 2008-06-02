@@ -19,7 +19,7 @@
  *
  * "s_zip.h". - Headers file.
  *
- * $Id: zip.h,v 1.1.1.1.2.3 2004-05-30 21:26:43 Trocotronic Exp $
+ * $Id: zip.h,v 1.1.1.1.2.3 2004/05/30 21:26:43 Trocotronic Exp $
  *
  */
 #ifndef INCLUDED_s_zip_h

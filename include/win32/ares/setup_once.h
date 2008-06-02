@@ -1,7 +1,7 @@
 #ifndef __SETUP_ONCE_H
 #define __SETUP_ONCE_H
 
-/* $Id: setup_once.h,v 1.1.2.1 2008-05-24 23:32:59 Trocotronic Exp $ */
+/* $Id: setup_once.h,v 1.1.2.1 2008/05/24 23:32:59 Trocotronic Exp $ */
 
 /* Copyright (C) 2004 - 2007 by Daniel Stenberg et al
  *

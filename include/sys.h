@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.1.1.1.2.7 2007-11-09 19:41:47 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.1.2.7 2007/11/09 19:41:47 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__

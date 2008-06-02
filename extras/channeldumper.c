@@ -53,7 +53,7 @@ ModuleHeader Mod_Header
 #endif
   = {
 	"channeldumper",
-	"$Id: channeldumper.c,v 1.1.1.1.2.3 2007-06-29 22:39:47 Trocotronic Exp $",
+	"$Id: channeldumper.c,v 1.1.1.1.2.3 2007/06/29 22:39:47 Trocotronic Exp $",
 	"Channel dump to text timed", 
 	"3.2-b8-1",
 	NULL 

@@ -52,7 +52,7 @@ DLLFUNC int m_umode2(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_umode2)
   = {
 	"m_umode2",
-	"$Id: m_umode2.c,v 1.1.2.2 2004-02-28 18:36:42 Trocotronic Exp $",
+	"$Id: m_umode2.c,v 1.1.2.2 2004/02/28 18:36:42 Trocotronic Exp $",
 	"command /umode2", 
 	"3.2-b8-1",
 	NULL 

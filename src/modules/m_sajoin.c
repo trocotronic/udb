@@ -52,7 +52,7 @@ DLLFUNC int m_sajoin(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sajoin)
   = {
 	"m_sajoin",
-	"$Id: m_sajoin.c,v 1.1.2.10 2006-09-07 11:16:48 Trocotronic Exp $",
+	"$Id: m_sajoin.c,v 1.1.2.10 2006/09/07 11:16:48 Trocotronic Exp $",
 	"command /sajoin", 
 	"3.2-b8-1",
 	NULL 

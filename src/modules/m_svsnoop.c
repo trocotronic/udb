@@ -55,7 +55,7 @@ DLLFUNC int m_svsnoop(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svsnoop)
   = {
 	"m_svsnoop",
-	"$Id: m_svsnoop.c,v 1.1.1.1.2.3 2005-02-13 09:49:48 Trocotronic Exp $",
+	"$Id: m_svsnoop.c,v 1.1.1.1.2.3 2005/02/13 09:49:48 Trocotronic Exp $",
 	"command /svsnoop", 
 	"3.2-b8-1",
 	NULL

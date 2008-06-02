@@ -53,7 +53,7 @@ static char buf[BUFSIZE], buf2[BUFSIZE];
 ModuleHeader MOD_HEADER(m_kill)
   = {
 	"kill",	/* Name of module */
-	"$Id: m_kill.c,v 1.1.1.1.2.9 2007-06-29 22:39:54 Trocotronic Exp $", /* Version */
+	"$Id: m_kill.c,v 1.1.1.1.2.9 2007/06/29 22:39:54 Trocotronic Exp $", /* Version */
 	"command /kill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

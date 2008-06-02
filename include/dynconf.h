@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dynconf.h,v 1.1.1.1.2.20 2007-12-01 19:16:46 Trocotronic Exp $
+ *   $Id: dynconf.h,v 1.1.1.1.2.20 2007/12/01 19:16:46 Trocotronic Exp $
  */
 
 

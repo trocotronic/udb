@@ -53,7 +53,7 @@ void _send_list(aClient *cptr, int numsend);
 ModuleHeader MOD_HEADER(m_list)
   = {
 	"m_list",
-	"$Id: m_list.c,v 1.1.2.6 2006-07-13 22:33:10 Trocotronic Exp $",
+	"$Id: m_list.c,v 1.1.2.6 2006/07/13 22:33:10 Trocotronic Exp $",
 	"command /list", 
 	"3.2-b8-1",
 	NULL 

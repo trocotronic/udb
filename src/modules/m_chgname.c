@@ -58,7 +58,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgname)
   = {
 	"chgname",	/* Name of module */
-	"$Id: m_chgname.c,v 1.1.1.1.2.6 2007-06-29 22:39:54 Trocotronic Exp $", /* Version */
+	"$Id: m_chgname.c,v 1.1.1.1.2.6 2007/06/29 22:39:54 Trocotronic Exp $", /* Version */
 	"command /chgname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

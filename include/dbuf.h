@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: dbuf.h,v 1.1.1.1.2.1 2004-02-16 16:48:04 Trocotronic Exp $
+ *   $Id: dbuf.h,v 1.1.1.1.2.1 2004/02/16 16:48:04 Trocotronic Exp $
  */
 
 #ifndef __dbuf_include__

@@ -52,7 +52,7 @@ DLLFUNC int m_cycle(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_cycle)
   = {
 	"cycle",	/* Name of module */
-	"$Id: m_cycle.c,v 1.1.1.1.2.2 2005-02-09 22:32:45 Trocotronic Exp $", /* Version */
+	"$Id: m_cycle.c,v 1.1.1.1.2.2 2005/02/09 22:32:45 Trocotronic Exp $", /* Version */
 	"command /cycle", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

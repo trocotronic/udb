@@ -52,7 +52,7 @@ DLLFUNC int m_samode(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_samode)
   = {
 	"m_samode",
-	"$Id: m_samode.c,v 1.1.2.3 2007-06-29 22:39:55 Trocotronic Exp $",
+	"$Id: m_samode.c,v 1.1.2.3 2007/06/29 22:39:55 Trocotronic Exp $",
 	"command /samode", 
 	"3.2-b8-1",
 	NULL 

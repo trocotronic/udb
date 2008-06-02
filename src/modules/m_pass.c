@@ -60,7 +60,7 @@ extern MODVAR char zlinebuf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_pass)
   = {
 	"m_pass",
-	"$Id: m_pass.c,v 1.1.2.5 2007-11-09 19:41:47 Trocotronic Exp $",
+	"$Id: m_pass.c,v 1.1.2.5 2007/11/09 19:41:47 Trocotronic Exp $",
 	"command /pass", 
 	"3.2-b8-1",
 	NULL 

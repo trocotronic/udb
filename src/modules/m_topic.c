@@ -52,7 +52,7 @@ DLLFUNC int m_topic(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_topic)
   = {
 	"m_topic",
-	"$Id: m_topic.c,v 1.1.2.17 2007-06-29 22:39:56 Trocotronic Exp $",
+	"$Id: m_topic.c,v 1.1.2.17 2007/06/29 22:39:56 Trocotronic Exp $",
 	"command /topic", 
 	"3.2-b8-1",
 	NULL 

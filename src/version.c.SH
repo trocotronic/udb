@@ -1,4 +1,4 @@
-# $Id: version.c.SH,v 1.1.1.1.2.28 2007-06-29 22:39:51 Trocotronic Exp $
+# $Id: version.c.SH,v 1.1.1.1.2.28 2007/06/29 22:39:51 Trocotronic Exp $
 
 echo "Extracting src/version.c..."
 
@@ -44,7 +44,7 @@ cat >version.c <<!SUB!THIS!
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * 
- *   $Id: version.c.SH,v 1.1.1.1.2.28 2007-06-29 22:39:51 Trocotronic Exp $
+ *   $Id: version.c.SH,v 1.1.1.1.2.28 2007/06/29 22:39:51 Trocotronic Exp $
  */
 
 /*

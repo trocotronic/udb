@@ -2,7 +2,7 @@
 **
 ** version.h
 ** UnrealIRCd
-** $Id: version.h,v 1.1.1.1.2.48 2008-04-09 13:41:05 Trocotronic Exp $
+** $Id: version.h,v 1.1.1.1.2.48 2008/04/09 13:41:05 Trocotronic Exp $
 */
 #ifndef __versioninclude
 #define __versioninclude 1

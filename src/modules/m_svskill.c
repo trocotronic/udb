@@ -51,7 +51,7 @@ DLLFUNC int m_svskill(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_svskill)
   = {
 	"svskill",	/* Name of module */
-	"$Id: m_svskill.c,v 1.1.2.2 2007-06-29 22:39:55 Trocotronic Exp $", /* Version */
+	"$Id: m_svskill.c,v 1.1.2.2 2007/06/29 22:39:55 Trocotronic Exp $", /* Version */
 	"command /svskill", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

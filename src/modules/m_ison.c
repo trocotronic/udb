@@ -52,7 +52,7 @@ DLLFUNC int m_ison(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_ison)
   = {
 	"m_ison",
-	"$Id: m_ison.c,v 1.1.2.2 2004-02-28 18:36:43 Trocotronic Exp $",
+	"$Id: m_ison.c,v 1.1.2.2 2004/02/28 18:36:43 Trocotronic Exp $",
 	"command /ison", 
 	"3.2-b8-1",
 	NULL 

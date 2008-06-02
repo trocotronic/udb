@@ -55,7 +55,7 @@ DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
-	"$Id: m_protoctl.c,v 1.1.2.25 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_protoctl.c,v 1.1.2.25 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /protoctl", 
 	"3.2-b8-1",
 	NULL 

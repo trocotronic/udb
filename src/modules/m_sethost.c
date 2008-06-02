@@ -54,7 +54,7 @@ DLLFUNC int m_sethost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sethost)
   = {
 	"sethost",	/* Name of module */
-	"$Id: m_sethost.c,v 1.1.1.1.2.2 2004-12-04 15:16:20 Trocotronic Exp $", /* Version */
+	"$Id: m_sethost.c,v 1.1.1.1.2.2 2004/12/04 15:16:20 Trocotronic Exp $", /* Version */
 	"command /sethost", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

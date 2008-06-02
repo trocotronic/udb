@@ -1,7 +1,7 @@
 #ifndef __ARES_CONFIG_WIN32_H
 #define __ARES_CONFIG_WIN32_H
 
-/* $Id: config-win32.h,v 1.1.2.1 2008-05-24 23:32:59 Trocotronic Exp $ */
+/* $Id: config-win32.h,v 1.1.2.1 2008/05/24 23:32:59 Trocotronic Exp $ */
 
 /* Copyright (C) 2004 - 2006 by Daniel Stenberg et al
  *

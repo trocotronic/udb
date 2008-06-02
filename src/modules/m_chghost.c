@@ -59,7 +59,7 @@ DLLFUNC int m_chghost(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chghost)
   = {
 	"chghost",	/* Name of module */
-	"$Id: m_chghost.c,v 1.1.1.1.2.5 2007-06-29 22:39:54 Trocotronic Exp $", /* Version */
+	"$Id: m_chghost.c,v 1.1.1.1.2.5 2007/06/29 22:39:54 Trocotronic Exp $", /* Version */
 	"/chghost", /* Short description of module */
 	"3.2-b8-1",
     };

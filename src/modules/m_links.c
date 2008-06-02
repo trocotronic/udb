@@ -55,7 +55,7 @@ DLLFUNC int m_links(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_links)
   = {
 	"m_links",
-	"$Id: m_links.c,v 1.1.2.8 2008-04-23 18:44:30 Trocotronic Exp $",
+	"$Id: m_links.c,v 1.1.2.8 2008/04/23 18:44:30 Trocotronic Exp $",
 	"command /links", 
 	"3.2-b8-1",
 	NULL 

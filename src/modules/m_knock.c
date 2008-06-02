@@ -52,7 +52,7 @@ DLLFUNC int m_knock(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_knock)
   = {
 	"m_knock",
-	"$Id: m_knock.c,v 1.1.2.4 2004-09-04 12:11:26 Trocotronic Exp $",
+	"$Id: m_knock.c,v 1.1.2.4 2004/09/04 12:11:26 Trocotronic Exp $",
 	"command /knock", 
 	"3.2-b8-1",
 	NULL 

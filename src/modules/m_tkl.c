@@ -103,7 +103,7 @@ ModuleInfo *TklModInfo;
 ModuleHeader MOD_HEADER(m_tkl)
   = {
 	"tkl",	/* Name of module */
-	"$Id: m_tkl.c,v 1.1.1.1.2.28 2008-03-08 14:13:35 Trocotronic Exp $", /* Version */
+	"$Id: m_tkl.c,v 1.1.1.1.2.28 2008/03/08 14:13:35 Trocotronic Exp $", /* Version */
 	"commands /gline etc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

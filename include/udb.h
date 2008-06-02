@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: udb.h,v 1.1.2.2 2008-04-24 21:30:41 Trocotronic Exp $
+ * $Id: udb.h,v 1.1.2.1 2008/04/23 18:45:02 Trocotronic Exp $
  */
 
 /* CONFIGURACIÓN DEL SISTEMA INTERNO UDB */

@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.1.1.1.2.17 2008-04-23 18:44:30 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.1.2.17 2008/04/23 18:44:30 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.1.1.1.2.15 2008-03-08 14:13:36 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.1.2.15 2008/03/08 14:13:36 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by

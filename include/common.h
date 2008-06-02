@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: common.h,v 1.1.1.1.2.16 2005-04-21 17:30:52 Trocotronic Exp $
+ *   $Id: common.h,v 1.1.1.1.2.16 2005/04/21 17:30:52 Trocotronic Exp $
  */
 
 #ifndef	__common_include__

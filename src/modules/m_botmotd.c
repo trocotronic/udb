@@ -52,7 +52,7 @@ DLLFUNC CMD_FUNC(m_botmotd);
 ModuleHeader MOD_HEADER(m_botmotd)
   = {
 	"m_botmotd",
-	"$Id: m_botmotd.c,v 1.1.2.1 2005-02-09 22:59:37 Trocotronic Exp $",
+	"$Id: m_botmotd.c,v 1.1.2.1 2005/02/09 22:59:37 Trocotronic Exp $",
 	"command /botmotd", 
 	"3.2-b8-1",
 	NULL 

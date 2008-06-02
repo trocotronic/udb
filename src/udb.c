@@ -20,7 +20,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: udb.c,v 1.1.2.16 2008-05-24 23:04:52 Trocotronic Exp $
+ * $Id: udb.c,v 1.1.2.14 2008/04/26 14:48:52 Trocotronic Exp $
  */
 #include "config.h"
 #include "struct.h"

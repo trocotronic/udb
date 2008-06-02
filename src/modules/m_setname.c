@@ -53,7 +53,7 @@ DLLFUNC int m_setname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_setname)
   = {
 	"setname",	/* Name of module */
-	"$Id: m_setname.c,v 1.1.1.1.2.4 2007-06-29 22:39:55 Trocotronic Exp $", /* Version */
+	"$Id: m_setname.c,v 1.1.1.1.2.4 2007/06/29 22:39:55 Trocotronic Exp $", /* Version */
 	"command /setname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

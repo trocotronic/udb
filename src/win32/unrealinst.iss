@@ -1,11 +1,11 @@
 ; UnrealIRCd Win32 Installation Script for My Inno Setup Extensions
 ; Requires Inno Setup 4.1.6 and ISX 3.0.4 to work
 
-; #define USE_SSL
+ #define USE_SSL
 ; Uncomment the above line to package an SSL build
-; #define USE_ZIP
+ #define USE_ZIP
 ; Uncomment the above line to package with ZIP support
-; #define USE_CURL
+ #define USE_CURL
 ; Uncomment the above line to package with libcurl support
 
 
@@ -83,7 +83,7 @@ Source: "c:\dev\zlib\dll32\zlibwapi.dll"; DestDir: "{app}"; Flags: ignoreversion
 #ifdef USE_SSL
 #ifdef USE_CURL
 ; curl with ssl support
-Source: "C:\dev\curl\lib\release-dll-ssl-dll-zlib-dll\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\dev\curl\lib\Release\libcurl.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\curl-ca-bundle.crt"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 #else

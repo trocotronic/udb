@@ -55,7 +55,7 @@ DLLFUNC int m_invite(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_invite)
   = {
 	"m_invite",
-	"$Id: m_invite.c,v 1.1.2.19 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_invite.c,v 1.1.2.19 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /invite", 
 	"3.2-b8-1",
 	NULL 

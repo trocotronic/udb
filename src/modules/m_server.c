@@ -59,7 +59,7 @@ static char buf[BUFSIZE];
 ModuleHeader MOD_HEADER(m_server)
   = {
 	"m_server",
-	"$Id: m_server.c,v 1.1.2.35 2008-04-23 18:44:30 Trocotronic Exp $",
+	"$Id: m_server.c,v 1.1.2.35 2008/04/23 18:44:30 Trocotronic Exp $",
 	"command /server", 
 	"3.2-b8-1",
 	NULL 

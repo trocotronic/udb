@@ -54,7 +54,7 @@ DLLFUNC int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC ModuleHeader MOD_HEADER(m_away)
   = {
 	"m_away",
-	"$Id: m_away.c,v 1.1.1.1.2.6 2008-03-08 14:13:35 Trocotronic Exp $",
+	"$Id: m_away.c,v 1.1.1.1.2.6 2008/03/08 14:13:35 Trocotronic Exp $",
 	"command /away", 
 	"3.2-b8-1",
 	NULL 

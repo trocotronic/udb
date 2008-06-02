@@ -52,7 +52,7 @@ DLLFUNC int m_tsctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_tsctl)
   = {
 	"tsctl",	/* Name of module */
-	"$Id: m_tsctl.c,v 1.1.1.1.2.2 2005-07-08 11:20:55 Trocotronic Exp $", /* Version */
+	"$Id: m_tsctl.c,v 1.1.1.1.2.2 2005/07/08 11:20:55 Trocotronic Exp $", /* Version */
 	"command /tsctl", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

@@ -55,7 +55,7 @@
 
 /*
  *	@(#)resolv.h	8.1 (Berkeley) 6/2/93
- *	$Id: resolv.h,v 1.1.1.1.2.1 2004-02-16 16:48:03 Trocotronic Exp $
+ *	$Id: resolv.h,v 1.1.1.1.2.1 2004/02/16 16:48:03 Trocotronic Exp $
  */
 
 /*

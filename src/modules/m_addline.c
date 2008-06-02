@@ -52,7 +52,7 @@ DLLFUNC int m_addline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_addline)
   = {
 	"m_addline",
-	"$Id: m_addline.c,v 1.1.2.3 2004-06-18 09:50:06 Trocotronic Exp $",
+	"$Id: m_addline.c,v 1.1.2.3 2004/06/18 09:50:06 Trocotronic Exp $",
 	"command /addline", 
 	"3.2-b8-1",
 	NULL 

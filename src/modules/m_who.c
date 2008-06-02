@@ -23,7 +23,7 @@
 /* rewritten 06/02 by larne, the old one was unreadable. */
 /* changed indentation + some parts rewritten by Syzop. */
 
-/* $Id: m_who.c,v 1.1.1.1.2.11 2008-04-23 18:44:31 Trocotronic Exp $ */
+/* $Id: m_who.c,v 1.1.1.1.2.11 2008/04/23 18:44:31 Trocotronic Exp $ */
 
 #include "config.h"
 #include "struct.h"
@@ -62,7 +62,7 @@ DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_who)
   = {
 	"who",	/* Name of module */
-	"$Id: m_who.c,v 1.1.1.1.2.11 2008-04-23 18:44:31 Trocotronic Exp $", /* Version */
+	"$Id: m_who.c,v 1.1.1.1.2.11 2008/04/23 18:44:31 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

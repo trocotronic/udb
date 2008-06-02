@@ -1,4 +1,4 @@
-/* $Id: ares_version.h,v 1.1.2.1 2005-10-10 19:12:41 Trocotronic Exp $ */
+/* $Id: ares_version.h,v 1.1.2.1 2005/10/10 19:12:41 Trocotronic Exp $ */
 
 #ifndef ARES__VERSION_H
 #define ARES__VERSION_H

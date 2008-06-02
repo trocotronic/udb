@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.1.1.1.2.29 2007-11-09 19:41:46 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.1.2.29 2007/11/09 19:41:46 Trocotronic Exp $
  */
 
 #include "struct.h"

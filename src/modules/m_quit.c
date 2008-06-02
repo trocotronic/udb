@@ -52,7 +52,7 @@ DLLFUNC int m_quit(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_quit)
   = {
 	"quit",	/* Name of module */
-	"$Id: m_quit.c,v 1.1.1.1.2.4 2006-01-23 20:01:51 Trocotronic Exp $", /* Version */
+	"$Id: m_quit.c,v 1.1.1.1.2.4 2006/01/23 20:01:51 Trocotronic Exp $", /* Version */
 	"command /quit", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

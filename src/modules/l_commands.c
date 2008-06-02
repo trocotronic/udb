@@ -61,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.1.1.1.2.17 2007-03-20 14:50:15 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.1.2.17 2007/03/20 14:50:15 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

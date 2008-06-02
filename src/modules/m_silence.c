@@ -52,7 +52,7 @@ DLLFUNC int m_silence(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_silence)
   = {
 	"m_silence",
-	"$Id: m_silence.c,v 1.1.2.3 2006-12-04 21:05:37 Trocotronic Exp $",
+	"$Id: m_silence.c,v 1.1.2.3 2006/12/04 21:05:37 Trocotronic Exp $",
 	"command /silence", 
 	"3.2-b8-1",
 	NULL 

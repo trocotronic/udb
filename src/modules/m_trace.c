@@ -52,7 +52,7 @@ DLLFUNC int m_trace(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_trace)
   = {
 	"m_trace",
-	"$Id: m_trace.c,v 1.1.2.4 2006-04-12 10:43:41 Trocotronic Exp $",
+	"$Id: m_trace.c,v 1.1.2.4 2006/04/12 10:43:41 Trocotronic Exp $",
 	"command /trace", 
 	"3.2-b8-1",
 	NULL 

@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: modversion.h,v 1.1.2.3 2006-06-09 19:02:27 Trocotronic Exp $
+ *   $Id: modversion.h,v 1.1.2.3 2006/06/09 19:02:27 Trocotronic Exp $
  */
 
 #include "version.h"

@@ -73,7 +73,7 @@ static int bouncedtimes = 0;
 ModuleHeader MOD_HEADER(m_join)
   = {
 	"m_join",
-	"$Id: m_join.c,v 1.1.2.20 2008-04-23 18:44:31 Trocotronic Exp $",
+	"$Id: m_join.c,v 1.1.2.20 2008/04/23 18:44:31 Trocotronic Exp $",
 	"command /join", 
 	"3.2-b8-1",
 	NULL 

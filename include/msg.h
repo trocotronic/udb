@@ -18,7 +18,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: msg.h,v 1.1.1.1.2.7 2006-02-26 15:08:11 Trocotronic Exp $
+ *   $Id: msg.h,v 1.1.1.1.2.7 2006/02/26 15:08:11 Trocotronic Exp $
  */
 
 #ifndef	__msg_include__
