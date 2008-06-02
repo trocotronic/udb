@@ -908,4 +908,6 @@ EXPORTS
 	spamfilter_build_user_string
 	free_motd
 	is_silenced
-	
+;	checkprotoflags
+;	debug
+;	send_usage

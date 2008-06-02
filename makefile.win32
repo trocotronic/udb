@@ -13,12 +13,12 @@ RC=rc
 #
 #
 #To enable remote includes uncomment the next line:
-#USE_REMOTEINC=1
+USE_REMOTEINC=1
 #
 #If your libcurl library and include files are not in your compiler's
 #default locations, specify the locations here:
 LIBCURL_INC_DIR="c:\dev\curl\include"
-LIBCURL_LIB_DIR="C:\dev\curl\lib\release-dll-ssl-dll-zlib-dll"
+LIBCURL_LIB_DIR="C:\dev\curl\lib\Release"
 #
 #
 ### END REMOTE INCLUDES ##
@@ -29,7 +29,7 @@ LIBCURL_LIB_DIR="C:\dev\curl\lib\release-dll-ssl-dll-zlib-dll"
 #
 #
 #To enable ziplinks uncomment the next line:
-#USE_ZIPLINKS=1
+USE_ZIPLINKS=1
 #
 #If your zlib library and include files are not in your compiler's
 #default locations, specify the locations here:
@@ -44,7 +44,7 @@ ZLIB_LIB_DIR="c:\dev\zlib\dll32"
 #
 #
 #To enable SSL uncomment the next line:
-#USE_SSL=1
+USE_SSL=1
 #
 #If your OpenSSL library and include files are not in your compiler's
 #default locations, specify the locations here:
@@ -83,7 +83,7 @@ UDB=1
 !IFDEF USE_REMOTEINC
 CURLCFLAGS=/D USE_LIBCURL
 CURLOBJ=SRC/URL.OBJ
-CURLLIB=libcurl_imp.lib
+CURLLIB=libcurl.lib
 !IFDEF LIBCURL_INC_DIR
 LIBCURL_INC=/I "$(LIBCURL_INC_DIR)"
 !ENDIF
