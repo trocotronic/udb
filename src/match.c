@@ -37,21 +37,6 @@ ID_Copyright("(C) 1990 Jarkko Oikarinen");
 u_char touppertab[], tolowertab[];
 #define tolowertab2 tolowertab
 #endif
-/*
- * match()
- *  written by binary
- */
-static inline int match2(char *mask, char *name)
-{
-	u_char *m;		/* why didn't the old one use registers */
-	u_char *n;		/* because registers suck -- codemastr */
-	u_char cm;
-	u_char *wsn;
-	u_char *wsm;
-
-	m = (u_char *)mask;
-
-	cm = *m;
 
 #ifndef USE_LOCALE
 #define lc(x) tolowertab2[x]	/* use mylowertab, because registers are FASTER */
@@ -59,126 +44,131 @@ static inline int match2(char *mask, char *name)
 #define lc(x) tolower(x)
 #endif
 
-	n = (u_char *)name;
-	if (cm == '*')
+
+/* Match routine for special cases where escaping is needed in a normal fashion.
+ * Checks a string ('name') against a globbing(+more) pattern ('mask').
+ * Original by Douglas A Lewis (dalewis@acsu.buffalo.edu).
+ * Code based on hybrid7's version (match_esc()).
+ * Various modifications by Bram Matthys (Syzop).
+ * Instead of our previous code, this one is less optimized but actually  _readable_ ;).
+ * Modifications I (Syzop) had to do vs the hybrid7 code:
+ * - Got rid of (u_char *) casts, since we already compile with
+ *   chars defaulting to unsigned [or else major things break] ;).
+ * - Use 0 for match and non-zero for no match (a la strcmp), not the reverse.
+ * - Support for '_'.
+ * - Rip out support for '#'.
+ */
+int match_esc(const char *mask, const char *name)
+{
+const u_char *m = mask;
+const u_char *n = name;
+const u_char *ma = NULL;
+const u_char *na = name;
+
+	while(1)
 	{
-		if (m[1] == '\0')	/* mask is just "*", so true */
-			return 0;
-	}
-	else if (cm != '?' && lc(cm) != lc(*n))
-		return 1;	/* most likely first chars won't match */
-	else if ((cm == '_') && (*n != ' ') && (*n != '_'))
-		return 1;	/* false: '_' but first character not '_' nor ' ' */
-	else if ((*m == '\0') && (*n == '\0'))
-		return 0;  /* true: both are empty */
-	else if (*n == '\0')
-		return 1; /* false: name is empty */
-	else
-	{
-		m++;
-		n++;
-	}
-	cm = lc(*m);
-	wsm = (char *)NULL;
-	wsn = (char *)NULL;
-	while (1)
-	{
-		if (cm == '*')	/* found the * wildcard */
+		if (*m == '*')
 		{
-			m++;	/* go to next char of mask */
-			if (!*m)	/* if at end of mask, */
-				return 0;	/* function becomes true. */
-			while (*m == '*')	/* while the char at m is "*" */
-			{
-				m++;	/* go to next char of mask */
-				if (!*m)	/* if at end of mask, */
-					return 0;	/* function becomes true. */
-			}
-			cm = *m;
-			if (cm == '\\')	/* don't do ? checking if a \ */
-			{
-				
-				cm = *(++m);	/* just skip this char, no ? checking */
-				/* In case of something like: '*\', return false. */
-				if (!*m)
-					return 1;
-			}
-			else if (cm == '?')	/* if it's a ? */
-			{
-				do
-				{
-					m++;	/* go to the next char of both */
-					if (!*n)
-						return 1; /* false: no character left */
-					n++;
-					if (!*n)	/* if end of test string... */
-						return (!*m ? 0 : 1);	/* true if end of mask str, else false */
-				}
-				while (*m == '?');	/* while we have ?'s */
-				cm = *m;
-				if (!cm)	/* last char of mask is ?, so it's true */
-					return 0;
-			}
-			cm = lc(cm);
-			while (lc(*n) != cm)
-			{	/* compare */
-				if (!*n)	/* if at end of n string */
-					return 1;	/* function becomes false. */
-				n++;	/* go to next char of n */
-			}
-			wsm = m;	/* mark after where wildcard found */
-			cm = lc(*(++m));	/* go to next mask char */
-			wsn = n;	/* mark spot first char was found */
-			n++;	/* go to next char of n */
-			continue;
+			while (*m == '*') /* collapse.. */
+				m++;
+			ma = m; 
+			na = n;
 		}
-		if (cm == '?')	/* found ? wildcard */
+		
+		if (!*m)
 		{
-			cm = lc(*(++m));	/* just skip and go to next */
 			if (!*n)
-				return 1; /* false: no character left */
-			n++;
-			if (!*n)	/* return true if end of both, */
-				return (cm ? 1 : 0);	/* false if end of test str only */
-			continue;
-		}
-		if (cm == '_')	/* found _: check for '_' or ' ' */
+				return 0;
+			if (!ma)
+				return 1;
+			for (m--; (m > (const u_char *)mask) && (*m == '?'); m--);
+			if (*m == '*')
+				return 0;
+			m = ma;
+			n = ++na;
+		} else
+		if (!*n)
 		{
-			cm = lc(*(++m));	/* just skip and go to next */
-			if ((*n != ' ') && (*n != '_'))
-				return 1; /* false: didnt match or no character left */
-			n++;
-			if (!*n)	/* return true if end of both, */
-				return (cm ? 1 : 0);	/* false if end of test str only */
-			continue;
+			while (*m == '*') /* collapse.. */
+				m++;
+			return (*m != 0);
 		}
-		if (cm == '\\')	/* next char will not be a wildcard. */
-		{		/* skip wild checking, don't continue */
-			cm = lc(*(++m));
-			n++;
-		}
-		/* Complicated to read, but to save CPU time.  Every ounce counts. */
-		if (lc(*n) != cm)	/* if the current chars don't equal, */
+		
+		if (*m != '?')
 		{
-			if (!wsm)	/* if there was no * wildcard, */
-				return 1;	/* function becomes false. */
-			n = wsn + 1;	/* start on char after the one we found last */
-			m = wsm;	/* set m to the spot after the "*" */
-			cm = lc(*m);
-			while (cm != lc(*n))
-			{	/* compare them */
-				if (!*n)	/* if we reached end of n string, */
-					return 1;	/* function becomes false. */
-				n++;	/* go to next char of n */
+			if (*m == '\\')
+				if (!*++m)
+					return 1; /* unfinished escape sequence */
+			if ((lc(*m) != lc(*n)) && !((*m == '_') && (*n == ' ')))
+			{
+				if (!ma)
+					return 1;
+				m = ma;
+				n = ++na;
+			} else
+			{
+				m++;
+				n++;
 			}
-			wsn = n;	/* mark spot first char was found */
+		} else
+		{
+			m++;
+			n++;
 		}
-		if (!cm)	/* cm == cn, so if !cm, then we've */
-			return 0;	/* reached end of BOTH, so it matches */
-		m++;		/* go to next mask char */
-		n++;		/* go to next testing char */
-		cm = lc(*m);	/* pointers are slower */
 	}
+	return 1;
+}
+
+/** Same credit/copyright as match_esc() applies, except escaping removed.. ;p */
+static inline int match2(const char *mask, const char *name)
+{
+const u_char *m = mask;
+const u_char *n = name;
+const u_char *ma = NULL;
+const u_char *na = name;
+
+	while(1)
+	{
+		if (*m == '*')
+		{
+			while (*m == '*') /* collapse.. */
+				m++;
+			ma = m; 
+			na = n;
+		}
+		
+		if (!*m)
+		{
+			if (!*n)
+				return 0;
+			if (!ma)
+				return 1;
+			for (m--; (m > (const u_char *)mask) && (*m == '?'); m--);
+			if (*m == '*')
+				return 0;
+			m = ma;
+			n = ++na;
+		} else
+		if (!*n)
+		{
+			while (*m == '*') /* collapse.. */
+				m++;
+			return (*m != 0);
+		}
+		
+		if ((lc(*m) != lc(*n)) && !((*m == '_') && (*n == ' ')) && (*m != '?'))
+		{
+			if (!ma)
+				return 1;
+			m = ma;
+			n = ++na;
+		} else
+		{
+			m++;
+			n++;
+		}
+	}
+	return 1;
 }
 
 /*
@@ -230,7 +220,7 @@ char *collapse(char *pattern)
  *		<0, if s1 lexicographically less than s2
  *		>0, if s1 lexicographically greater than s2
  */
-int  smycmp(char *s1, char *s2)
+int  smycmp(const char *s1, const char *s2)
 {
 	u_char *str1;
 	u_char *str2;
@@ -250,7 +240,7 @@ int  smycmp(char *s1, char *s2)
 }
 
 
-int  myncmp(char *str1, char *str2, int n)
+int  myncmp(const char *str1, const char *str2, int n)
 {
 	u_char *s1;
 	u_char *s2;
@@ -298,11 +288,11 @@ u_char tolowertab[] = {
 	0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
 	0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9,
 	0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
-#ifdef UDB
-	0xd0, 0xf1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,
-#else
+//#ifdef UDB
+//	0xd0, 0xf1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,
+//#else
 	0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,
-#endif
+//#endif
 	0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
 	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
 	0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
@@ -341,11 +331,11 @@ u_char touppertab[] = {
 	0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
 	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
 	0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
-#ifdef UDB
-	0xf0, 0xd1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9,
-#else
+//#ifdef UDB
+//	0xf0, 0xd1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9,
+//#else
 	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9,
-#endif
+//#endif
 	0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
@@ -386,8 +376,8 @@ u_char char_atribs[] = {
 	PRINT | ALPHA | ALLOW,
 /* VWX */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW,
 	PRINT | ALPHA | ALLOW,
-/* YZ[ */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW, PRINT | ALPHA,
-/* \]^ */ PRINT | ALPHA, PRINT | ALPHA, PRINT | ALPHA,
+/* YZ[ */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW, PRINT,
+/* \]^ */ PRINT, PRINT, PRINT,
 /* _`  */ PRINT | ALLOW, PRINT,
 /* abc */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW,
 	PRINT | ALPHA | ALLOW,
@@ -405,27 +395,35 @@ u_char char_atribs[] = {
 	PRINT | ALPHA | ALLOW,
 /* vwx */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW,
 	PRINT | ALPHA | ALLOW,
-/* yz{ */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW, PRINT | ALPHA,
-/* |}~ */ PRINT | ALPHA, PRINT | ALPHA, PRINT | ALPHA,
+/* yz{ */ PRINT | ALPHA | ALLOW, PRINT | ALPHA | ALLOW, PRINT,
+/* |}~ */ PRINT, PRINT, PRINT,
 /* del */ 0,
 /* 80-8f */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /* 90-9f */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /* a0-af */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /* b0-bf */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 /* c0-cf */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//#ifdef UDB
+// 0, PRINT | ALPHA | ALLOW, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//#else
 /* d0-df */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//#endif
 /* e0-ef */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//#ifdef UDB
+// 0, PRINT | ALPHA | ALLOW, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+//#else
 /* f0-ff */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+//#endif
 };
 
 /* Old match() */
-int _match(char *mask, char *name) {
+int _match(const char *mask, const char *name) {
 	return match2(mask,name);
 }
 
 
 /* Old match() plus some optimizations from bahamut */
-int match(char *mask, char *name) {
+int match(const char *mask, const char *name) {
 	if (mask[0] == '*' && mask[1] == '!') {
 		mask += 2;
 		while (*name != '!' && *name)

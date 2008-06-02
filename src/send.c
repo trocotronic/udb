@@ -28,6 +28,7 @@ static char sccsid[] =
 #endif
 
 #include "struct.h"
+#include "numeric.h"
 #include "common.h"
 #include "sys.h"
 #include "h.h"
@@ -84,7 +85,6 @@ MODVAR int  sendanyways = 0;
 */
 static int dead_link(aClient *to, char *notice)
 {
-	char	*error = NULL;
 	
 	to->flags |= FLAGS_DEADSOCKET;
 	/*
@@ -97,7 +97,7 @@ static int dead_link(aClient *to, char *notice)
 	if (!IsPerson(to) && !IsUnknown(to) && !(to->flags & FLAGS_CLOSING))
 		(void)sendto_failops_whoare_opers("Closing link: %s - %s",
 			notice, get_client_name(to, FALSE));
-	Debug((DEBUG_ERROR, notice, get_client_name(to, FALSE), error));
+	Debug((DEBUG_ERROR, "dead_link: %s - %s", notice, get_client_name(to, FALSE)));
 	to->error_str = strdup(notice);
 	return -1;
 }
@@ -574,10 +574,11 @@ void sendto_chmodemucrap(aClient *from, aChannel *chptr, char *text)
 	Member *lp;
 	aClient *acptr;
 	int  i;
+	int remote = MyClient(from) ? 0 : 1;
 
 	sprintf(tcmd, ":%s %s %s :%s", from->name, TOK_PRIVATE, chptr->chname, text); /* token */
 	sprintf(ccmd, ":%s %s %s :%s", from->name, MSG_PRIVATE, chptr->chname, text); /* msg */
-	sprintf(xcmd, ":IRC PRIVMSG %s :%s: %s", chptr->chname, from->name, text); /* local */
+	sprintf(xcmd, ":IRC!IRC@%s PRIVMSG %s :%s: %s", me.name, chptr->chname, from->name, text); /* local */
 
 	++sentalong_marker;
 	for (lp = chptr->members; lp; lp = lp->next)
@@ -587,6 +588,8 @@ void sendto_chmodemucrap(aClient *from, aChannel *chptr, char *text)
 		if (IsDeaf(acptr) && !sendanyways)
 			continue;
 		if (!(lp->flags & (CHFL_CHANOP|CHFL_CHANOWNER|CHFL_CHANPROT)))
+			continue;
+		if (remote && (acptr->from == from->from)) /* don't send it back to where it came from */
 			continue;
 		i = acptr->from->slot;
 		if (MyConnect(acptr) && IsRegisteredUser(acptr))
@@ -1137,7 +1140,7 @@ void sendto_common_channels(aClient *user, char *pattern, ...)
 			for (users = channels->chptr->members; users; users = users->next)
 			{
 				cptr = users->cptr;
-				if (!MyConnect(cptr) || sentalong[cptr->slot] == sentalong_marker)
+				if (!MyConnect(cptr) || (cptr->slot < 0) || (sentalong[cptr->slot] == sentalong_marker))
 					continue;
 				if ((channels->chptr->mode.mode & MODE_AUDITORIUM) &&
 				    !(is_chanownprotop(user, channels->chptr) || is_chanownprotop(cptr, channels->chptr)))
@@ -1301,6 +1304,7 @@ void sendto_match_butone(aClient *one, aClient *from, char *mask, int what,
 				    && match_it(acptr, mask, what)
 				    && acptr->from == cptr)
 					break;
+
 			/* a person on that server matches the mask, so we
 			   ** send *one* msg to that server ...
 			 */
@@ -1447,32 +1451,110 @@ void sendto_umode_raw(int umodes, char *pattern, ...)
 	va_end(vl);
 	return;
 }
-/*
- * sendto_snomask
- *
- *  Send to specified umode
+/** Send to specified snomask - local / operonly.
+ * @param snomask Snomask to send to (can be a bitmask [AND])
+ * @param pattern printf-style pattern, followed by parameters.
+ * This function does not send snomasks to non-opers.
  */
 void sendto_snomask(int snomask, char *pattern, ...)
 {
 	va_list vl;
 	aClient *cptr;
-	int  i;
-	char nbuf[1024];
+	int  i, j;
+	char nbuf[2048];
+
 	va_start(vl, pattern);
-	for (i = 0; i <= LastSlot; i++)
-		if ((cptr = local[i]) && IsPerson(cptr) && (cptr->user->snomask & snomask))
-		{
-			(void)ircsprintf(nbuf, ":%s NOTICE %s :",
-			    me.name, cptr->name);
-			(void)strncat(nbuf, pattern,
-			    sizeof(nbuf) - strlen(nbuf));
-			va_start(vl, pattern);
-			vsendto_one(cptr, nbuf, vl);
-			va_end(vl);
-		}
+	ircvsprintf(nbuf, pattern, vl);
 	va_end(vl);
-	return;
+
+	for (i = oper_fdlist.entry[j = 1]; j <= oper_fdlist.last_entry; i = oper_fdlist.entry[++j])
+		if (((cptr = local[i])) && (cptr->user->snomask & snomask))
+			sendto_one(cptr, ":%s NOTICE %s :%s", me.name, cptr->name, nbuf);
 }
+
+/** Send to specified snomask - global / operonly.
+ * @param snomask Snomask to send to (can be a bitmask [AND])
+ * @param pattern printf-style pattern, followed by parameters
+ * This function does not send snomasks to non-opers.
+ */
+void sendto_snomask_global(int snomask, char *pattern, ...)
+{
+	va_list vl;
+	aClient *cptr;
+	int  i, j;
+	char nbuf[2048], snobuf[32], *p;
+
+	va_start(vl, pattern);
+	ircvsprintf(nbuf, pattern, vl);
+	va_end(vl);
+
+	for (i = oper_fdlist.entry[j = 1]; j <= oper_fdlist.last_entry; i = oper_fdlist.entry[++j])
+		if (((cptr = local[i])) && (cptr->user->snomask & snomask))
+			sendto_one(cptr, ":%s NOTICE %s :%s", me.name, cptr->name, nbuf);
+
+	/* Build snomasks-to-send-to buffer */
+	snobuf[0] = '\0';
+	for (i = 0, p=snobuf; i<= Snomask_highest; i++)
+		if (snomask & Snomask_Table[i].mode)
+			*p++ = Snomask_Table[i].flag;
+	*p = '\0';
+
+	sendto_serv_butone_token(NULL, me.name, MSG_SENDSNO, TOK_SENDSNO,
+		"%s :%s", snobuf, nbuf);
+}
+
+/** Send to specified snomask - local.
+ * @param snomask Snomask to send to (can be a bitmask [AND])
+ * @param pattern printf-style pattern, followed by parameters.
+ * This function also delivers to non-opers w/the snomask if needed.
+ */
+void sendto_snomask_normal(int snomask, char *pattern, ...)
+{
+	va_list vl;
+	aClient *cptr;
+	int  i;
+	char nbuf[2048];
+
+	va_start(vl, pattern);
+	ircvsprintf(nbuf, pattern, vl);
+	va_end(vl);
+
+	for (i = LastSlot; i >= 0; i--)
+		if ((cptr = local[i]) && IsPerson(cptr) && (cptr->user->snomask & snomask))
+			sendto_one(cptr, ":%s NOTICE %s :%s", me.name, cptr->name, nbuf);
+}
+
+/** Send to specified snomask - global.
+ * @param snomask Snomask to send to (can be a bitmask [AND])
+ * @param pattern printf-style pattern, followed by parameters
+ * This function also delivers to non-opers w/the snomask if needed.
+ */
+void sendto_snomask_normal_global(int snomask, char *pattern, ...)
+{
+	va_list vl;
+	aClient *cptr;
+	int  i;
+	char nbuf[2048], snobuf[32], *p;
+
+	va_start(vl, pattern);
+	ircvsprintf(nbuf, pattern, vl);
+	va_end(vl);
+
+	for (i = LastSlot; i >= 0; i--)
+		if ((cptr = local[i]) && IsPerson(cptr) && (cptr->user->snomask & snomask))
+			sendto_one(cptr, ":%s NOTICE %s :%s", me.name, cptr->name, nbuf);
+
+	/* Build snomasks-to-send-to buffer */
+	snobuf[0] = '\0';
+	for (i = 0, p=snobuf; i<= Snomask_highest; i++)
+		if (snomask & Snomask_Table[i].mode)
+			*p++ = Snomask_Table[i].flag;
+	*p = '\0';
+
+	sendto_serv_butone_token(NULL, me.name, MSG_SENDSNO, TOK_SENDSNO,
+		"%s :%s", snobuf, nbuf);
+}
+
 
 /*
  * sendto_failops_whoare_opers
@@ -1767,7 +1849,7 @@ void sendto_realops(char *pattern, ...)
 void sendto_connectnotice(char *nick, anUser *user, aClient *sptr, int disconnect, char *comment)
 {
 	aClient *cptr;
-	int  i;
+	int  i, j;
 	char connectd[1024];
 	char connecth[1024];
 
@@ -1798,9 +1880,8 @@ void sendto_connectnotice(char *nick, anUser *user, aClient *sptr, int disconnec
 			nick, user->username, user->realhost, comment, Inet_ia2p(&sptr->ip));
 	}
 
-	for (i = 0; i <= LastSlot; i++)
-		if ((cptr = local[i]) && !IsServer(cptr) && !IsMe(cptr) &&
-		    IsAnOper(cptr) && (cptr->user->snomask & SNO_CLIENT))
+	for (i = oper_fdlist.entry[j = 1]; j <= oper_fdlist.last_entry; i = oper_fdlist.entry[++j])
+		if (((cptr = local[i])) && (cptr->user->snomask & SNO_CLIENT))
 		{
 			if (IsHybNotice(cptr))
 				sendto_one(cptr, ":%s NOTICE %s :%s", me.name,
@@ -1815,7 +1896,7 @@ void sendto_connectnotice(char *nick, anUser *user, aClient *sptr, int disconnec
 void sendto_fconnectnotice(char *nick, anUser *user, aClient *sptr, int disconnect, char *comment)
 {
 	aClient *cptr;
-	int  i;
+	int  i, j;
 	char connectd[1024];
 	char connecth[1024];
 
@@ -1836,9 +1917,8 @@ void sendto_fconnectnotice(char *nick, anUser *user, aClient *sptr, int disconne
 			user->ip_str ? user->ip_str : "0");
 	}
 
-	for (i = 0; i <= LastSlot; i++)
-		if ((cptr = local[i]) && !IsServer(cptr) && !IsMe(cptr) &&
-		    IsAnOper(cptr) && (cptr->user->snomask & SNO_FCLIENT))
+	for (i = oper_fdlist.entry[j = 1]; j <= oper_fdlist.last_entry; i = oper_fdlist.entry[++j])
+		if (((cptr = local[i])) && (cptr->user->snomask & SNO_FCLIENT))
 		{
 			if (IsHybNotice(cptr))
 				sendto_one(cptr, ":%s NOTICE %s :%s", me.name,
@@ -1900,25 +1980,31 @@ void sendto_serv_butone_nickcmd(aClient *one, aClient *sptr,
 					sendto_one(cptr,
 						(cptr->proto & PROTO_SJB64) ?
 					    /* Ugly double %s to prevent excessive spaces */
-					    "%s %s %d %B %s %s %b %lu %s %s %s%s:%s"
+					    "%s %s %d %B %s %s %b %lu %s %s %s%s%s%s:%s"
 					    :
-					    "%s %s %d %d %s %s %b %lu %s %s %s%s:%s"
+					    "%s %s %d %lu %s %s %b %lu %s %s %s%s%s%s:%s"
 					    ,
 					    (IsToken(cptr) ? TOK_NICK : MSG_NICK), nick,
-					    hopcount, lastnick, username, realhost,
+					    hopcount, (long)lastnick, username, realhost,
 					    (long)(sptr->srvptr->serv->numeric),
 					    servicestamp, umodes, vhost,
+					    SupportCLK(cptr) ? getcloak(sptr) : "",
+					    SupportCLK(cptr) ? " " : "",
 					    SupportNICKIP(cptr) ? encode_ip(sptr->user->ip_str) : "",
-					    SupportNICKIP(cptr) ? " " : "", info);
+					    SupportNICKIP(cptr) ? " " : "",
+					    info);
 				else
 					sendto_one(cptr,
-					    "%s %s %d %d %s %s %s %lu %s %s %s%s:%s",
+					    "%s %s %d %d %s %s %s %lu %s %s %s%s%s%s:%s",
 					    (IsToken(cptr) ? TOK_NICK : MSG_NICK), nick,
 					    hopcount, lastnick, username, realhost,
 					    SupportNS(cptr) && sptr->srvptr->serv->numeric ? base64enc(sptr->srvptr->serv->numeric) : server,
 					    servicestamp, umodes, vhost,
+					    SupportCLK(cptr) ? getcloak(sptr) : "",
+					    SupportCLK(cptr) ? " " : "",
 					    SupportNICKIP(cptr) ? encode_ip(sptr->user->ip_str) : "",
-					    SupportNICKIP(cptr) ? " " : "", info);
+					    SupportNICKIP(cptr) ? " " : "",
+					    info);
 
 			}
 			else
@@ -1985,10 +2071,10 @@ void sendto_one_nickcmd(aClient *cptr, aClient *sptr, char *umodes)
 			    /* Ugly double %s to prevent excessive spaces */
 			    "%s %s %d %B %s %s %b %lu %s %s %s%s:%s"
 			    :
-			    "%s %s %d %d %s %s %b %lu %s %s %s%s:%s"
+			    "%s %s %d %lu %s %s %b %lu %s %s %s%s:%s"
 			    ,
 			    (IsToken(cptr) ? TOK_NICK : MSG_NICK), sptr->name,
-			    sptr->hopcount+1, sptr->lastnick, sptr->user->username, 
+			    sptr->hopcount+1, (long)sptr->lastnick, sptr->user->username, 
 			    sptr->user->realhost, (long)(sptr->srvptr->serv->numeric),
 			    sptr->user->servicestamp, umodes, vhost,
 			    SupportNICKIP(cptr) ? encode_ip(sptr->user->ip_str) : "",
@@ -2045,13 +2131,33 @@ void	sendto_message_one(aClient *to, aClient *from, char *sender,
                          sender, cmd, nick, msg);
 }
 
+/* sidenote: sendnotice() and sendtxtnumeric() assume no client or server
+ * has a % in their nick, which is a safe assumption since % is illegal.
+ */
+ 
 void sendnotice(aClient *to, char *pattern, ...)
+{
+static char realpattern[1024];
+va_list vl;
+char *name = *to->name ? to->name : "*";
+
+	if (!IsWebTV(to))
+		ircsprintf(realpattern, ":%s NOTICE %s :%s", me.name, name, pattern);
+	else
+		ircsprintf(realpattern, ":%s PRIVMSG %s :%s", me.name, name, pattern);
+
+	va_start(vl, pattern);
+	vsendto_one(to, realpattern, vl);
+	va_end(vl);
+}
+
+void sendtxtnumeric(aClient *to, char *pattern, ...)
 {
 static char realpattern[1024];
 va_list vl;
 
 	if (!IsWebTV(to))
-		ircsprintf(realpattern, ":%s NOTICE %s :%s", me.name, to->name, pattern);
+		ircsprintf(realpattern, ":%s %d %s :%s", me.name, RPL_TEXT, to->name, pattern);
 	else
 		ircsprintf(realpattern, ":%s PRIVMSG %s :%s", me.name, to->name, pattern);
 

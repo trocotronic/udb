@@ -16,11 +16,30 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *   
- *   $Id: sys.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: sys.h,v 1.1.1.1.2.7 2007-11-09 19:41:47 Trocotronic Exp $
  */
 
 #ifndef	__sys_include__
 #define __sys_include__
+
+/* alloca stuff */
+#ifdef _WIN32
+# include <malloc.h>
+# define alloca _alloca
+#else /* _WIN32 */
+# ifdef HAVE_ALLOCA
+#  if defined(_AIX) && !defined(__GNUC__)
+    #pragma alloca
+#  endif /* _AIX */
+#  if defined(HAVE_ALLOCA_H)
+#   include <alloca.h>
+#  endif /* HAVE_ALLOCA_H */
+#  if defined(__GNUC__) && !defined(HAVE_ALLOCA_H) && !defined(alloca)
+#   define alloca __builtin_alloca
+#  endif /* __GNUC__ */
+# endif /* HAVE_ALLOCA */
+#endif /* !_WIN32 */
+
 #ifdef ISC202
 #include <net/errno.h>
 #else
@@ -113,6 +132,13 @@ extern	char	*rindex(char *, char);
 #define dn_skipname  __dn_skipname
 #endif
 
+/*
+ * Mac OS X Tiger Support (Intel Only)
+ */
+#if defined(macosx) || (defined(__APPLE__) && defined(__MACH__))
+#define OSXTIGER
+#endif
+
 #ifndef _WIN32
 extern VOIDSIG dummy();
 #endif
@@ -172,7 +198,7 @@ char mydummy2[MYDUMMY_SIZE];
 #  endif
 # endif
 
-# if defined(linux)
+# if defined(linux) && defined(NO_IN6ADDR_ANY)
 static const struct in6_addr in6addr_any = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0
 };

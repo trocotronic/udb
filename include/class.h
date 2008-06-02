@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *  
- *   $Id: class.h,v 1.1.1.1 2003-11-28 22:55:48 Trocotronic Exp $
+ *   $Id: class.h,v 1.1.1.1.2.1 2004-02-16 16:48:05 Trocotronic Exp $
  */
 
 #ifndef	__class_include__

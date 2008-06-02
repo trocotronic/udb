@@ -43,7 +43,7 @@
 #include "version.h"
 #endif
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 static char buf[BUFSIZE];
@@ -57,7 +57,7 @@ DLLFUNC int m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_whois)
   = {
 	"whois",	/* Name of module */
-	"$Id: m_whois.c,v 1.2 2004-07-04 02:47:37 Trocotronic Exp $", /* Version */
+	"$Id: m_whois.c,v 1.1.1.1.2.17 2008-04-23 18:44:30 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -105,7 +105,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	aChannel *chptr;
 	char *nick, *tmp, *name;
 	char *p = NULL;
-	int  found, len, mlen;
+	int  found, len, mlen, cnt = 0;
+	char querybuf[BUFSIZE];
 
 	if (IsServer(sptr))	
 		return 0;
@@ -125,9 +126,14 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		parv[1] = parv[2];
 	}
 
-	for (tmp = parv[1]; (nick = strtoken(&p, tmp, ",")); tmp = NULL)
+	strcpy(querybuf, parv[1]);
+
+	for (tmp = canonize(parv[1]); (nick = strtoken(&p, tmp, ",")); tmp = NULL)
 	{
 		unsigned char invis, showchannel, member, wilds, hideoper; /* <- these are all boolean-alike */
+
+		if (++cnt > MAXTARGETS)
+			break;
 
 		found = 0;
 		/* We do not support "WHOIS *" */
@@ -172,11 +178,10 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				    me.name, IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, sptr->name,
 				    sptr->user->username, sptr->user->realhost);
 			}
-
 #ifdef UDB
 			sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
 				    parv[0], name, user->username,
-				    get_visiblehost(acptr, sptr), acptr->info);
+				    GetVisibleHost(acptr, sptr), acptr->info);
 #else
 			sendto_one(sptr, rpl_str(RPL_WHOISUSER), me.name,
 			    parv[0], name,
@@ -185,19 +190,23 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			    acptr->info);
 
 #endif
-			if (IsEyes(sptr) && IsOper(sptr))
+			if (IsOper(sptr))
 			{
+				char sno[512];
+				strcpy(sno, get_sno_str(acptr));
+				
 				/* send the target user's modes */
 				sendto_one(sptr, rpl_str(RPL_WHOISMODES),
 				    me.name, parv[0], name,
-				    get_mode_str(acptr));
+				    get_mode_str(acptr), sno[1] == 0 ? "" : sno);
 			}
 #ifndef UDB
 			if ((acptr == sptr) || IsAnOper(sptr))
 			{
 				sendto_one(sptr, rpl_str(RPL_WHOISHOST),
 				    me.name, parv[0], acptr->name,
-				    user->realhost, user->ip_str ? user->ip_str : "");
+					(MyConnect(acptr) && strcmp(acptr->username, "unknown")) ? acptr->username : "*",
+					user->realhost, user->ip_str ? user->ip_str : "");
 			}
 
 			if (IsARegNick(acptr))
@@ -212,18 +221,14 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				showchannel = 0;
 				if (ShowChannel(sptr, chptr))
 					showchannel = 1;
-#ifndef SHOW_SECRET
-				if (IsAnOper(sptr) && !SecretChannel(chptr))
-#else
-				if (IsAnOper(sptr))
-#endif
+				if (OPCanSeeSecret(sptr))
 					showchannel = 1;
 				if ((acptr->umodes & UMODE_HIDEWHOIS) && !IsMember(sptr, chptr) && !IsAnOper(sptr))
 					showchannel = 0;
 #ifdef UDB
-				if (IsBot(acptr) && !IsNetAdmin(sptr))
+				if (IsBot(acptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
 #else
-				if (IsServices(acptr) && !IsNetAdmin(sptr))
+				if (IsServices(acptr) && !IsNetAdmin(sptr) && !IsSAdmin(sptr))
 #endif
 					showchannel = 0;
 				if (acptr == sptr)
@@ -252,34 +257,42 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 						*(buf + len++) = '?';
 					if (acptr->umodes & UMODE_HIDEWHOIS && !IsMember(sptr, chptr)
 #ifdef UDB
-					&& (IsAnOper(sptr) || IsHelpOp(sptr))
+					&& IsHOper(sptr)
 #else
 						&& IsAnOper(sptr)
 #endif
 					)
 						*(buf + len++) = '!';
 					access = get_access(acptr, chptr);
-#ifndef PREFIX_AQ
-					if (access & CHFL_CHANOWNER)
-						*(buf + len++) = '*';
-					else if (access & CHFL_CHANPROT)
-						*(buf + len++) = '^';
-#else
-					if (access & CHFL_CHANOWNER)
 #ifdef UDB
-						*(buf + len++) = '.';
-#else
-						*(buf + len++) = '~';
+#ifdef PREFIX_AQ
+					if (access & CHFL_CHANOWNER)
+						*(buf + len++) = PF_OWN;
+					else if (access & CHFL_CHANPROT)
+						*(buf + len++) = PF_ADMIN;
+					else
 #endif
+					if (access & CHFL_CHANOP)
+						*(buf + len++) = PF_OP;
+					else if (access & CHFL_HALFOP)
+						*(buf + len++) = PF_HALF;
+					else if (access & CHFL_VOICE)
+						*(buf + len++) = PF_VOICE;
+#else
+#ifdef PREFIX_AQ
+					if (access & CHFL_CHANOWNER)
+						*(buf + len++) = '~';
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '&';
+					else
 #endif
-					else if (access & CHFL_CHANOP)
+					if (access & CHFL_CHANOP)
 						*(buf + len++) = '@';
 					else if (access & CHFL_HALFOP)
 						*(buf + len++) = '%';
 					else if (access & CHFL_VOICE)
 						*(buf + len++) = '+';
+#endif
 					if (len)
 						*(buf + len) = '\0';
 					(void)strcpy(buf + len, chptr->chname);
@@ -308,23 +321,19 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	    			sendto_one(sptr, rpl_str(RPL_WHOISBOT), me.name, parv[0], name, ircnetwork);
 
 			if (IsSuspended(acptr))
-	    			sendto_one(sptr, rpl_str(RPL_WHOISSUPEND), me.name, parv[0],
+	    			sendto_one(sptr, rpl_str(RPL_WHOISSUSPEND), me.name, parv[0],
 				name);
 			
-			if (level_oper_bdd(acptr->name) && !hideoper)
+			if (LevelOperUdb(acptr->name) && !hideoper)
 			{
-				int level = level_oper_bdd(acptr->name);
+				u_int level = LevelOperUdb(acptr->name);
 				buf[0] = '\0';
 				if (level >= BDD_ROOT)
 					strlcat(buf, "ROOT de los servicios y", sizeof buf);
 				else if (level >= BDD_ADMIN)
 					strlcat(buf, "ADMINistrador", sizeof buf);
-				else if (level >= BDD_DEVEL)
-					strlcat(buf, "DEVELoper", sizeof buf);
 				else if (level >= BDD_OPER)
 					strlcat(buf, "OPERador de los servicios", sizeof buf);
-				else if (level >= BDD_PREO)
-					strlcat(buf, "PREOPERador de los servicios", sizeof buf);
 				else
 					strlcat(buf, "Que coño es?", sizeof buf);
 				if (buf[0])
@@ -333,7 +342,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				
 			if (IsHidden(acptr) && (IsShowIp(sptr) || acptr == sptr))
 	    			sendto_one(sptr, rpl_str(RPL_WHOISHOST),
-					me.name, parv[0], name, get_visiblehost(acptr, NULL)); 
+					me.name, parv[0], name, GetVisibleHost(acptr, NULL)); 
 #endif					    
 			/* makesure they aren't +H (we'll also check
 			   before we display a helpop or IRCD Coder msg)
@@ -383,8 +392,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 #endif
 
 			if (acptr->umodes & UMODE_SECURE)
-				sendto_one(sptr, ":%s %d %s %s :%s", me.name,
-				    RPL_WHOISSPECIAL, parv[0], name, "es una conexión segura");
+				sendto_one(sptr, rpl_str(RPL_WHOISSECURE), me.name, parv[0], name,
+					"usa una Conexión Segura");
 
 			if (!BadPtr(user->swhois) && !hideoper)
 					sendto_one(sptr, ":%s %d %s %s :%s",
@@ -405,10 +414,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 		if (!found)
 			sendto_one(sptr, err_str(ERR_NOSUCHNICK),
 			    me.name, parv[0], nick);
-		if (p)
-			p[-1] = ',';
 	}
-	sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], parv[1]);
+	sendto_one(sptr, rpl_str(RPL_ENDOFWHOIS), me.name, parv[0], querybuf);
 
 	return 0;
 }

@@ -63,7 +63,7 @@ static Hook *ConfTest, *ConfRun, *ServerStats;
 ModuleHeader MOD_HEADER(m_htm)
   = {
 	"htm",	/* Name of module */
-	"$Id: m_htm.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
+	"$Id: m_htm.c,v 1.1.1.1.2.3 2005-01-18 22:05:51 Trocotronic Exp $", /* Version */
 	"command /htm", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -463,7 +463,10 @@ DLLFUNC int htm_config_run(ConfigFile *cf, ConfigEntry *ce, int type) {
 					noisy_htm = 0;
 			}
 			else if (!strcmp(cep->ce_varname, "incoming-rate"))
+			{
 				LRV = config_checkval(cep->ce_vardata, CFG_SIZE);
+				LRV /= 1024;
+			}
 		}
 		return 1;		
 	}
@@ -474,7 +477,7 @@ DLLFUNC int htm_stats(aClient *sptr, char *stats) {
 	if (*stats == 'S') {
 		sendto_one(sptr, ":%s %i %s :htm::mode: %s", me.name, RPL_TEXT,
 			   sptr->name, noisy_htm ? "noisy" : "quiet");
-		sendto_one(sptr, ":%s %i %s :htm::incoming-rate: %d", me.name, RPL_TEXT,
+		sendto_one(sptr, ":%s %i %s :htm::incoming-rate: %d kb/s", me.name, RPL_TEXT,
 			   sptr->name, LRV);
 	}
         return 0;

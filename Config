@@ -21,6 +21,27 @@
 
 RUN_CONFIGURE () {
 ARG=""
+# Do this even if we're not in advanced mode
+if [ "$SHOWLISTMODES" = "1" ] ; then
+	ARG="$ARG--with-showlistmodes "
+fi
+if [ "$ADVANCED" = "1" ] ; then
+if [ "$TOPICNICKISNUH" = "1" ] ; then
+	ARG="$ARG--with-topicisnuhost "
+fi
+if [ "$SHUNNOTICES" = "1" ] ; then
+	ARG="$ARG--with-shunnotices "
+fi
+if [ "$NOOPEROVERRIDE" = "1" ] ; then
+	ARG="$ARG--with-no-operoverride "
+fi
+if [ "$DISABLEUSERMOD" = "1" ] ; then
+	ARG="$ARG--with-disableusermod "
+fi
+if [ "$OPEROVERRIDEVERIFY" = "1" ] ; then
+	ARG="$ARG--with-operoverride-verify "
+fi
+fi
 if [ "$NOSPOOF" = "1" ] ; then
 ARG="$ARG--enable-nospoof "
 fi
@@ -66,7 +87,8 @@ ARG="$ARG--enable-dynamic-linking "
 ARG="$ARG $EXTRAPARA "
 CONF="./configure $ARG"
 echo $CONF
-$CONF
+$CONF || exit 1
+cd "$UNREALCWD"
 if [  "$CRYPTOIRCD" = "1" ] ; then
 if [ ! -f server.req.pem ]; then
 export OPENSSLPATH
@@ -79,8 +101,187 @@ fi
 fi
 }
 
+RUN_ADVANCED () {
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$SHOWLISTMODES" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Do you want to show the modes a channel has set in the /list output?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    SHOWLISTMODES="1"
+	    ;;
+	[Nn]*)
+	    SHOWLISTMODES=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$TOPICNICKISNUH" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Do you want the /topic command to show the nick!user@host of the person"
+    echo "who set the topic, rather than just the nickname?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    TOPICNICKISNUH="1"
+	    ;;
+	[Nn]*)
+	    TOPICNICKISNUH=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$SHUNNOTICES" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Should Unreal notify a user when they are no longer shunned?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    SHUNNOTICES="1"
+	    ;;
+	[Nn]*)
+	    SHUNNOTICES=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$NOOPEROVERRIDE" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Do you want to disable oper override?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    NOOPEROVERRIDE="1"
+	    ;;
+	[Nn]*)
+	    NOOPEROVERRIDE=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$DISABLEUSERMOD" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Do you want to disable /sethost, /setident, /chgname,"
+    echo "/chghost, and /chgident?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    DISABLEUSERMOD="1"
+	    ;;
+	[Nn]*)
+	    DISABLEUSERMOD=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+TEST=""
+while [ -z "$TEST" ] ; do
+    if [ "$OPEROVERRIDEVERIFY" = "1" ] ; then
+	TEST="Yes"
+    else
+	TEST="No"
+    fi
+    echo ""
+    echo "Do you want to require opers to /invite themselves into a +s or +p channel?"
+    echo $n "[$TEST] -> $c"
+	read cc
+    if [ -z "$cc" ] ; then
+	cc=$TEST
+    fi
+    case "$cc" in
+	[Yy]*)
+	    OPEROVERRIDEVERIFY="1"
+	    ;;
+	[Nn]*)
+	    OPEROVERRIDEVERIFY=""
+	    ;;
+	*)
+	    echo ""
+	    echo "You must enter either Yes or No"
+	    TEST=""
+	    ;;
+    esac
+done
+
+}
 c=""
 n=""
+UNREALCWD="`pwd`"
 NOSPOOF=""
 DPATH="`pwd`"
 SPATH="`pwd`/src/ircd"
@@ -99,8 +300,14 @@ MAXCONNECTIONS="1024"
 INET6=""
 REMOTEINC=""
 CURLDIR=""
-PREFIXAQ=""
-UDB=""
+PREFIXAQ="1"
+SHOWLISTMODES="1"
+TOPICNICKISNUH=""
+SHUNNOTICES=""
+NOOPEROVERRIDE=""
+DISABLEUSERMOD=""
+OPEROVERRIDEVERIFY=""
+UDB="1"
 EXTRAPARA=""
 if [ "`eval echo -n 'a'`" = "-n a" ] ; then
         c="\c"
@@ -112,35 +319,51 @@ fi
 #parse arguments
 NOCACHE=""
 NOINTRO=""
-if [ "$1" = "--help" ] ; then
-	echo "Config utility for UnrealIRCd"
-	echo "-----------------------------"
-	echo "Syntax: ./Config [options]"
-	echo "-nocache     Ignore settings saved in config.settings"
-	echo "-nointro     Skip intro (release notes, etc)"
-	echo "-quick       Skip questions, go straight to configure"
-	echo "-C           Clean ./configure cache"
-	exit 0
-fi
-if [ "$1" = "-nocache" -o "$2" = "-nocache" ] ; then
-    NOCACHE="1"
-fi
-if [ "$1" = "-nointro" -o "$2" = "-nointro" ] ; then
-    NOINTRO="1"
-fi
+CLEAN=""
+ADVANCED=""
+while [ $# -ge 1 ] ; do
+	if [ $1 = "--help" ] ; then
+		echo "Config utility for UnrealIRCd"
+		echo "-----------------------------"
+		echo "Syntax: ./Config [options]"
+		echo "-nocache     Ignore settings saved in config.settings"
+		echo "-nointro     Skip intro (release notes, etc)"
+		echo "-quick       Skip questions, go straight to configure"
+		echo "-advanced    Include additional advanced questions"
+		echo "-clean       Clean ./configure cache"
+		exit 0
+	elif [ $1 = "-nocache" ] ; then
+		NOCACHE="1"
+	elif [ $1 = "-nointro" ] ; then
+		NOINTRO="1"
+	elif [ $1 = "-quick" -o $1 = "-q" ] ; then
+		echo "running quick config"
+		if [ -f "config.settings" ] ; then
+			. ./config.settings
+		fi
+		RUN_CONFIGURE
+		cd "$UNREALCWD"
+		exit 0
+	elif [ $1 = "-clean" -o $1 = "-C" ] ; then
+		CLEAN="1"
+	elif [ $1 = "-advanced" ] ; then
+		PREADVANCED="1"
+	fi
+	shift 1
+done
 
 if [ -f "config.settings" -a -z "$NOCACHE" ] ; then
-    . config.settings
+    . ./config.settings
 fi
 
-if [ "$1" = "-C" -o "$2" = "-C" ] ; then
+if [ "$PREADVANCED" = "1" ] ; then
+	ADVANCED="1"
+elif [ "$ADVANCED" = "1" ]; then
+	ADVANCED=""
+fi
+
+if [ -n "$CLEAN" ] ; then
 	rm -f config.cache
-fi
-
-if [ "$1" = "-quick" -o "$1" = "-q" -o "$2" = "-quick" ] ; then
-	echo "running quick config"
-	RUN_CONFIGURE
-	exit 0
 fi
 
 clear
@@ -311,14 +534,14 @@ while [ -z "$TEST" ] ; do
 done
 
 if [ "$CRYPTOIRCD" = "1" ] ; then
-TEST=""
+TEST="$SSLDIR"
 echo ""
 echo "If you know the path to OpenSSL on your system, enter it here. If not"
 echo "leave this blank"
 echo $n "[$TEST] -> $c"
     read cc
 if [ -z "$cc" ] ; then
-    SSLDIR=""
+    SSLDIR="$TEST"
 else 
     SSLDIR=`eval echo $cc` # modified
 fi
@@ -383,14 +606,14 @@ while [ -z "$TEST" ] ; do
 done
 
 if [ "$ZIPLINKS" = "1" ] ; then
-TEST=""
+TEST="$ZIPLINKSDIR"
 echo ""
 echo "If you know the path to zlib on your system, enter it here. If not"
 echo "leave this blank"
 echo $n "[$TEST] -> $c"
     read cc
 if [ -z "$cc" ] ; then
-    ZIPLINKSDIR=""
+    ZIPLINKSDIR="$TEST"
 else 
     ZIPLINKSDIR=`eval echo $cc` # modified
 fi
@@ -454,8 +677,8 @@ while [ -z "$TEST" ] ; do
     echo ""
     echo "Do you want to enable prefixes for chanadmin and chanowner?"
     echo "This will give +a the & prefix and ~ for +q (just like +o is @)"
-    echo "Supported by the major clients (mIRC, xchat, epic, eggdrop, Klient, PJIRC, etc.)"
-    echo "with the notable exceptions of irssi, KVIrc and CGI:IRC."
+    echo "Supported by the major clients (mIRC, xchat, epic, eggdrop, Klient,"
+    echo "PJIRC, irssi, CGI:IRC, etc.)"
     echo "This feature should be enabled/disabled network-wide."
     echo $n "[$TEST] -> $c"
 	read cc
@@ -506,7 +729,6 @@ while [ -z "$TEST" ] ; do
 	    ;;
     esac
 done
-
 
 TEST=""
 while [ -z "$TEST" ] ; do
@@ -626,7 +848,9 @@ while [ -z "$TEST" ] ; do
 	    ;;
     esac
 done
-
+if [ -n "$ADVANCED" ] ; then
+	RUN_ADVANCED
+fi
 echo ""
 echo "Would you like any more parameters to configure?"
 echo "Write them here:"
@@ -656,9 +880,17 @@ ZIPLINKS="$ZIPLINKS"
 ZIPLINKSDIR="$ZIPLINKSDIR"
 REMOTEINC="$REMOTEINC"
 CURLDIR="$CURLDIR"
+SHOWLISTMODES="$SHOWLISTMODES"
+TOPICNICKISNUH="$TOPICNICKISNUH"
+SHUNNOTICES="$SHUNNOTICES"
+NOOPEROVERRIDE="$NOOPEROVERRIDE"
+DISABLEUSERMOD="$DISABLEUSERMOD"
+OPEROVERRIDEVERIFY="$OPEROVERRIDEVERIFY"
 EXTRAPARA="$EXTRAPARA"
+ADVANCED="$ADVANCED"
 __EOF__
 RUN_CONFIGURE
+cd "$UNREALCWD"
 cat << __EOF__
 
  _______________________________________________________________________

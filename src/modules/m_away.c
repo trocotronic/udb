@@ -54,7 +54,7 @@ DLLFUNC int m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 DLLFUNC ModuleHeader MOD_HEADER(m_away)
   = {
 	"m_away",
-	"$Id: m_away.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
+	"$Id: m_away.c,v 1.1.1.1.2.6 2008-03-08 14:13:35 Trocotronic Exp $",
 	"command /away", 
 	"3.2-b8-1",
 	NULL 
@@ -97,8 +97,10 @@ DLLFUNC int MOD_UNLOAD(m_away)(int module_unload)
 **      parv[0] = sender prefix
 **      parv[1] = away message
 */
-int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
-        char *away, *awy2 = parv[1];
+int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[])
+{
+char *away, *awy2 = parv[1];
+int n, wasaway = 0;
 
 	if (IsServer(sptr))
 		return 0;
@@ -113,12 +115,17 @@ int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
                         sptr->user->away = NULL;
 			/* Only send this if they were actually away -- codemastr */
 	                sendto_serv_butone_token(cptr, parv[0], MSG_AWAY, TOK_AWAY, "");
+	                hash_check_watch(cptr, RPL_NOTAWAY);
                 }
                 /* hope this works XX */
                 if (MyConnect(sptr))
                         sendto_one(sptr, rpl_str(RPL_UNAWAY), me.name, parv[0]);
                 return 0;
         }
+
+    n = dospamfilter(sptr, parv[1], SPAMF_AWAY, NULL, 0, NULL);
+    if (n < 0)
+        return n;
 
 #ifdef NO_FLOOD_AWAY
 	if (MyClient(sptr) && AWAY_PERIOD && !IsAnOper(sptr))
@@ -145,17 +152,22 @@ int  m_away(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
                 if (strcmp(away, parv[1]) == 0)
                         return 0;
 
-        sendto_serv_butone_token(cptr, parv[0], MSG_AWAY, TOK_AWAY, ":%s",
-            awy2);
+	sptr->user->lastaway = TStime();
+	
+        sendto_serv_butone_token(cptr, parv[0], MSG_AWAY, TOK_AWAY, ":%s", awy2);
 
-        if (away)
-                away = (char *)MyRealloc(away, strlen(awy2) + 1);
-        else
-                away = (char *)MyMalloc(strlen(awy2) + 1);
+	if (away)
+	{
+		MyFree(away);
+		wasaway = 1;
+        }
+	
+	away = sptr->user->away = strdup(awy2);
 
-        sptr->user->away = away;
-        (void)strcpy(away, awy2);
         if (MyConnect(sptr))
                 sendto_one(sptr, rpl_str(RPL_NOWAWAY), me.name, parv[0]);
+
+	hash_check_watch(cptr, wasaway ? RPL_REAWAY : RPL_GONEAWAY);
+	
         return 0;
 }

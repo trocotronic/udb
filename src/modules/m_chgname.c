@@ -58,7 +58,7 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_chgname)
   = {
 	"chgname",	/* Name of module */
-	"$Id: m_chgname.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
+	"$Id: m_chgname.c,v 1.1.1.1.2.6 2007-06-29 22:39:54 Trocotronic Exp $", /* Version */
 	"command /chgname", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -72,7 +72,7 @@ DLLFUNC int MOD_INIT(m_chgname)(ModuleInfo *modinfo)
 	 * We call our add_Command crap here
 	*/
 	add_Command(MSG_CHGNAME, TOK_CHGNAME, m_chgname, 2);
-        add_Command(MSG_SVSNAME, TOK_CHGNAME, m_chgname, 2);
+	add_Command(MSG_SVSNAME, NULL, m_chgname, 2);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -93,7 +93,7 @@ DLLFUNC int MOD_UNLOAD(m_chgname)(int module_unload)
 		sendto_realops("Failed to delete command chgname when unloading %s",
 				MOD_HEADER(m_chgname).name);
 	}
-	if (del_Command(MSG_SVSNAME, TOK_CHGNAME, m_chgname) < 0)
+	if (del_Command(MSG_SVSNAME, NULL, m_chgname) < 0)
 	{
 		sendto_realops("Failed to delete command svsname when unloading %s",
 				MOD_HEADER(m_chgname).name);
@@ -116,50 +116,43 @@ DLLFUNC int m_chgname(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 	aClient *acptr;
 
+	if (MyClient(sptr) && !IsAnOper(sptr))
+	{
+		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
+		    parv[0]);
+		return 0;
+	}
+
 #ifdef DISABLE_USERMOD
 	if (MyClient(sptr))
 	{
-		sendto_one(sptr, ":%s NOTICE %s :*** The /chgname command is disabled on this server", me.name, sptr->name);
+		sendto_one(sptr, err_str(ERR_DISABLED), me.name, sptr->name, "CHGNAME",
+			"This command is disabled on this server");
 		return 0;
 	}
 #endif
 
-
-	if (MyClient(sptr))
-		if (!IsAnOper(sptr))
-		{
-			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
-			    parv[0]);
-			return 0;
-
-		}
-
-	if (parc < 3)
+	if ((parc < 3) || !*parv[2])
 	{
-		sendto_one(sptr,
-		    ":%s NOTICE %s :*** /ChgName syntax is /ChgName <nick> <newident>",
-		    me.name, sptr->name);
-		return 0;
-	}
-
-	if (strlen(parv[2]) < 1)
-	{
-		sendto_one(sptr,
-		    ":%s NOTICE %s :*** Write atleast something to change the ident to!",
-		    me.name, sptr->name);
+		sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, sptr->name, "CHGNAME");
 		return 0;
 	}
 
 	if (strlen(parv[2]) > (REALLEN))
 	{
-		sendto_one(sptr,
-		    ":%s NOTICE %s :*** ChgName Error: Too long !!", me.name,
-		    sptr->name);
+		sendnotice(sptr, "*** ChgName Error: Requested realname too long -- rejected.");
 		return 0;
 	}
 
 	if ((acptr = find_person(parv[1], NULL)))
 	{
+		if (MyClient(sptr) && (IsLocOp(sptr) && !MyClient(acptr)))
+		{
+			sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name,
+				parv[0]);
+			return 0;
+		}
+
 		/* set the realname first to make n:line checking work */
 		ircsprintf(acptr->info, "%s", parv[2]);
 		/* only check for n:lines if the person who's name is being changed is not an oper */

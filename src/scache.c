@@ -1,5 +1,5 @@
 
-/* $Id: scache.c,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $ */
+/* $Id: scache.c,v 1.1.1.1.2.1 2004-02-16 16:48:00 Trocotronic Exp $ */
 
 #include "struct.h"
 #include "common.h"

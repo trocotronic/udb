@@ -53,7 +53,7 @@ DLLFUNC int m_sdesc(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_sdesc)
   = {
 	"sdesc",	/* Name of module */
-	"$Id: m_sdesc.c,v 1.1.1.2 2007-03-20 19:34:26 Trocotronic Exp $", /* Version */
+	"$Id: m_sdesc.c,v 1.1.1.1.2.2 2007-03-20 14:50:15 Trocotronic Exp $", /* Version */
 	"command /sdesc", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

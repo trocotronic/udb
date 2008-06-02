@@ -54,6 +54,9 @@ Computing Center and Jarkko Oikarinen";
 #include "proto.h"
 #include "channel.h"
 #include <string.h>
+#ifdef UDB
+#include "udb.h"
+#endif
 
 #ifndef NO_FDLIST
 extern fdlist serv_fdlist;
@@ -69,15 +72,58 @@ extern void exit_one_client_in_split(aClient *, aClient *, aClient *,
     char *);
 
 static char *months[] = {
-	"January", "February", "March", "April",
-	"May", "June", "July", "August",
-	"September", "October", "November", "December"
+	"Enero", "Febrero", "Marzo", "Abril",
+	"Mayo", "Junio", "Julio", "Agosto",
+	"Septiembre", "Octubre", "Noviembre", "Diciembre"
 };
 
 static char *weekdays[] = {
-	"Sunday", "Monday", "Tuesday", "Wednesday",
-	"Thursday", "Friday", "Saturday"
+	"Domingo", "Lunes", "Martes", "Miércoles",
+	"Jueves", "Viernes", "Sábado"
 };
+
+typedef struct {
+	int value;			/** Unique integer value of item */
+	char character;		/** Unique character assigned to item */
+	char *name;			/** Name of item */
+} BanActTable;
+
+static BanActTable banacttable[] = {
+	{ BAN_ACT_KILL,		'K',	"kill" },
+	{ BAN_ACT_TEMPSHUN,	'S',	"tempshun" },
+	{ BAN_ACT_SHUN,		's',	"shun" },
+	{ BAN_ACT_KLINE,	'k',	"kline" },
+	{ BAN_ACT_ZLINE,	'z',	"zline" },
+	{ BAN_ACT_GLINE,	'g',	"gline" },
+	{ BAN_ACT_GZLINE,	'Z',	"gzline" },
+	{ BAN_ACT_BLOCK,	'b',	"block" },
+	{ BAN_ACT_DCCBLOCK,	'd',	"dccblock" },
+	{ BAN_ACT_VIRUSCHAN,'v',	"viruschan" },
+	{ BAN_ACT_WARN,		'w',	"warn" },
+	{ 0, 0, 0 }
+};
+
+typedef struct {
+	int value;			/** Unique integer value of item */
+	char character;		/** Unique character assigned to item */
+	char *name;			/** Name of item */
+	char *irccommand;	/** Raw IRC command of item (not unique!) */
+} SpamfilterTargetTable;
+
+SpamfilterTargetTable spamfiltertargettable[] = {
+	{ SPAMF_CHANMSG,	'c',	"channel",			"PRIVMSG" },
+	{ SPAMF_USERMSG,	'p',	"private",			"PRIVMSG" },
+	{ SPAMF_USERNOTICE,	'n',	"private-notice",	"NOTICE" },
+	{ SPAMF_CHANNOTICE,	'N',	"channel-notice",	"NOTICE" },
+	{ SPAMF_PART,		'P',	"part",				"PART" },
+	{ SPAMF_QUIT,		'q',	"quit",				"QUIT" },
+	{ SPAMF_DCC,		'd',	"dcc",				"PRIVMSG" },
+	{ SPAMF_USER,		'u',	"user",				"NICK" },
+	{ SPAMF_AWAY,		'a',	"away",				"AWAY" },
+	{ SPAMF_TOPIC,		't',	"topic",			"TOPIC" },
+	{ 0, 0, 0 }
+};
+
 
 /*
  * stats stuff
@@ -184,9 +230,8 @@ char *make_user_host(char *name, char *host)
  * create a string of form "foo!bar@fubar" given foo, bar and fubar
  * as the parameters.  If NULL, they become "*".
  */
-char *make_nick_user_host(char *nick, char *name, char *host)
+inline char *make_nick_user_host_r(char *namebuf, char *nick, char *name, char *host)
 {
-	static char namebuf[NICKLEN + USERLEN + HOSTLEN + 6];
 	char *s = namebuf;
 
 	bzero(namebuf, sizeof(namebuf));
@@ -204,6 +249,18 @@ char *make_nick_user_host(char *nick, char *name, char *host)
 	*s = '\0';
 	return (namebuf);
 }
+
+/*
+ * create a string of form "foo!bar@fubar" given foo, bar and fubar
+ * as the parameters.  If NULL, they become "*".
+ */
+char *make_nick_user_host(char *nick, char *name, char *host)
+{
+	static char namebuf[NICKLEN + USERLEN + HOSTLEN + 24];
+
+	return make_nick_user_host_r(namebuf, nick, name, host);
+}
+
 
 /**
  ** myctime()
@@ -432,7 +489,6 @@ int  exit_client(aClient *cptr, aClient *sptr, aClient *from, char *comment)
 #ifdef FDLIST_DEBUG
 		{
 			int i;
-			int cnt = 0;
 			
 			if (!IsAnOper(sptr))
 			{
@@ -477,6 +533,7 @@ int  exit_client(aClient *cptr, aClient *sptr, aClient *from, char *comment)
 			{
 				Debug((DEBUG_ERROR, "deleting temporary block %s", sptr->serv->conf->servername));
 				delete_linkblock(sptr->serv->conf);
+				sptr->serv->conf = NULL;
 			}
 		}
 		if (IsServer(sptr))
@@ -597,11 +654,8 @@ int  exit_client(aClient *cptr, aClient *sptr, aClient *from, char *comment)
 		for (acptr = client; acptr; acptr = next)
 		{
 			next = acptr->next;
-			if (IsServer(acptr) && acptr->srvptr == sptr) {
-				exit_client(sptr, acptr,	/* RECURSION */
-				    sptr, comment1);
-				RunHook(HOOKTYPE_SERVER_QUIT, acptr);
-			}
+			if (IsServer(acptr) && acptr->srvptr == sptr)
+				exit_client(sptr, acptr, sptr, comment1); /* RECURSION */
 			/*
 			 * I am not masking SQUITS like I do QUITs.  This
 			 * is probobly something we could easily do, but
@@ -685,6 +739,10 @@ static void exit_one_client(aClient *cptr, aClient *sptr, aClient *from, char *c
 				sendto_one(acptr, "SQUIT %s :%s", sptr->name, comment);
 			}
 		}
+#ifdef UDB
+		if (sptr == propaga)
+			propaga = NULL;
+#endif
 	}
 	else if (!(IsPerson(sptr)))
 		/* ...this test is *dubious*, would need
@@ -731,6 +789,9 @@ static void exit_one_client(aClient *cptr, aClient *sptr, aClient *from, char *c
 			{
 				RunHook2(HOOKTYPE_REMOTE_QUIT, sptr, comment);
 			}
+#ifdef JOINTHROTTLE
+			cmodej_deluserentries(sptr);
+#endif
 			while ((mp = sptr->user->channel))
 				remove_user_from_channel(sptr, mp->chptr);
 
@@ -747,6 +808,13 @@ static void exit_one_client(aClient *cptr, aClient *sptr, aClient *from, char *c
 			 * that have this person on DCCALLOW that the user just left/got removed.
 			 */
 			remove_dcc_references(sptr);
+			
+			/* For remote clients, we need to check for any outstanding async
+			 * connects attached to this 'sptr', and set those records to NULL.
+			 * Why not for local? Well, we already do that in close_connection ;)
+			 */
+			if (!MyConnect(sptr))
+				unrealdns_delreq_bycptr(sptr);
 		}
 	}
 
@@ -802,8 +870,7 @@ char text[2048];
 	if (counted == IRCstats.operators)
 		return;
 	sprintf(text, "[BUG] operator count bug! value in /lusers is '%d', we counted '%d', "
-	               "user='%s', userserver='%s', tag=%s. "
-	               "please report to UnrealIRCd team at http://bugs.unrealircd.org/",
+	               "user='%s', userserver='%s', tag=%s. Corrected. ",
 	               IRCstats.operators, counted, orig->name ? orig->name : "<null>",
 	               orig->srvptr ? orig->srvptr->name : "<null>", tag ? tag : "<null>");
 #ifdef DEBUGMODE
@@ -843,7 +910,7 @@ regex_t expr;
 		goto Ilovegotos;
 
 	for (tmp = s; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
+		if (!isalnum(*tmp) && !((int)*tmp >= 128)) {
 			if ((s == tmp) && (*tmp == '*'))
 				continue;
 			if ((*(tmp + 1) == '\0') && (*tmp == '*'))
@@ -877,30 +944,7 @@ Ilovegotos:
 	return NULL;
 }
 
-int banact_stringtoval(char *s)
-{
-	if (!strcmp(s, "kill"))
-		return BAN_ACT_KILL;
-	if (!strcmp(s, "tempshun"))
-		return BAN_ACT_TEMPSHUN;
-	if (!strcmp(s, "shun"))
-		return BAN_ACT_SHUN;
-	if (!strcmp(s, "kline"))
-		return BAN_ACT_KLINE;
-	if (!strcmp(s, "gline"))
-		return BAN_ACT_GLINE;
-	if (!strcmp(s, "zline"))
-		return BAN_ACT_ZLINE;
-	if (!strcmp(s, "gzline"))
-		return BAN_ACT_GZLINE;
-	if (!strcmp(s, "block"))
-		return BAN_ACT_BLOCK;
-	if (!strcmp(s, "dccblock"))
-		return BAN_ACT_DCCBLOCK;
-	if (!strcmp(s, "viruschan"))
-		return BAN_ACT_VIRUSCHAN;
-	return 0;
-}
+
 
 #define SPF_REGEX_FLAGS (REG_ICASE|REG_EXTENDED|REG_NOSUB)
 
@@ -916,156 +960,102 @@ Spamfilter *e = MyMallocEx(sizeof(Spamfilter));
 	return e;
 }
 
+
+/*|| BAN ACTION ROUTINES FOLLOW ||*/
+
+
+/** Converts a banaction string (eg: "kill") to an integer value (eg: BAN_ACT_KILL) */
+int banact_stringtoval(char *s)
+{
+BanActTable *b;
+
+	for (b = &banacttable[0]; b->value; b++)
+		if (!strcasecmp(s, b->name))
+			return b->value;
+	return 0;
+}
+
+/** Converts a banaction character (eg: 'K') to an integer value (eg: BAN_ACT_KILL) */
 int banact_chartoval(char c)
 {
-	switch(c)
-	{
-		case 'k': return BAN_ACT_KLINE;
-		case 'K': return BAN_ACT_KILL;
-		case 'S': return BAN_ACT_TEMPSHUN;
-		case 's': return BAN_ACT_SHUN;
-		case 'z': return BAN_ACT_ZLINE;
-		case 'g': return BAN_ACT_GLINE; 
-		case 'Z': return BAN_ACT_GZLINE; 
-		case 'b': return BAN_ACT_BLOCK;
-		case 'd': return BAN_ACT_DCCBLOCK;
-		case 'v': return BAN_ACT_VIRUSCHAN;
-		default: return 0;
-	}
-	return 0; /* NOTREACHED */
+BanActTable *b;
+
+	for (b = &banacttable[0]; b->value; b++)
+		if (b->character == c)
+			return b->value;
+	return 0;
 }
 
+/** Converts a banaction value (eg: BAN_ACT_KILL) to a character value (eg: 'k') */
 char banact_valtochar(int val)
 {
-	switch(val)
-	{
-		case BAN_ACT_KLINE: return 'k';
-		case BAN_ACT_KILL: return 'K';
-		case BAN_ACT_TEMPSHUN: return 'S';
-		case BAN_ACT_SHUN: return 's';
-		case BAN_ACT_ZLINE: return 'z';
-		case BAN_ACT_GLINE: return 'g';
-		case BAN_ACT_GZLINE: return 'Z';
-		case BAN_ACT_BLOCK: return 'b';
-		case BAN_ACT_DCCBLOCK: return 'd';
-		case BAN_ACT_VIRUSCHAN: return 'v';
-		default: return '\0';
-	}
-	return '\0'; /* NOTREACHED */
+BanActTable *b;
+
+	for (b = &banacttable[0]; b->value; b++)
+		if (b->value == val)
+			return b->character;
+	return '\0';
 }
 
+/** Converts a banaction value (eg: BAN_ACT_KLINE) to a string (eg: "kline") */
 char *banact_valtostring(int val)
 {
-	switch(val)
-	{
-		case BAN_ACT_KLINE: return "kline";
-		case BAN_ACT_KILL: return "kill";
-		case BAN_ACT_TEMPSHUN: return "tempshun";
-		case BAN_ACT_SHUN: return "shun";
-		case BAN_ACT_ZLINE: return "zline";
-		case BAN_ACT_GLINE: return "gline";
-		case BAN_ACT_GZLINE: return "gzline";
-		case BAN_ACT_BLOCK: return "block";
-		case BAN_ACT_DCCBLOCK: return "dccblock";
-		case BAN_ACT_VIRUSCHAN: return "viruschan";
-		default: return "UNKNOWN";
-	}
-	return "UNKNOWN"; /* NOTREACHED */
+BanActTable *b;
+
+	for (b = &banacttable[0]; b->value; b++)
+		if (b->value == val)
+			return b->name;
+	return "DESCONOCIDO";
 }
 
-/** Extract target flags from string 's'.
- */
+/*|| BAN TARGET ROUTINES FOLLOW ||*/
+
+/** Extract target flags from string 's'. */
 int spamfilter_gettargets(char *s, aClient *sptr)
 {
+SpamfilterTargetTable *e;
 int flags = 0;
 
 	for (; *s; s++)
 	{
-		switch (*s)
+		for (e = &spamfiltertargettable[0]; e->value; e++)
+			if (e->character == *s)
+			{
+				flags |= e->value;
+				break;
+			}
+		if (!e->value && sptr)
 		{
-			case 'c': flags |= SPAMF_CHANMSG; break;
-			case 'p': flags |= SPAMF_USERMSG; break;
-			case 'n': flags |= SPAMF_USERNOTICE; break;
-			case 'N': flags |= SPAMF_CHANNOTICE; break;
-			case 'P': flags |= SPAMF_PART; break;
-			case 'q': flags |= SPAMF_QUIT; break;
-			case 'd': flags |= SPAMF_DCC; break;
-			default:
-				if (sptr)
-				{
-					sendto_one(sptr, ":%s NOTICE %s :Unknown target type '%c'",
-						me.name, sptr->name, *s);
-					return 0;
-				}
-			break;
+			sendnotice(sptr, "Desconocido destino '%c'", *s);
+			return 0;
 		}
 	}
 	return flags;
 }
 
+/** Convert a string with a targetname to an integer value */
 int spamfilter_getconftargets(char *s)
 {
-int flags = 0;
-	if (!strcmp(s, "channel"))
-		return SPAMF_CHANMSG;
-	if (!strcmp(s, "private"))
-		return SPAMF_USERMSG;
-	if (!strcmp(s, "private-notice"))
-		return SPAMF_USERNOTICE;
-	if (!strcmp(s, "channel-notice"))
-		return SPAMF_CHANNOTICE;
-	if (!strcmp(s, "part"))
-		return SPAMF_PART;
-	if (!strcmp(s, "quit"))
-		return SPAMF_QUIT;
-	if (!strcmp(s, "dcc"))
-		return SPAMF_DCC;
+SpamfilterTargetTable *e;
+
+	for (e = &spamfiltertargettable[0]; e->value; e++)
+		if (!strcmp(s, e->name))
+			return e->value;
 	return 0;
 }
 
+/** Create a string with (multiple) targets from an integer mask */
 char *spamfilter_target_inttostring(int v)
 {
 static char buf[128];
+SpamfilterTargetTable *e;
 char *p = buf;
 
-	if (v & SPAMF_CHANMSG)
-		*p++ = 'c';
-	if (v & SPAMF_USERMSG)
-		*p++ = 'p';
-	if (v & SPAMF_USERNOTICE)
-		*p++ = 'n';
-	if (v & SPAMF_CHANNOTICE)
-		*p++ = 'N';
-	if (v & SPAMF_PART)
-		*p++ = 'P';
-	if (v & SPAMF_QUIT)
-		*p++ = 'q';
-	if (v & SPAMF_DCC)
-		*p++ = 'd';
+	for (e = &spamfiltertargettable[0]; e->value; e++)
+		if (v & e->value)
+			*p++ = e->character;
 	*p = '\0';
 	return buf;
-}
-
-/* only used by dospamfilter() */
-char *spamfilter_inttostring_long(int v)
-{
-	switch(v)
-	{
-		case SPAMF_CHANMSG:
-		case SPAMF_USERMSG:
-			return "PRIVMSG";
-		case SPAMF_USERNOTICE:
-		case SPAMF_CHANNOTICE:
-			return "NOTICE";
-		case SPAMF_PART:
-			return "PART";
-		case SPAMF_QUIT:
-			return "QUIT";
-		case SPAMF_DCC:
-			return "DCC";
-		default:
-			return "UNKNOWN";
-	}
 }
 
 char *unreal_decodespace(char *s)
@@ -1104,4 +1094,91 @@ static char buf[512], *i, *o;
 	}
 	*o = '\0';
 	return buf;
+}
+
+/** This is basically only used internally by dospamfilter()... */
+char *cmdname_by_spamftarget(int target)
+{
+SpamfilterTargetTable *e;
+
+	for (e = &spamfiltertargettable[0]; e->value; e++)
+		if (e->value == target)
+			return e->irccommand;
+	return "???";
+}
+
+int is_autojoin_chan(char *chname)
+{
+char buf[512];
+char *p, *name;
+
+	if (OPER_AUTO_JOIN_CHANS)
+	{
+		strlcpy(buf, OPER_AUTO_JOIN_CHANS, sizeof(buf));
+
+		for (name = strtoken(&p, buf, ","); name; name = strtoken(&p, NULL, ","))
+			if (!strcasecmp(name, chname))
+				return 1;
+	}
+	
+	if (AUTO_JOIN_CHANS)
+	{
+		strlcpy(buf, AUTO_JOIN_CHANS, sizeof(buf));
+
+		for (name = strtoken(&p, buf, ","); name; name = strtoken(&p, NULL, ","))
+			if (!strcasecmp(name, chname))
+				return 1;
+	}
+
+	return 0;
+}
+
+char *getcloak(aClient *sptr)
+{
+	if (!*sptr->user->cloakedhost)
+	{
+		/* need to calculate (first-time) */
+#ifdef UDB
+		char *virt;
+		virt = MakeVirtualHost(sptr, sptr->user->realhost, NULL, 0);
+		strncpyzt(sptr->user->cloakedhost, virt, HOSTLEN);
+		MyFree(virt);
+#else
+		make_virthost(sptr, sptr->user->realhost, sptr->user->cloakedhost, 0);
+#endif
+	}
+
+	return sptr->user->cloakedhost;
+}
+
+/** Kicks all insecure users on a +z channel */
+void kick_insecure_users(aChannel *chptr)
+{
+	Member *member, *mb2;
+	aClient *cptr;
+	char *comment = "Insecure user not allowed on secure channel (+z)";
+	
+	for (member = chptr->members; member; member = mb2)
+	{
+		mb2 = member->next;
+		cptr = member->cptr;
+		if (MyClient(cptr) && !IsSecureConnect(cptr) && !IsULine(cptr))
+		{
+			RunHook5(HOOKTYPE_LOCAL_KICK, &me, &me, cptr, chptr, comment);
+
+			if ((chptr->mode.mode & MODE_AUDITORIUM) && is_chanownprotop(cptr, chptr))
+			{
+				sendto_chanops_butone(cptr, chptr, ":%s KICK %s %s :%s", me.name, chptr->chname, cptr->name, comment);
+				sendto_prefix_one(cptr, &me, ":%s KICK %s %s :%s", me.name, chptr->chname, cptr->name, comment);
+			} 
+			else
+			{
+				sendto_channel_butserv(chptr, &me, ":%s KICK %s %s :%s", me.name, chptr->chname, cptr->name, comment);
+			}
+
+			sendto_serv_butone_token(&me, me.name, MSG_KICK, TOK_KICK, "%s %s :%s", chptr->chname, cptr->name, comment);
+
+			remove_user_from_channel(cptr, chptr);
+		}
+	}
 }

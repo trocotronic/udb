@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * $Id: inet.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ * $Id: inet.h,v 1.1.1.1.2.3 2006-11-26 22:21:56 Trocotronic Exp $
  *
  *	@(#)inet.h	5.4 (Berkeley) 6/1/90
  */
@@ -57,3 +57,7 @@ extern __u_l inet_network();
 extern __u_l inet_lnaof();
 #endif
 #undef __u_l
+
+#ifndef INADDR_NONE
+#define INADDR_NONE 0xffffffff
+#endif

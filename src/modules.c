@@ -19,7 +19,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: modules.c,v 1.2 2004-07-04 02:47:35 Trocotronic Exp $
+ * $Id: modules.c,v 1.1.1.1.2.29 2007-11-09 19:41:46 Trocotronic Exp $
  */
 
 #include "struct.h"
@@ -54,14 +54,18 @@ const char *our_dlerror(void);
 #ifndef RTLD_NOW
 #define RTLD_NOW RTLD_LAZY
 #endif
+#define UNREALCORE
+#include "modversion.h"
 
 Hook	   	*Hooks[MAXHOOKTYPES];
 Hooktype	Hooktypes[MAXCUSTOMHOOKS];
 Callback	*Callbacks[MAXCALLBACKS];	/* Callback objects for modules, used for rehashing etc (can be multiple) */
 Callback	*RCallbacks[MAXCALLBACKS];	/* 'Real' callback function, used for callback function calls */
+Efunction	*Efunctions[MAXEFUNCTIONS];	/* Efunction objects (used for rehashing) */
 MODVAR Module          *Modules = NULL;
 MODVAR Versionflag     *Versionflags = NULL;
-int     Module_Depend_Resolve(Module *p);
+
+int     Module_Depend_Resolve(Module *p, char *path);
 Module *Module_make(ModuleHeader *header, 
 #ifdef _WIN32
        HMODULE mod
@@ -69,6 +73,90 @@ Module *Module_make(ModuleHeader *header,
        void *mod
 #endif
        );
+
+typedef struct {
+	char *name;
+	void **funcptr;
+} EfunctionsList;
+
+/* Efuncs */
+int (*do_join)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+void (*join_channel)(aChannel *chptr, aClient *cptr, aClient *sptr, int flags);
+int (*can_join)(aClient *cptr, aClient *sptr, aChannel *chptr, char *key, char *link, char *parv[]);
+void (*do_mode)(aChannel *chptr, aClient *cptr, aClient *sptr, int parc, char *parv[], time_t sendts, int samode);
+void (*set_mode)(aChannel *chptr, aClient *cptr, int parc, char *parv[], u_int *pcount,
+    char pvar[MAXMODEPARAMS][MODEBUFLEN + 3], int bounce);
+int (*m_umode)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+int (*register_user)(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost, char *ip);
+int (*tkl_hash)(unsigned int c);
+char (*tkl_typetochar)(int type);
+aTKline *(*tkl_add_line)(int type, char *usermask, char *hostmask, char *reason, char *setby,
+    TS expire_at, TS set_at, TS spamf_tkl_duration, char *spamf_tkl_reason);
+aTKline *(*tkl_del_line)(aTKline *tkl);
+void (*tkl_check_local_remove_shun)(aTKline *tmp);
+aTKline *(*tkl_expire)(aTKline * tmp);
+EVENT((*tkl_check_expire));
+int (*find_tkline_match)(aClient *cptr, int xx);
+int (*find_shun)(aClient *cptr);
+int(*find_spamfilter_user)(aClient *sptr, int flags);
+aTKline *(*find_qline)(aClient *cptr, char *nick, int *ishold);
+int  (*find_tkline_match_zap)(aClient *cptr);
+void (*tkl_stats)(aClient *cptr, int type, char *para);
+void (*tkl_synch)(aClient *sptr);
+int (*m_tkl)(aClient *cptr, aClient *sptr, int parc, char *parv[]);
+int (*place_host_ban)(aClient *sptr, int action, char *reason, long duration);
+int (*dospamfilter)(aClient *sptr, char *str_in, int type, char *target, int flags, aTKline **rettk);
+int (*dospamfilter_viruschan)(aClient *sptr, aTKline *tk, int type);
+int  (*find_tkline_match_zap_ex)(aClient *cptr, aTKline **rettk);
+void (*send_list)(aClient *cptr, int numsend);
+char *(*stripbadwords_channel)(char *str, int *blocked);
+char *(*stripbadwords_message)(char *str, int *blocked);
+char *(*stripbadwords_quit)(char *str, int *blocked);
+unsigned char *(*StripColors)(unsigned char *text);
+const char *(*StripControlCodes)(unsigned char *text);
+void (*spamfilter_build_user_string)(char *buf, char *nick, aClient *acptr);
+int (*is_silenced)(aClient *sptr, aClient *acptr);
+
+static const EfunctionsList efunction_table[MAXEFUNCTIONS] = {
+/* 00 */	{NULL, NULL},
+/* 01 */	{"do_join", (void *)&do_join},
+/* 02 */	{"join_channel", (void *)&join_channel},
+/* 03 */	{"can_join", (void *)&can_join},
+/* 04 */	{"do_mode", (void *)&do_mode},
+/* 05 */	{"set_mode", (void *)&set_mode},
+/* 06 */	{"m_umode", (void *)&m_umode},
+/* 07 */	{"register_user", (void *)&register_user},
+/* 08 */	{"tkl_hash", (void *)&tkl_hash},
+/* 09 */	{"tkl_typetochar", (void *)&tkl_typetochar},
+/* 10 */	{"tkl_add_line", (void *)&tkl_add_line},
+/* 11 */	{"tkl_del_line", (void *)&tkl_del_line},
+/* 12 */	{"tkl_check_local_remove_shun", (void *)&tkl_check_local_remove_shun},
+/* 13 */	{"tkl_expire", (void *)&tkl_expire},
+/* 14 */	{"tkl_check_expire", (void *)&tkl_check_expire},
+/* 15 */	{"find_tkline_match", (void *)&find_tkline_match},
+/* 16 */	{"find_shun", (void *)&find_shun},
+/* 17 */	{"find_spamfilter_user", (void *)&find_spamfilter_user},
+/* 18 */	{"find_qline", (void *)&find_qline},
+/* 19 */	{"find_tkline_match_zap", (void *)&find_tkline_match_zap},
+/* 20 */	{"tkl_stats", (void *)&tkl_stats},
+/* 21 */	{"tkl_synch", (void *)&tkl_synch},
+/* 22 */	{"m_tkl", (void *)&m_tkl},
+/* 23 */	{"place_host_ban", (void *)&place_host_ban},
+/* 24 */	{"dospamfilter", (void *)&dospamfilter},
+/* 25 */	{"dospamfilter_viruschan", (void *)&dospamfilter_viruschan},
+/* 26 */	{"find_tkline_match_zap_ex", (void *)&find_tkline_match_zap_ex},
+/* 27 */	{"send_list", (void *)&send_list},
+/* 28 */	{"stripbadwords_channel", (void *)&stripbadwords_channel},
+/* 29 */	{"stripbadwords_message", (void *)&stripbadwords_message},
+/* 30 */	{"stripbadwords_quit", (void *)&stripbadwords_quit},
+/* 31 */	{"StripColors", (void *)&StripColors},
+/* 32 */	{"StripControlCodes", (void *)&StripControlCodes},
+/* 33 */	{"spamfilter_build_user_string", (void *)&spamfilter_build_user_string},
+/* 34 */	{"is_silenced", (void *)&is_silenced},
+/* 35 */	{NULL, NULL}
+};
+
+
 #ifdef UNDERSCORE
 void *obsd_dlsym(void *handle, char *symbol) {
     char *obsdsymbol = (char*)MyMalloc(strlen(symbol) + 2);
@@ -140,6 +228,7 @@ void Module_Init(void)
 	bzero(Hooktypes, sizeof(Hooktypes));
 	bzero(Callbacks, sizeof(Callback));
 	bzero(RCallbacks, sizeof(Callback));
+	bzero(Efunctions, sizeof(Efunction));
 }
 
 Module *Module_Find(char *name)
@@ -160,14 +249,48 @@ Module *Module_Find(char *name)
 	
 }
 
-static char *our_mod_version()
+int parse_modsys_version(char *version)
 {
-static char retbuf[128];
-	strlcpy(retbuf, version, sizeof(retbuf));
-#if defined(USE_SSL) && !defined(_WIN32)
-	strlcat(retbuf, "/SSL", sizeof(retbuf));
-#endif
-	return retbuf;
+	int betaversion, tag;
+	if (!strcmp(version, "3.2.3"))
+		return 0x32300;
+	if (sscanf(version, "3.2-b%d-%d", &betaversion, &tag)) 
+	{
+		switch (betaversion)
+		{
+			case 5:
+				return 0x320b5;
+			case 6:
+				return 0x320b6;
+			case 7:
+				return 0x320b7;
+			case 8:
+				return 0x320b8;
+			default:
+				return 0;
+		}
+	}
+	return 0;
+}
+
+void make_compiler_string(char *buf, unsigned int ver)
+{
+unsigned int maj, min, plevel;
+
+	if (ver == 0)
+	{
+		strcpy(buf, "0");
+		return;
+	}
+	
+	maj = ver >> 16;
+	min = (ver >> 8) & 0xff;
+	plevel = ver & 0xff;
+	
+	if (plevel == 0)
+		sprintf(buf, "%d.%d", maj, min);
+	else
+		sprintf(buf, "%d.%d.%d", maj, min, plevel);
 }
 
 /*
@@ -186,14 +309,15 @@ char  *Module_Create(char *path_)
 	int             (*Mod_Load)();
 	int             (*Mod_Unload)();
 	char    *Mod_Version;
+	unsigned int *compiler_version;
 	static char 	errorbuf[1024];
 	char 		*path, *tmppath;
-	ModuleHeader    *mod_header;
+	ModuleHeader    *mod_header = NULL;
 	int		ret = 0;
 	Module          *mod = NULL, **Mod_Handle = NULL;
-	int *x;
-	int betaversion,tag;
-	char *expectedmodversion = our_mod_version();
+	char *expectedmodversion = our_mod_version;
+	unsigned int expectedcompilerversion = our_compiler_version;
+	long modsys_ver = 0;
 	Debug((DEBUG_DEBUG, "Attempting to load module from %s",
 	       path_));
 	path = path_;
@@ -208,7 +332,25 @@ char  *Module_Create(char *path_)
 		strcpy(path, "./");
 		strcat(path, path_);
 	}
-	unreal_copyfile(path, tmppath);
+
+	if (!file_exists(path))
+	{
+		snprintf(errorbuf, sizeof(errorbuf), "No puede abrir el módulo: %s", strerror(errno));
+		return errorbuf;
+	}
+#ifdef __OpenBSD__
+	/* For OpenBSD, do not do a hardlinkink attempt first because it checks inode
+	 * numbers to see if a certain module is already loaded. -- Syzop
+	 */
+	ret = unreal_copyfileex(path, tmppath, 0);
+#else
+	ret = unreal_copyfileex(path, tmppath, 1);
+#endif
+	if (!ret)
+	{
+		snprintf(errorbuf, sizeof(errorbuf), "No se puede copiar el módulo.");
+		return errorbuf;
+	}
 	if ((Mod = irc_dlopen(tmppath, RTLD_NOW)))
 	{
 		/* We have engaged the borg cube. Scan for lifesigns. */
@@ -230,6 +372,19 @@ char  *Module_Create(char *path_)
 			remove(tmppath);
 			return errorbuf;
 		}
+		irc_dlsym(Mod, "compiler_version", compiler_version);
+		if (compiler_version && ( ((*compiler_version) & 0xffff00) != (expectedcompilerversion & 0xffff00) ) )
+		{
+			char theyhad[64], wehave[64];
+			make_compiler_string(theyhad, *compiler_version);
+			make_compiler_string(wehave, expectedcompilerversion);
+			snprintf(errorbuf, sizeof(errorbuf),
+			         "Este módulo se compiló con GCC %s, el core se compiló con GCC %s. SOLUCIÓN: Recompile su UnrealIRcd y todos sus módulos con 'make clean; ./Config -quick && make'.",
+			         theyhad, wehave);
+			irc_dlclose(Mod);
+			remove(tmppath);
+			return errorbuf;
+		}
 		irc_dlsym(Mod, "Mod_Header", mod_header);
 		if (!mod_header)
 		{
@@ -243,14 +398,13 @@ char  *Module_Create(char *path_)
 			remove(tmppath);
 			return ("Lacking mod_header->modversion");
 		}
-		if (sscanf(mod_header->modversion, "3.2-b%d-%d", &betaversion, &tag)) {
-			if (betaversion < 5 || betaversion >8) {
-				snprintf(errorbuf, 1023, "Unsupported version, we support %s, %s is %s",
-					   MOD_WE_SUPPORT, path, mod_header->modversion);
-				irc_dlclose(Mod);
-				remove(tmppath);
-				return(errorbuf);
-			}
+		if (!(modsys_ver = parse_modsys_version(mod_header->modversion)))
+		{
+			snprintf(errorbuf, 1023, "Unsupported module system version '%s'",
+				   mod_header->modversion);
+			irc_dlclose(Mod);
+			remove(tmppath);
+			return(errorbuf);
 		}
 		if (!mod_header->name || !mod_header->version ||
 		    !mod_header->description)
@@ -267,6 +421,9 @@ char  *Module_Create(char *path_)
 		}
 		mod = (Module *)Module_make(mod_header, Mod);
 		mod->tmp_file = strdup(tmppath);
+		mod->mod_sys_version = modsys_ver;
+		mod->compiler_version = compiler_version ? *compiler_version : 0;
+
 		irc_dlsym(Mod, "Mod_Init", Mod_Init);
 		if (!Mod_Init)
 		{
@@ -285,7 +442,7 @@ char  *Module_Create(char *path_)
 			Module_free(mod);
 			return ("Unable to locate Mod_Load"); 
 		}
-		if (Module_Depend_Resolve(mod) == -1)
+		if (Module_Depend_Resolve(mod, path) == -1)
 		{
 			Module_free(mod);
 			return ("Dependancy problem");
@@ -296,7 +453,7 @@ char  *Module_Create(char *path_)
 		irc_dlsym(Mod, "Mod_Test", Mod_Test);
 		if (Mod_Test)
 		{
-			if (betaversion >= 8) {
+			if (mod->mod_sys_version >= 0x320b8) {
 				if ((ret = (*Mod_Test)(&mod->modinfo)) < MOD_SUCCESS) {
 					ircsprintf(errorbuf, "Mod_Test returned %i",
 						   ret);
@@ -365,6 +522,7 @@ Module *Module_make(ModuleHeader *header,
 	modp->modinfo.size = sizeof(ModuleInfo);
 	modp->modinfo.module_load = 0;
 	modp->modinfo.handle = modp;
+		
 	return (modp);
 }
 
@@ -372,7 +530,7 @@ void Init_all_testing_modules(void)
 {
 	
 	Module *mi, *next;
-	int betaversion, tag, ret;
+	int ret;
 	iFP Mod_Init;
 	for (mi = Modules; mi; mi = next)
 	{
@@ -380,8 +538,7 @@ void Init_all_testing_modules(void)
 		if (!(mi->flags & MODFLAG_TESTING))
 			continue;
 		irc_dlsym(mi->dll, "Mod_Init", Mod_Init);
-		sscanf(mi->header->modversion, "3.2-b%d-%d", &betaversion, &tag);
-		if (betaversion >= 8) {
+		if (mi->mod_sys_version >= 0x320b8) {
 			if ((ret = (*Mod_Init)(&mi->modinfo)) < MOD_SUCCESS) {
 				config_error("Error loading %s: Mod_Init returned %i",
 					mi->header->name, ret);
@@ -450,6 +607,9 @@ void Unload_all_loaded_modules(void)
 			else if (objs->type == MOBJ_UMODE) {
 				UmodeDel(objs->object.umode);
 			}
+			else if (objs->type == MOBJ_CMODE) {
+				CmodeDel(objs->object.cmode);
+			}
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
 			}
@@ -458,6 +618,12 @@ void Unload_all_loaded_modules(void)
 			}
 			else if (objs->type == MOBJ_CALLBACK) {
 				CallbackDel(objs->object.callback);
+			}
+			else if (objs->type == MOBJ_EFUNCTION) {
+				EfunctionDel(objs->object.efunction);
+			}
+			else if (objs->type == MOBJ_ISUPPORT) {
+				IsupportDel(objs->object.isupport);
 			}
 		}
 		for (child = mi->children; child; child = childnext)
@@ -468,7 +634,9 @@ void Unload_all_loaded_modules(void)
 		}
 		DelListItem(mi,Modules);
 		irc_dlclose(mi->dll);
+#ifndef DEBUGMODE
 		remove(mi->tmp_file);
+#endif
 		MyFree(mi->tmp_file);
 		MyFree(mi);
 	}
@@ -510,6 +678,9 @@ void Unload_all_testing_modules(void)
 			else if (objs->type == MOBJ_UMODE) {
 				UmodeDel(objs->object.umode);
 			}
+			else if (objs->type == MOBJ_CMODE) {
+				CmodeDel(objs->object.cmode);
+			}
 			else if (objs->type == MOBJ_CMDOVERRIDE) {
 				CmdoverrideDel(objs->object.cmdoverride);
 			}
@@ -518,6 +689,12 @@ void Unload_all_testing_modules(void)
 			}
 			else if (objs->type == MOBJ_CALLBACK) {
 				CallbackDel(objs->object.callback);
+			}
+			else if (objs->type == MOBJ_EFUNCTION) {
+				EfunctionDel(objs->object.efunction);
+			}
+			else if (objs->type == MOBJ_ISUPPORT) {
+				IsupportDel(objs->object.isupport);
 			}
 		}
 		for (child = mi->children; child; child = childnext)
@@ -576,6 +753,9 @@ int    Module_free(Module *mod)
 		else if (objs->type == MOBJ_UMODE) {
 			UmodeDel(objs->object.umode);
 		}
+		else if (objs->type == MOBJ_CMODE) {
+			CmodeDel(objs->object.cmode);
+		}
 		else if (objs->type == MOBJ_CMDOVERRIDE) {
 			CmdoverrideDel(objs->object.cmdoverride);
 		}
@@ -585,6 +765,13 @@ int    Module_free(Module *mod)
 		else if (objs->type == MOBJ_CALLBACK) {
 			CallbackDel(objs->object.callback);
 		}
+		else if (objs->type == MOBJ_EFUNCTION) {
+			EfunctionDel(objs->object.efunction);
+		}
+		else if (objs->type == MOBJ_ISUPPORT) {
+			IsupportDel(objs->object.isupport);
+		}
+
 	}
 	for (p = Modules; p; p = p->next)
 	{
@@ -728,7 +915,7 @@ vFP Module_SymX(char *name, Module **mptr)
 void	module_loadall(int module_load)
 {
 #ifndef STATIC_LINKING
-	iFP	fp, fpp;
+	iFP	fp;
 	Module *mi, *next;
 	
 	if (!loop.ircd_booted)
@@ -776,15 +963,13 @@ inline void	Module_AddAsChild(Module *parent, Module *child)
 	AddListItem(childp, parent->children);
 }
 
-int	Module_Depend_Resolve(Module *p)
+int	Module_Depend_Resolve(Module *p, char *path)
 {
 	Mod_SymbolDepTable *d = p->header->symdep;
 	Module		   *parental = NULL;
 	
 	if (d == NULL)
-	{
 		return 0;
-	}
 #ifndef STATIC_LINKING
 	while (d->pointer)
 	{
@@ -796,8 +981,22 @@ int	Module_Depend_Resolve(Module *p)
 		*(d->pointer) = Module_SymX(d->symbol, &parental);
 		if (!*(d->pointer))
 		{
-			config_progress("Unable to resolve symbol %s, attempting to load %s to find it", d->symbol, d->module);
-			Module_Create(d->module);
+			/* If >= 3.2.3 */
+			if (p->mod_sys_version >= 0x32300)
+			{
+				char tmppath[PATH_MAX], curpath[PATH_MAX];
+
+				unreal_getpathname(path, curpath);
+				snprintf(tmppath, PATH_MAX, "%s/%s.%s", curpath, d->module,
+					MOD_EXTENSION);
+				config_progress("Unable to resolve symbol %s, attempting to load %s to find it", d->symbol, tmppath);
+				Module_Create(tmppath);
+			}
+			else
+			{
+				config_progress("Unable to resolve symbol %s, attempting to load %s to find it", d->symbol, d->module);
+				Module_Create(d->module);
+			}
 			*(d->pointer) = Module_SymX(d->symbol, &parental);
 			if (!*(d->pointer)) {
 				config_progress("module dependancy error: cannot resolve symbol %s",
@@ -821,13 +1020,13 @@ int	Module_Depend_Resolve(Module *p)
 }
 
 /* m_module.
- * originally by ?? (codemastr?)
- * I (Syzop) changed it so it's now public for users too,
- * as quite some people (and users) requested they should have the
- * right to see what kind of weird modules are loaded on the server,
- * especially since people like to load spy modules these days.
+ * by Stskeeps, codemastr, Syzop.
+ * Changed it so it's now public for users too, as quite some people
+ * (and users) requested they should have the right to see what kind 
+ * of weird modules are loaded on the server, especially since people
+ * like to load spy modules these days.
  * I do not consider this sensitive information, but just in case
- * I stripped the version string for non-admins (eg: normal users).
+ * I stripped the version string for non-admins (eg: normal users). -- Syzop
  */
 int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
@@ -835,17 +1034,20 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	int i;
 	char tmp[1024], *p;
 	aCommand *mptr;
+#ifdef DEBUGMODE
+	Efunction *e;
+#endif
 
 	/* Opers can do /module <servername> */
-	if ((parc > 1) && (IsServer(cptr) || IsOper(sptr)) &&
-	    (hunt_server_token(cptr, sptr, MSG_MODULE, TOK_MODULE, ":%s", 1, parc, parv) != HUNTED_ISME))
-		return 0;
-	
+        if ((parc > 1) && (hunt_server_token(cptr, sptr, MSG_MODULE, TOK_MODULE, ":%s", 1, parc,
+             parv) != HUNTED_ISME))
+		return 0;	
 	if (!Modules)
 	{
 		sendto_one(sptr, ":%s NOTICE %s :*** No modules loaded", me.name, sptr->name);
 		return 1;
 	}
+	
 	for (mi = Modules; mi; mi = mi->next)
 	{
 		tmp[0] = '\0';
@@ -875,7 +1077,7 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			continue;
 		sprintf(p, "%d ", i);
 		p += strlen(p);
-		if (p > tmp+480)
+		if (p > tmp+380)
 		{
 			sendto_one(sptr, ":%s NOTICE %s :Hooks: %s", me.name, sptr->name, tmp);
 			tmp[0] = '\0';
@@ -893,7 +1095,7 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			{
 				sprintf(p, "%s ", mptr->cmd);
 				p += strlen(p);
-				if (p > tmp+470)
+				if (p > tmp+380)
 				{
 					sendto_one(sptr, ":%s NOTICE %s :Override: %s", me.name, sptr->name, tmp);
 					tmp[0] = '\0';
@@ -902,6 +1104,20 @@ int  m_module(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			}
 	}
 	sendto_one(sptr, ":%s NOTICE %s :Override: %s", me.name, sptr->name, tmp);
+
+#ifdef DEBUGMODE
+	sendnotice(sptr, "Efunctions dump:");
+	for (i=0; i < MAXEFUNCTIONS; i++)
+		if ((e = Efunctions[i]))
+		{
+			sendnotice(sptr, "type=%d, name=%s, pointer=%p %s, owner=%s",
+				e->type,
+				efunction_table[e->type].name ? efunction_table[e->type].name : "<null>",
+				e->func.voidfunc,
+				*efunction_table[e->type].funcptr == e->func.voidfunc ? " [ACTIVE]" : "",
+				e->owner ? e->owner->header->name : "<null>");
+		}
+#endif
 	
 	return 1;
 }
@@ -1183,6 +1399,64 @@ Callback *CallbackDel(Callback *cb)
 	return NULL;
 }
 
+Efunction	*EfunctionAddMain(Module *module, int eftype, int (*func)(), void (*vfunc)(), void *(*pvfunc)(), char *(*cfunc)())
+{
+Efunction *p;
+
+	if (!module || !(module->options & MOD_OPT_OFFICIAL))
+	{
+		module->errorcode = MODERR_INVALID;
+		return NULL;
+	}
+	
+	p = (Efunction *) MyMallocEx(sizeof(Efunction));
+	if (func)
+		p->func.intfunc = func;
+	if (vfunc)
+		p->func.voidfunc = vfunc;
+	if (pvfunc)
+		p->func.pvoidfunc = pvfunc;
+	if (cfunc)
+		p->func.pcharfunc = cfunc;
+	p->type = eftype;
+	p->owner = module;
+	AddListItem(p, Efunctions[eftype]);
+	if (module) {
+		ModuleObject *cbobj = (ModuleObject *)MyMallocEx(sizeof(ModuleObject));
+		cbobj->object.efunction = p;
+		cbobj->type = MOBJ_EFUNCTION;
+		AddListItem(cbobj, module->objects);
+		module->errorcode = MODERR_NOERROR;
+	}
+	return p;
+}
+
+Efunction *EfunctionDel(Efunction *cb)
+{
+Efunction *p, *q;
+	for (p = Efunctions[cb->type]; p; p = p->next) {
+		if (p == cb) {
+			q = p->next;
+			DelListItem(p, Efunctions[cb->type]);
+			if (*efunction_table[cb->type].funcptr == p)
+				*efunction_table[cb->type].funcptr = NULL;
+			if (p->owner) {
+				ModuleObject *cbobj;
+				for (cbobj = p->owner->objects; cbobj; cbobj = cbobj->next) {
+					if ((cbobj->type == MOBJ_EFUNCTION) && (cbobj->object.efunction == p)) {
+						DelListItem(cbobj, cb->owner->objects);
+						MyFree(cbobj);
+						break;
+					}
+				}
+			}
+			MyFree(p);
+			return q;
+		}
+	}
+	return NULL;
+}
+
 Cmdoverride *CmdoverrideAdd(Module *module, char *name, iFP function)
 {
 	aCommand *p;
@@ -1317,11 +1591,15 @@ static const char *module_error_str[] = {
 	"No error",
 	"Object already exists",
 	"No space available",
-	"Invalid parameter(s)"
+	"Invalid parameter(s)",
+	"Object was not found"
 };
 
 const char *ModuleGetErrorStr(Module *module)
 {
+	if (module->errorcode >= sizeof(module_error_str)/sizeof(module_error_str[0]))
+		return NULL;
+
 	return module_error_str[module->errorcode];
 }
 
@@ -1345,7 +1623,7 @@ int callbacks_check(void)
 {
 int i;
 
-	if (!num_callbacks(CALLBACKTYPE_CLOAK) || !num_callbacks(CALLBACKTYPE_CLOAKKEYCSUM))
+	if ((!num_callbacks(CALLBACKTYPE_CLOAK) && !num_callbacks(CALLBACKTYPE_CLOAK_EX)) || !num_callbacks(CALLBACKTYPE_CLOAKKEYCSUM))
 	{
 #ifndef _WIN32
 		config_error("ERROR: No cloaking module loaded. (hint: you probably want to load cloak.so)");
@@ -1386,6 +1664,76 @@ int i;
 			if (!e->willberemoved)
 			{
 				RCallbacks[i] = e; /* This is the new one. */
+				if (!(e->owner->options & MOD_OPT_PERM))
+					e->willberemoved = 1;
+				break;
+			}
+}
+
+static int num_efunctions(int eftype)
+{
+Efunction *e;
+int cnt = 0;
+
+#ifdef DEBUGMODE
+	if ((eftype < 0) || (eftype >= MAXEFUNCTIONS))
+		abort();
+#endif
+
+	for (e = Efunctions[eftype]; e; e = e->next)
+		if (!e->willberemoved)
+			cnt++;
+			
+	return cnt;
+}
+
+
+/** Ensure that all efunctions are present. */
+int efunctions_check(void)
+{
+int i, n, errors=0;
+
+	for (i=0; i < MAXEFUNCTIONS; i++)
+		if (efunction_table[i].name)
+		{
+			n = num_efunctions(i);
+			if ((n != 1) && (errors > 10))
+			{
+				config_error("[--efunction errors truncated to prevent flooding--]");
+				break;
+			}
+			if (n < 1)
+			{
+				config_error("ERROR: efunction '%s' not found, you probably did not "
+				             "load commands.so properly (or not all required m_* modules)",
+				             efunction_table[i].name);
+				errors++;
+			} else
+			if (n > 1)
+			{
+				config_error("ERROR: efunction '%s' was found %d times, perhaps you "
+				             "loaded commands.so twice or commands.so and a/the m_*.so module(s)",
+				             efunction_table[i].name, n);
+				errors++;
+			}
+		}
+	return errors ? -1 : 0;
+}
+
+void efunctions_switchover(void)
+{
+Efunction *e;
+int i;
+
+	/* Now set the real efunction, and tag the new one
+	 * as 'willberemoved' if needed.
+	 */
+
+	for (i=0; i < MAXEFUNCTIONS; i++)
+		for (e = Efunctions[i]; e; e = e->next)
+			if (!e->willberemoved)
+			{
+				*efunction_table[i].funcptr = e->func.voidfunc;  /* This is the new one. */
 				if (!(e->owner->options & MOD_OPT_PERM))
 					e->willberemoved = 1;
 				break;

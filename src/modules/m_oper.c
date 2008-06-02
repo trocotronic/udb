@@ -127,7 +127,7 @@ static void init_operflags()
 ModuleHeader MOD_HEADER(m_oper)
   = {
 	"oper",	/* Name of module */
-	"$Id: m_oper.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $", /* Version */
+	"$Id: m_oper.c,v 1.1.1.1.2.16 2007-11-09 19:41:47 Trocotronic Exp $", /* Version */
 	"command /oper", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -178,7 +178,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 	int i = 0, j = 0;
 	char* announce = 0;
 
-	if (IsServer(sptr))
+	if (!MyClient(sptr))
 		return 0;
 
 	if (parc < 3) {
@@ -205,8 +205,8 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 	if (!(aconf = Find_oper(name))) {
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) [oper desconocido]",
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) [oper desconocido]",
 		    parv[0], sptr->user->username, sptr->sockhost);
 		ircd_log(LOG_OPER, "OPER UNKNOWNOPER (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
@@ -217,13 +217,15 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 	strlcpy(nuhhost2, make_user_host(sptr->user->username, Inet_ia2p(&sptr->ip)), sizeof(nuhhost2));
 	for (oper_from = (ConfigItem_oper_from *) aconf->from;
 	    oper_from; oper_from = (ConfigItem_oper_from *) oper_from->next)
-		if (!match(oper_from->name, nuhhost) || !match(oper_from->name, nuhhost2))
+		/* if (!match(oper_from->name, nuhhost) || !match(oper_from->name, nuhhost2)) */
+		if (match_ip(sptr->ip, nuhhost, oper_from->name, oper_from->netmask) ||
+		    !match(oper_from->name, nuhhost2))
 			break;
 	if (!oper_from)	{
 		sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) [no coincide host]",
-		    parv[0], sptr->user->username, sptr->sockhost);
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [no coincide host]",
+		    parv[0], sptr->user->username, sptr->sockhost, name);
 		ircd_log(LOG_OPER, "OPER NOHOSTMATCH (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
 		sptr->since += 7;
@@ -240,9 +242,9 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			sendto_one(sptr, err_str(ERR_NOOPERHOST), me.name, parv[0]);
 			sendto_one(sptr, ":%s NOTICE %s :Demasiados intentos (%d)",
 				me.name, sptr->name, aconf->maxlogins);
-			sendto_realops
-				("Intento de OPER por %s (%s@%s) [maxlogins sobrepasados]",
-				parv[0], sptr->user->username, sptr->sockhost);
+			sendto_snomask_global
+				(SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [maxlogins sobrepasados]",
+				parv[0], sptr->user->username, sptr->sockhost, name);
 			ircd_log(LOG_OPER, "OPER TOOMANYLOGINS (%s) by (%s!%s@%s)", name, parv[0],
 				sptr->user->username, sptr->sockhost);
 			sptr->since += 4;
@@ -271,7 +273,10 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 /* new oper code */
 
-		sptr->umodes |= OPER_MODES;
+		if (aconf->modes)
+			sptr->umodes |= aconf->modes;
+		else
+			sptr->umodes |= OPER_MODES;
 
 /* handle oflags that trigger umodes */
 		
@@ -289,13 +294,24 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 
 		sptr->oflag = aconf->oflags;
 		if ((aconf->oflags & OFLAG_HIDE) && iNAH && !BadPtr(host)) {
-			iNAH_host(sptr, host);
+			char *c;
+			char *vhost = host;
+
+			if ((c = strchr(host, '@')))
+			{
+				vhost =	c+1;
+				strncpy(sptr->user->username, host, c-host);
+				sptr->user->username[c-host] = 0;
+				sendto_serv_butone_token(NULL, sptr->name, MSG_SETIDENT, 
+							 TOK_SETIDENT, "%s", 
+							 sptr->user->username);
+			}
+			iNAH_host(sptr, vhost);
 			SetHidden(sptr);
 		} else
 		if (IsHidden(sptr) && !sptr->user->virthost) {
 			/* +x has just been set by modes-on-oper and iNAH is off */
-			sptr->user->virthost = (char *)make_virthost(sptr->user->realhost,
-			                                             sptr->user->virthost, 1);
+			sptr->user->virthost = strdup(sptr->user->cloakedhost);
 		}
 
 		if (!IsOper(sptr))
@@ -305,22 +321,16 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 				iNAH_host(sptr, locop_host);
 				SetHidden(sptr);
 			}
-			sendto_ops("%s (%s@%s) es un operaor local (O)",
+			sendto_snomask(SNO_OPER, "%s (%s@%s) es un operaor local (O)",
 			    parv[0], sptr->user->username, GetHost(sptr));
 		}
 
 
-		if (announce != NULL) {
-			sendto_ops
-			    ("%s (%s@%s) [%s] %s",
+		if (announce != NULL)
+			sendto_snomask_global(SNO_OPER,
+			    "%s (%s@%s) [%s] %s",
 			    parv[0], sptr->user->username, GetHost(sptr),
 			    parv[1], announce);
-				sendto_serv_butone(&me,
-				    ":%s GLOBOPS :%s (%s@%s) [%s] %s",
-				    me.name, parv[0], sptr->user->username,
-				    GetHost(sptr), parv[1], announce);
-
-		} 
 		if (aconf->snomask)
 			set_snomask(sptr, aconf->snomask);
 		else
@@ -351,7 +361,7 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			IRCstats.operators++;
 
 		if (SHOWOPERMOTD == 1)
-			m_opermotd(cptr, sptr, parc, parv);
+			do_cmd(cptr, sptr, "OPERMOTD", parc, parv);
 		if (!BadPtr(OPER_AUTO_JOIN_CHANS)
 		    && strcmp(OPER_AUTO_JOIN_CHANS, "0"))
 		{
@@ -360,7 +370,8 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 				OPER_AUTO_JOIN_CHANS,
 				NULL
 			};
-			(void)m_join(cptr, sptr, 3, chans);
+			if (do_cmd(cptr, sptr, "JOIN", 3, chans) == FLUSH_BUFFER)
+				return FLUSH_BUFFER;
 		}
 		ircd_log(LOG_OPER, "OPER (%s) by (%s!%s@%s)", name, parv[0], sptr->user->username,
 			sptr->sockhost);
@@ -375,13 +386,9 @@ DLLFUNC int  m_oper(aClient *cptr, aClient *sptr, int parc, char *parv[]) {
 			    IsWebTV(sptr) ? "PRIVMSG" : "NOTICE", sptr->name);
 		ircd_log(LOG_OPER, "OPER FAILEDAUTH (%s) by (%s!%s@%s)", name, parv[0],
 			sptr->user->username, sptr->sockhost);
-		sendto_realops
-		    ("Intento de OPER por %s (%s@%s) usando UID %s [FAILEDAUTH]",
+		sendto_snomask_global
+		    (SNO_OPER, "Intento de OPER por %s (%s@%s) usando UID %s [FAILEDAUTH]",
 		    parv[0], sptr->user->username, sptr->sockhost, name);
-		sendto_serv_butone(&me,
-		    ":%s GLOBOPS :Intento de OPER %s (%s@%s) usando UID %s [---]",
-		    me.name, parv[0], sptr->user->username, sptr->sockhost,
-		    name);
 		sptr->since += 7;
 	}
 	/* Belay that order, number One. (-2) */

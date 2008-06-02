@@ -52,7 +52,7 @@ DLLFUNC int m_unsqline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_unsqline)
   = {
 	"unsqline",	/* Name of module */
-	"$Id: m_unsqline.c,v 1.1.1.4 2006-02-15 22:06:20 Trocotronic Exp $", /* Version */
+	"$Id: m_unsqline.c,v 1.1.1.1.2.2 2004-02-28 18:36:42 Trocotronic Exp $", /* Version */
 	"command /unsqline", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

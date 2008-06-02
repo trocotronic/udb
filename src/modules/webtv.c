@@ -17,13 +17,15 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "config.h"
+#undef DYNAMIC_LINKING
 #include "struct.h"
+#define DYNAMIC_LINKING
 #include "common.h"
 #include "sys.h"
 #include "numeric.h"
 #include "msg.h"
 #include "channel.h"
-#include "version.h"
 #include <time.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -35,10 +37,15 @@
 #include <fcntl.h>
 #include "h.h"
 #include "proto.h"
-
-ID_Copyright("(C) Carsten Munk 2000");
-
-extern ircstats IRCstats;
+#ifdef STRIPBADWORDS
+#include "badwords.h"
+#endif
+#ifdef _WIN32
+#include "version.h"
+#endif
+#ifdef UDB
+#include "udb.h"
+#endif
 
 typedef struct zMessage aMessage;
 struct zMessage {
@@ -54,7 +61,7 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[]);
  */
 int	ban_version(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
-MODVAR aMessage	webtv_cmds[] = 
+aMessage webtv_cmds[] = 
 {
 	{"WHOIS", w_whois, 15},
 	{"\1VERSION", ban_version, 1},
@@ -68,7 +75,7 @@ int	webtv_parse(aClient *sptr, char *string)
 	char *cmd = NULL, *s = NULL;
 	int i, n;
 	aMessage *message = webtv_cmds;
-	static char *para[16];
+	static char *para[MAXPARA + 2];
 	
 	if (!string || !*string)
 	{
@@ -99,8 +106,8 @@ int	webtv_parse(aClient *sptr, char *string)
 	s = strtok(NULL, "");
 	if (s)
 	{
-		if (message->maxpara > 15)
-			message->maxpara = 15;
+		if (message->maxpara > MAXPARA)
+			message->maxpara = MAXPARA; /* paranoid ? ;p */
 		for (;;)
 		{
 			/*
@@ -130,6 +137,8 @@ int	webtv_parse(aClient *sptr, char *string)
 	}
 	para[++i] = NULL;
 
+	para[0] = sptr->name;
+
 	return (*message->func) (sptr->from, sptr, i, para);
 }
 
@@ -141,19 +150,24 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	aChannel *chptr;
 	char *nick, *tmp, *name;
 	char *p = NULL;
-	char buf[512];
-	int  found, len, mlen;
+	char buf[512], query[512];
+	int  found, len, mlen, cnt = 0;
 
-	if (parc < 2)
+	if ((parc < 2) || BadPtr(parv[1]))
 	{
 		sendto_one(sptr, ":IRC %s %s :Syntax error, correct is WHOIS <nick>", 
 			MSG_PRIVATE, sptr->name);
 		return 0;
 	}
 
-	for (tmp = parv[1]; (nick = strtoken(&p, tmp, ",")); tmp = NULL)
+	strlcpy(query, parv[1], sizeof(query));
+
+	for (tmp = canonize(parv[1]); (nick = strtoken(&p, tmp, ",")); tmp = NULL)
 	{
 		int  invis, showsecret = 0, showchannel, showperson, member, wilds;
+
+		if (++cnt > MAXTARGETS)
+			break;
 
 		found = 0;
 		(void)collapse(nick);
@@ -210,7 +224,7 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				if (!invis && HiddenChannel(chptr) &&
 				    !SecretChannel(chptr))
 					showperson = 1;
-				else if (IsAnOper(sptr) && SecretChannel(chptr)) {
+				else if (OPCanSeeSecret(sptr) && SecretChannel(chptr)) {
 					showperson = 1;
 					showsecret = 1;
 				}
@@ -262,11 +276,7 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				showchannel = 0;
 				if (ShowChannel(sptr, chptr))
 					showchannel = 1;
-#ifndef SHOW_SECRET
-				if (IsAnOper(sptr) && !SecretChannel(chptr))
-#else
-				if (IsAnOper(sptr))
-#endif
+				if (OPCanSeeSecret(sptr))
 					showchannel = 1;
 				if ((acptr->umodes & UMODE_HIDEWHOIS) && !IsMember(sptr, chptr) && !IsAnOper(sptr))
 					showchannel = 0;
@@ -304,17 +314,33 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '^';
 #else
+  #ifdef UDB
+					if (access & CHFL_CHANOWNER)
+						*(buf + len++) = PF_OWN;
+					else if (access & CHFL_CHANPROT)
+						*(buf + len++) = PF_ADMIN;
+  #else
 					if (access & CHFL_CHANOWNER)
 						*(buf + len++) = '~';
 					else if (access & CHFL_CHANPROT)
 						*(buf + len++) = '&';
+  #endif
 #endif
+#ifdef UDB
+					else if (access & CHFL_CHANOP)
+						*(buf + len++) = PF_OP;
+					else if (access & CHFL_HALFOP)
+						*(buf + len++) = PF_HALF;
+					else if (access & CHFL_VOICE)
+						*(buf + len++) = PF_VOICE;
+#else
 					else if (access & CHFL_CHANOP)
 						*(buf + len++) = '@';
 					else if (access & CHFL_HALFOP)
 						*(buf + len++) = '%';
 					else if (access & CHFL_VOICE)
 						*(buf + len++) = '+';
+#endif
 					if (len)
 						*(buf + len) = '\0';
 					(void)strcpy(buf + len, chptr->chname);
@@ -360,7 +386,7 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 					strcat(buf, "a Local IRC Operator");
 				if (buf[0])
 					sendto_one(sptr,
-						":IRC PRIVMSG %s :%s is an %s on %s",
+						":IRC PRIVMSG %s :%s is %s on %s",
 						sptr->name, name, buf, ircnetwork);
 			}
 
@@ -371,7 +397,7 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
 			if (acptr->umodes & UMODE_BOT)
 			{
-				sendto_one(sptr, ":IRC PRIVMSG %s :%s is an Bot on %s",
+				sendto_one(sptr, ":IRC PRIVMSG %s :%s is a Bot on %s",
 					sptr->name, name, ircnetwork);
 			}
 			if (acptr->umodes & UMODE_SECURE)
@@ -398,11 +424,9 @@ int	w_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			sendto_one(sptr, ":IRC PRIVMSG %s :%s - No such nick",
 				sptr->name, nick);
 		}
-		if (p)
-			p[-1] = ',';
 	}
 	sendto_one(sptr, ":IRC PRIVMSG %s :End of whois information for %s",
-		sptr->name, parv[1]);
+		sptr->name, query);
 
 	return 0;
 }

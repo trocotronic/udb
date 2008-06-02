@@ -52,7 +52,7 @@ DLLFUNC int m_unkline(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_unkline)
   = {
 	"unkline",	/* Name of module */
-	"$Id: m_unkline.c,v 1.1.1.1 2003-11-28 22:55:52 Trocotronic Exp $", /* Version */
+	"$Id: m_unkline.c,v 1.1.1.1.2.1 2004-02-16 16:47:57 Trocotronic Exp $", /* Version */
 	"command /unkline", /* Short description of module */
 	"3.2-b8-1",
 	NULL 

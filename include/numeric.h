@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: numeric.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: numeric.h,v 1.1.1.1.2.13 2008-03-08 14:13:35 Trocotronic Exp $
  */
 
 /*
@@ -33,11 +33,11 @@
 #define	RPL_YOURHOST         002
 #define	RPL_CREATED          003
 #define	RPL_MYINFO           004
-#define RPL_PROTOCTL	     005
+#define RPL_ISUPPORT	     005
 
 #define RPL_REDIR	     10
 
-#define RPL_REMOTEPROTOCTL 105
+#define RPL_REMOTEISUPPORT 105
 
 /*
  * Errors are in the range from 400-599 currently and are grouped by what
@@ -129,6 +129,7 @@
 
 #define ERR_CHANOWNPRIVNEEDED 499
 
+#define ERR_TOOMANYJOINS     500
 #define ERR_UMODEUNKNOWNFLAG 501
 #define ERR_USERSDONTMATCH   502
 
@@ -141,6 +142,7 @@
 
 #define ERR_TOOMANYDCC       514
 
+#define ERR_DISABLED         517
 #define ERR_NOINVITE		 518
 #define ERR_ADMONLY			 519
 #define ERR_OPERONLY		 520
@@ -185,8 +187,12 @@
 #define RPL_TOPIC            332
 #define RPL_TOPICWHOTIME     333
 
+#define RPL_INVITELIST       336
+#define RPL_ENDOFINVITELIST  337
+
 #define RPL_LISTSYNTAX       334
 #define RPL_WHOISBOT	     335
+#define RPL_USERIP	     340
 #define RPL_INVITING         341
 #ifdef UDB
 #define RPL_MSGONLYREG       342
@@ -201,8 +207,8 @@
 #define RPL_ENDOFWHO         315
 #define RPL_NAMREPLY         353
 #define RPL_ENDOFNAMES       366
-#define RPL_INVITELIST	     346
-#define RPL_ENDOFINVITELIST  347
+#define RPL_INVEXLIST	     346
+#define RPL_ENDOFINVEXLIST   347
 
 #define RPL_EXLIST	     348
 #define RPL_ENDOFEXLIST      349
@@ -235,7 +241,7 @@
 #define	RPL_ALIST			 388
 #define	RPL_ENDOFALIST		 389
 #ifdef UDB
-#define RPL_WHOISSUPEND      390 
+#define RPL_WHOISSUSPEND      390 
 #endif
 
 #define RPL_TIME             391
@@ -279,6 +285,7 @@
 #define RPL_STATSVLINE	     227
 #define RPL_STATSBANVER	     228
 #define RPL_STATSSPAMF       229
+#define RPL_STATSEXCEPTTKL   230
 #define RPL_SERVICEINFO      231
 #define RPL_RULES            232
 #define	RPL_SERVICE          233
@@ -320,6 +327,7 @@
 #define RPL_HELPFWD	     294
 #define RPL_HELPIGN	     295
 
+
 /*
  * New /MAP format.
  */
@@ -339,6 +347,9 @@
  * These are also in the range 600-799.
  */
 
+#define RPL_REAWAY           597
+#define RPL_GONEAWAY         598
+#define RPL_NOTAWAY          599
 #define RPL_LOGON            600
 #define RPL_LOGOFF           601
 #define RPL_WATCHOFF         602
@@ -347,6 +358,8 @@
 #define RPL_NOWOFF           605
 #define RPL_WATCHLIST        606
 #define RPL_ENDOFWATCHLIST   607
+#define RPL_CLEARWATCH       608
+#define RPL_NOWISAWAY        609
 
 #define RPL_DCCSTATUS        617
 #define RPL_DCCLIST          618
@@ -356,6 +369,10 @@
 #define RPL_DUMPING			 640
 #define RPL_DUMPRPL			 641
 #define RPL_EODUMP           642
+
+#define RPL_SPAMCMDFWD       659
+
+#define RPL_WHOISSECURE      671
 
 #define ERR_CANNOTDOCOMMAND 972
 #define ERR_CANNOTCHANGECHANMODE 974

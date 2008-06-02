@@ -2,7 +2,7 @@
  *   Unreal Internet Relay Chat Daemon, include/config.h
  *   Copyright (C) 1990 Jarkko Oikarinen
  *
- *   $Id: config.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: config.h,v 1.1.1.1.2.15 2008-03-08 14:13:36 Trocotronic Exp $
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -77,11 +77,6 @@
 #define SHOW_SECRET
 
 /*
- * This allows you to see modes in /list
-*/
-#define LIST_SHOW_MODES
-
-/*
  * Admin's chat...
  */
 #define ADMINCHAT 1
@@ -93,23 +88,11 @@
 #undef SECURECHANMSGSONLYGOTOSECURE
 
 /*
- * be compatible with older cloak keys? If you link to servers beta4 and 
- * earlier without this the cloak keys will produce diff results
- * Not recommended, however, as beta4 and earlier 3.2 has an insecure
- * cloak algo -griever
- */
-#undef COMPAT_BETA4_KEYS
-
-/*
-  If you want SHUN_NOTICES, define this
-*/
-#define SHUN_NOTICES
-
-/*
    If you want to support chinese and/or japanese nicks
 */
-#undef CHINESE_NICK
-#undef JAPANESE_NICK
+#undef NICK_GB2312
+#undef NICK_GBK
+#undef NICK_GBK_JAP
 
 /*
   Remote rehash
@@ -127,37 +110,12 @@
 #undef STRIPBADWORDS_CHAN_ALWAYS
 
 /*
- * NO_OPEROVERRIDE
- *   This will disable OperMode, OperTopic and Banwalks
-*/
-#undef NO_OPEROVERRIDE
-
-/*
- * OPEROVERRIDE_VERIFY
- *   This will prompt opers before permitting them to join +p/+s
- *   channels, decreasing the chances of someone "accidentally"
- *   entering a random channel.
- */
-#undef OPEROVERRIDE_VERIFY
-
-/*
  * THROTTLING
  *   This will only allow 1 connection per ip in set::throttle::period time
+ * NOTE: There's no reason to disable this (anymore) since it can be fully
+ *       configured in the unrealircd.conf. Keep the define...
  */
 #define THROTTLING
-
-/*
- * NAZIISH_CHBAN_HANDLING (formerly ANNOYING_BAN_THING)
- *   Reject bans that are matched by existing bans, causes chanserv
- *   To flood-kick an akicked user if their akick is matched by another
- *   Ban, but if you don't mind, this can free up ban list space I guess
- */
-#undef NAZIISH_CHBAN_HANDLING
-
-/*
- * Disable /sethost, /setident, /chgname, /chghost, /chgident
-*/
-#undef DISABLE_USERMOD
 
 /*
  * No spoof code
@@ -170,7 +128,7 @@
 /*
  * Enables locops to override the RFC1459 flood control too
 */
-#define NO_FAKE_LAG_FOR_LOCOPS
+#undef NO_FAKE_LAG_FOR_LOCOPS
 
 /*
  * HOSTILENAME - Define this if you want the hostile username patch included,
@@ -179,16 +137,16 @@
 #define HOSTILENAME		/* [DO NOT CHANGE!] */
 
 /*
- * This makes topics include nick!user@host instead of nick in topic whoset, 
- * ALL servers must be Unreal3.2-beta12 or higher, and services may have some
- * problems with this
-*/
-#undef TOPIC_NICK_IS_NUHOST
-
-/*
  * Use JOIN instead of SJOIN on every remotely sent JOIN
 */
 #undef JOIN_INSTEAD_OF_SJOIN_ON_REMOTEJOIN
+
+/*
+ * So called 'smart' banning: if this is enabled and a ban on like *!*@*h.com is present,
+ * then you cannot add a ban like *!*@*blah.com. In other words.. the ircd tries to be "smart".
+ * In general this is considered quite annoying. This was on by default until Unreal 3.2.8.
+ */
+#define SOCALLEDSMARTBANNING
 
 /*
 ** Freelinks garbage collector -Stskeeps
@@ -265,14 +223,31 @@
 
 /* CHROOTDIR
  *
- * Define for value added security if you are a rooter.
+ * This enables running the IRCd chrooted (requires initial root privileges,
+ * but will be dropped to IRC_USER/IRC_GROUP privileges if those are defined).
  *
- * All files you access must be in the directory you define as DPATH.
+ * The directory to chroot to is simply DPATH (which is set via ./Config).
  * (This may effect the PATH locations above, though you can symlink it)
  *
- * You may want to define IRC_UID and IRC_GID
+ * Usually you only simply need to enable this, and set IRC_USER and 
+ * IRC_GROUP, you don't need to create a special chroot environment.. 
+ * UnrealIRCd will do that by itself (Unreal will create /dev/random, 
+ * etc. etc.).
+ *
+ * Change to '#define CHROOTDIR' to enable...
  */
 /* #define CHROOTDIR    */
+
+/*
+ * IRC_USER
+ *
+ * If you start the server as root but wish to have it run as another user,
+ * define IRC_USER to that user name.  This should only be defined if you 
+ * are running as root and even then perhaps not.
+ */
+/* #define IRC_USER  "<user name>" */
+/* #define IRC_GROUP "<group name>" */
+
 
 /* SHOW_INVISIBLE_LUSERS
  *
@@ -289,9 +264,25 @@
  *       that the 'new' access lets them. Note also that defining this is
  *       a major security hole if your ircd goes down and some other user
  *       starts up the server with a new conf file that has some extra
- *       O-lines. So don't use this unless you're debugging.
+ *       O-lines.
+ *       Naturally, for non-suid/sgid ircds, this setting does not matter,
+ *       hence command line parameters are always permitted then.
  */
-#undef	CMDLINE_CONFIG		/* allow conf-file to be specified on command line */
+#undef	CMDLINE_CONFIG
+
+/** FAKELAG_CONFIGURABLE makes it possible to make certain classes exempted
+ * from 'fake lag' (that is, the artificial delay that is added by the ircd
+ * to prevent flooding, which causes the messages/commands of the user to
+ * slow down). Naturally, incorrect use of this feature can cause SEVERE
+ * issues, in fact it can easily bring your whole IRCd down if one of the
+ * users with class::options::nofakelag does a good flood at full speed.
+ * Hence, this is disabled by default, and you need to explicitly enable it
+ * here IF YOU KNOW WHAT YOU ARE DOING. People complaining their ircd
+ * ""crashed"" because of this setting will be shot. </DISCLAIMER>
+ * Common usage for this are: a trusted bot ran by an IRCOp, that you only
+ * want to give "flood access" and nothing else, and other such things.
+ */
+#undef FAKELAG_CONFIGURABLE
 
 /*
  * Size of the LISTEN request.  Some machines handle this large
@@ -317,19 +308,6 @@
 #endif
 
 /*
- * IRC_UID
- *
- * If you start the server as root but wish to have it run as another user,
- * define IRC_UID to that UID.  This should only be defined if you are running
- * as root and even then perhaps not.
- * use #define IRC_UID <uid>
- * and #define IRC_GID <gid>
- */
- 
-#undef	IRC_UID
-#undef	IRC_GID 
-
-/*
  * CLIENT_FLOOD
  *
  * this controls the number of bytes the server will allow a client to
@@ -346,17 +324,13 @@
 
 #define NO_FLOOD_AWAY
 
-/*
- * Define your network service names here.
+/* You can define the nickname of NickServ here (usually "NickServ").
+ * This is ONLY used for the ""infamous IDENTIFY feature"", which is:
+ * whenever a user connects with a server password but there isn't
+ * a server password set, the password is sent to NickServ in an
+ * 'IDENTIFY <pass>' message.
  */
-#define ChanServ "ChanServ"
-#define MemoServ "MemoServ"
 #define NickServ "NickServ"
-#define OperServ "OperServ"
-#define HelpServ "HelpServ"
-#define StatServ "StatServ"
-#define InfoServ "InfoServ"
-#define BotServ "BotServ"
 
 /*
  * How many open targets can one nick have for messaging nicks and
@@ -377,25 +351,13 @@
 #define PORTNUM 6667		/* 6667 is default */
 
 /*
- * Maximum number of network connections your server will allow.  This should
- * never exceed max. number of open file descrpitors and wont increase this.
- * Should remain LOW as possible. Most sites will usually have under 30 or so
- * connections. A busy hub or server may need this to be as high as 50 or 60.
- * Making it over 100 decreases any performance boost gained from it being low.
- * if you have a lot of server connections, it may be worth splitting the load
- * over 2 or more servers.
- * 1 server = 1 connection, 1 user = 1 connection.
- * This should be at *least* 3: 1 listen port, 1 dns port + 1 client
- *
- * Note: this figure will be too high for most systems. If you get an
- * fd-related error on compile, change this to 256.
- *
- * Windows users: This should be a fairly high number.  Some operations
- * will slow down because of this, but it is _required_ because of the way
- * windows NT(and possibly 95) allocate fd handles. A good number is 16384.
+ * Maximum number of network connections your server will allow.
+ * This is usually configured via ./Config on *NIX,
+ * the setting mentioned below is the default for Windows.
+ * 2004-10-13: 1024 -> 4096
  */
 #ifndef MAXCONNECTIONS
-#define MAXCONNECTIONS	1024
+#define MAXCONNECTIONS	4096
 #endif
 
 /*
@@ -405,7 +367,7 @@
  * 8MB or less  core memory : 500	(at least 1/4 of max users)
  * 8MB-16MB     core memory : 500-750	(1/4 -> 1/2 of max users)
  * 16MB-32MB    core memory : 750-1000	(1/2 -> 3/4 of max users)
- * 32MB or more core memory : 1000+	(> 3/4 if max users)
+ * 32MB or more core memory : 1000+	(> 3/4 of max users)
  * where max users is the expected maximum number of users.
  * (100 nicks/users ~ 25k)
  * NOTE: this is directly related to the amount of memory ircd will use whilst
@@ -420,7 +382,7 @@
 
 /*
  * Time interval to wait and if no messages have been received, then check for
- * PINGFREQUENCY and CONNECTFREQUENCY
+ * pings, outgoing connects, events, and a couple of other things.
  * Imo this is quite useless nowdays, it only saves _some_ cpu on tiny networks
  * with like 10 users all of them being inactive. On a normal network with >30
  * users this value is completely irrelevant.
@@ -434,14 +396,9 @@
  * PINGFREQUENCY seconds, then the server will attempt to check for
  * an active link with a PING message. If no reply is received within
  * (PINGFREQUENCY * 2) seconds, then the connection will be closed.
+ * NOTE: This is simply the class::pingfreq for the default class, nothing fancy ;)
  */
 #define PINGFREQUENCY    120	/* Recommended value: 120 */
-
-/*
- * If the connection to to uphost is down, then attempt to reconnect every
- * CONNECTFREQUENCY  seconds.
- */
-#define CONNECTFREQUENCY 600	/* Recommended value: 600 */
 
 /*
  * Often net breaks for a short time and it's useful to try to
@@ -476,19 +433,19 @@
 
 /*
  * Use much faster badwords replace routine (>100 times faster).
+ * Disabling this is not supported.
  */
 #define FAST_BADWORD_REPLACE
 
 /*
- * Only important for people using IPv6 (default should be ok for now) -Onliner
- * Because ip6.arpa is still not delegated for the 6bone (3ffe::/16)
- * this options allows you to still resolve it using ip6.int.
+ * Forces Unreal to use compressed IPv6 addresses rather than expanding them
  */
-#define SIXBONE_HACK
+#undef IPV6_COMPRESSED
 
 /*
  * Extended channel modes. This extends the channel modes with yet another
  * 32 possible modes which can also be used in modules.
+ * This is now pretty much required.
  */
 #define EXTCMODE
 
@@ -498,12 +455,23 @@
  */
 #define NEWCHFLOODPROT
 
+/* JoinThrottle (chanmode +j): +j x:y throttles users to X joins per Y seconds (per-user).
+ * In peak situations (eg: just after a server restart with thousand clients joining
+ * hundreds of channels) it can use like ~200k, but in normal circumstances you should
+ * count on just ~10-50k.
+ */
+#define JOINTHROTTLE
+
 /* ------------------------- END CONFIGURATION SECTION -------------------- */
 #define MOTD MPATH
 #define RULES RPATH
 #define	MYNAME SPATH
 #define	CONFIGFILE CPATH
 #define	IRCD_PIDFILE PPATH
+
+#if defined(CHROOTDIR) && !defined(IRC_USER)
+#error "ERROR: It makes no sense to define CHROOTDIR but not IRC_USER and IRC_GROUP! Please define IRC_USER and IRC_GROUP properly as the user/group to change to."
+#endif
 
 #ifdef	__osf__
 #define	OSF

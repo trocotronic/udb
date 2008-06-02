@@ -76,6 +76,9 @@ MODVAR int oper_access[] = {
 	OFLAG_TKL, 't',
 	OFLAG_GZL, 'Z',
 	OFLAG_OVERRIDE, 'v',
+	OFLAG_UMODEQ, 'q',
+	OFLAG_DCCDENY, 'd',
+	OFLAG_ADDLINE, 'X',
 	0, 0
 };
 
@@ -217,42 +220,64 @@ void strrangetok(char *in, char *out, char tok, short first, short last) {
 	out[j] = 0;
 }			
 
-int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
-	ConfigItem_alias *alias;
-	aClient *acptr;
-	if (parc < 2 || *parv[1] == '\0') {
-		sendto_one(sptr, err_str(ERR_NOTEXTTOSEND), me.name, parv[0]);
-		return -1;
-	}
-	if (!(alias = Find_alias(cmd))) {
+static int recursive_alias = 0;
+int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd)
+{
+ConfigItem_alias *alias;
+aClient *acptr;
+int ret;
+
+	if (!(alias = Find_alias(cmd))) 
+	{
 		sendto_one(sptr, ":%s %d %s %s :Unknown command",
 			me.name, ERR_UNKNOWNCOMMAND, parv[0], cmd);
 		return 0;
 	}
+	
+	/* If it isn't an ALIAS_COMMAND, we require a paramter ... We check ALIAS_COMMAND LATER */
+	if (alias->type != ALIAS_COMMAND && (parc < 2 || *parv[1] == '\0'))
+	{
+		sendto_one(sptr, err_str(ERR_NOTEXTTOSEND), me.name, parv[0]);
+		return -1;
+	}
 
-	if (alias->type == ALIAS_SERVICES) {
+	if (alias->type == ALIAS_SERVICES) 
+	{
 		if (SERVICES_NAME && (acptr = find_person(alias->nick, NULL)))
+		{
+			if (alias->spamfilter && (ret = dospamfilter(sptr, parv[1], SPAMF_USERMSG, alias->nick, 0, NULL)) < 0)
+				return ret;
 			sendto_one(acptr, ":%s %s %s@%s :%s", parv[0],
 				IsToken(acptr->from) ? TOK_PRIVATE : MSG_PRIVATE, 
 				alias->nick, SERVICES_NAME, parv[1]);
+		}
 		else
 			sendto_one(sptr, err_str(ERR_SERVICESDOWN), me.name,
 				parv[0], alias->nick);
 	}
-	else if (alias->type == ALIAS_STATS) {
+	else if (alias->type == ALIAS_STATS) 
+	{
 		if (STATS_SERVER && (acptr = find_person(alias->nick, NULL)))
+		{
+			if (alias->spamfilter && (ret = dospamfilter(sptr, parv[1], SPAMF_USERMSG, alias->nick, 0, NULL)) < 0)
+				return ret;
 			sendto_one(acptr, ":%s %s %s@%s :%s", parv[0],
 				IsToken(acptr->from) ? TOK_PRIVATE : MSG_PRIVATE, 
 				alias->nick, STATS_SERVER, parv[1]);
+		}
 		else
 			sendto_one(sptr, err_str(ERR_SERVICESDOWN), me.name,
 				parv[0], alias->nick);
 	}
-	else if (alias->type == ALIAS_NORMAL) {
-		if ((acptr = find_person(alias->nick, NULL))) {
+	else if (alias->type == ALIAS_NORMAL) 
+	{
+		if ((acptr = find_person(alias->nick, NULL))) 
+		{
+			if (alias->spamfilter && (ret = dospamfilter(sptr, parv[1], SPAMF_USERMSG, alias->nick, 0, NULL)) < 0)
+				return ret;
 			if (MyClient(acptr))
 				sendto_one(acptr, ":%s!%s@%s PRIVMSG %s :%s", parv[0], 
-					sptr->user->username, IsHidden(sptr) ? sptr->user->virthost : sptr->user->realhost,
+					sptr->user->username, GetHost(sptr),
 					alias->nick, parv[1]);
 			else
 				sendto_one(acptr, ":%s %s %s :%s", parv[0],
@@ -263,36 +288,66 @@ int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
 			sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name,
 				parv[0], alias->nick);
 	}
-	else if (alias->type == ALIAS_COMMAND) {
+	else if (alias->type == ALIAS_CHANNEL)
+	{
+		aChannel *chptr;
+		if ((chptr = find_channel(alias->nick, NULL)))
+		{
+			if (!can_send(sptr, chptr, parv[1], 0))
+			{
+				if (alias->spamfilter && (ret = dospamfilter(sptr, parv[1], SPAMF_CHANMSG, chptr->chname, 0, NULL)) < 0)
+					return ret;
+				sendto_channelprefix_butone_tok(sptr,
+				    sptr, chptr,
+				    PREFIX_ALL,
+				    MSG_PRIVATE,
+				    TOK_PRIVATE,
+				    chptr->chname, parv[1], 0);
+				return 0;
+			}
+		}
+		sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0],
+				cmd, "You may not use this command at this time");
+	}
+	else if (alias->type == ALIAS_COMMAND) 
+	{
 		ConfigItem_alias_format *format;
-		char *ptr = parv[1];
-		for (format = alias->format; format; format = (ConfigItem_alias_format *)format->next) {
-			if (regexec(&format->expr, ptr, 0, NULL, 0) == 0) {
+		char *ptr = "";
+		if (!(parc < 2 || *parv[1] == '\0'))
+			ptr = parv[1]; 
+		for (format = alias->format; format; format = (ConfigItem_alias_format *)format->next) 
+		{
+			if (regexec(&format->expr, ptr, 0, NULL, 0) == 0) 
+			{
 				/* Parse the parameters */
 				int i = 0, j = 0, k = 1;
-				char output[501];
+				char output[1024], current[1024];
 				char nums[4];
-				char *current = MyMalloc(strlen(parv[1])+1);
-				bzero(current, strlen(parv[1])+1);
+
+				bzero(current, sizeof current);
 				bzero(output, sizeof output);
-				while(format->parameters[i] && j < 500) {
+
+				while(format->parameters[i] && j < 500) 
+				{
 					k = 0;
-					if (format->parameters[i] == '%') {
+					if (format->parameters[i] == '%') 
+					{
 						i++;
 						if (format->parameters[i] == '%') 
 							output[j++] = '%';
-						else if (isdigit(format->parameters[i])) {
+						else if (isdigit(format->parameters[i])) 
+						{
 							for(; isdigit(format->parameters[i]) && k < 2; i++, k++) {
 								nums[k] = format->parameters[i];
 							}
 							nums[k] = 0;
 							i--;
 							if (format->parameters[i+1] == '-') {
-								strrangetok(parv[1], current, ' ', (short)atoi(nums),0);
+								strrangetok(ptr, current, ' ', (short)atoi(nums),0);
 								i++;
 							}
 							else 
-								strrangetok(parv[1], current, ' ', (short)atoi(nums), (short)atoi(nums));
+								strrangetok(ptr, current, ' ', (short)atoi(nums), (short)atoi(nums));
 							if (!current)
 								continue;
 							if (j + strlen(current)+1 >= 500)
@@ -301,7 +356,14 @@ int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
 							j += strlen(current);
 							
 						}
-						else {
+						else if (format->parameters[i] == 'n' ||
+							 format->parameters[i] == 'N')
+						{
+							strlcat(output, parv[0], sizeof output);
+							j += strlen(parv[0]);
+						}
+						else 
+						{
 							output[j++] = '%';
 							output[j++] = format->parameters[i];
 						}
@@ -311,26 +373,45 @@ int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
 					output[j++] = format->parameters[i++];
 				}
 				output[j] = 0;
-				if (format->type == ALIAS_SERVICES) {
+				/* Now check to make sure we have something to send */
+				if (strlen(output) == 0)
+				{
+					sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, sptr->name, cmd);
+					return -1;
+				}
+				
+				if (format->type == ALIAS_SERVICES) 
+				{
 					if (SERVICES_NAME && (acptr = find_person(format->nick, NULL)))
+					{
+						if (alias->spamfilter && (ret = dospamfilter(sptr, output, SPAMF_USERMSG, format->nick, 0, NULL)) < 0)
+							return ret;
 						sendto_one(acptr, ":%s %s %s@%s :%s", parv[0],
 						IsToken(acptr->from) ? TOK_PRIVATE : MSG_PRIVATE, 
 						format->nick, SERVICES_NAME, output);
-					else
+					} else
 						sendto_one(sptr, err_str(ERR_SERVICESDOWN), me.name,
 							parv[0], format->nick);
 				}
-				else if (format->type == ALIAS_STATS) {
+				else if (format->type == ALIAS_STATS) 
+				{
 					if (STATS_SERVER && (acptr = find_person(format->nick, NULL)))
+					{
+						if (alias->spamfilter && (ret = dospamfilter(sptr, output, SPAMF_USERMSG, format->nick, 0, NULL)) < 0)
+							return ret;
 						sendto_one(acptr, ":%s %s %s@%s :%s", parv[0],
 							IsToken(acptr->from) ? TOK_PRIVATE : MSG_PRIVATE, 
 							format->nick, STATS_SERVER, output);
-					else
-					sendto_one(sptr, err_str(ERR_SERVICESDOWN), me.name,
-						parv[0], format->nick);
+					} else
+						sendto_one(sptr, err_str(ERR_SERVICESDOWN), me.name,
+							parv[0], format->nick);
 				}
-				else if (format->type == ALIAS_NORMAL) {
-					if ((acptr = find_person(format->nick, NULL))) {
+				else if (format->type == ALIAS_NORMAL) 
+				{
+					if ((acptr = find_person(format->nick, NULL))) 
+					{
+						if (alias->spamfilter && (ret = dospamfilter(sptr, output, SPAMF_USERMSG, format->nick, 0, NULL)) < 0)
+							return ret;
 						if (MyClient(acptr))
 							sendto_one(acptr, ":%s!%s@%s PRIVMSG %s :%s", parv[0], 
 							sptr->user->username, IsHidden(sptr) ? sptr->user->virthost : sptr->user->realhost,
@@ -344,12 +425,50 @@ int m_alias(aClient *cptr, aClient *sptr, int parc, char *parv[], char *cmd) {
 						sendto_one(sptr, err_str(ERR_NOSUCHNICK), me.name,
 							parv[0], format->nick);
 				}
-				free(current);
+				else if (format->type == ALIAS_CHANNEL)
+				{
+					aChannel *chptr;
+					if ((chptr = find_channel(format->nick, NULL)))
+					{
+						if (!can_send(sptr, chptr, output, 0))
+						{
+							if (alias->spamfilter && (ret = dospamfilter(sptr, output, SPAMF_CHANMSG, chptr->chname, 0, NULL)) < 0)
+								return ret;
+							sendto_channelprefix_butone_tok(sptr,
+							    sptr, chptr,
+							    PREFIX_ALL, MSG_PRIVATE,
+							    TOK_PRIVATE, chptr->chname,
+							    output, 0);
+							return 0;
+						}
+					}
+					sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name,
+						 parv[0], cmd, 
+						"You may not use this command at this time");
+				}
+				else if (format->type == ALIAS_REAL)
+				{
+					int ret;
+					char mybuf[500];
+					
+					snprintf(mybuf, sizeof(mybuf), "%s %s", format->nick, output);
+
+					if (recursive_alias)
+					{
+						sendto_one(sptr, err_str(ERR_CANNOTDOCOMMAND), me.name, parv[0], cmd, "You may not use this command at this time -- recursion");
+						return -1;
+					}
+
+					recursive_alias = 1;
+					ret = parse(sptr, mybuf, mybuf+strlen(mybuf));
+					recursive_alias = 0;
+
+					return ret;
+				}
 				break;
 			}
 		}
 		return 0;
 	}
-		
 	return 0;
 }

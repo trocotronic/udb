@@ -23,6 +23,7 @@
 #include "sys.h"
 #include "numeric.h"
 #include "channel.h"
+#include "macros.h"
 #include <fcntl.h>
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -52,12 +53,11 @@
 #endif
 #include "badwords.h"
 #ifdef UDB
-#include "s_bdd.h"
+#include "udb.h"
 #endif
 
 #define ircstrdup(x,y) do { if (x) MyFree(x); if (!y) x = NULL; else x = strdup(y); } while(0)
 #define ircfree(x) do { if (x) MyFree(x); x = NULL; } while(0)
-#define ircabs(x) (x < 0) ? -x : x
 
 /* 
  * Some typedefs..
@@ -111,6 +111,7 @@ static int	_conf_alias		(ConfigFile *conf, ConfigEntry *ce);
 static int	_conf_help		(ConfigFile *conf, ConfigEntry *ce);
 static int	_conf_offchans		(ConfigFile *conf, ConfigEntry *ce);
 static int	_conf_spamfilter	(ConfigFile *conf, ConfigEntry *ce);
+static int	_conf_cgiirc	(ConfigFile *conf, ConfigEntry *ce);
 
 /* 
  * Validation commands 
@@ -135,10 +136,6 @@ static int	_test_set		(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_badword		(ConfigFile *conf, ConfigEntry *ce);
 #endif
 static int	_test_deny		(ConfigFile *conf, ConfigEntry *ce);
-/* static int	_test_deny_dcc		(ConfigFile *conf, ConfigEntry *ce); ** TODO? */
-/* static int	_test_deny_link		(ConfigFile *conf, ConfigEntry *ce); ** TODO? */
-/* static int	_test_deny_channel	(ConfigFile *conf, ConfigEntry *ce); ** TODO? */
-/* static int	_test_deny_version	(ConfigFile *conf, ConfigEntry *ce); ** TODO? */
 static int	_test_allow_channel	(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_allow_dcc		(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_loadmodule	(ConfigFile *conf, ConfigEntry *ce);
@@ -147,6 +144,7 @@ static int	_test_alias		(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_help		(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_offchans		(ConfigFile *conf, ConfigEntry *ce);
 static int	_test_spamfilter	(ConfigFile *conf, ConfigEntry *ce);
+static int	_test_cgiirc	(ConfigFile *conf, ConfigEntry *ce);
  
 /* This MUST be alphabetized */
 static ConfigCommand _ConfigCommands[] = {
@@ -157,6 +155,7 @@ static ConfigCommand _ConfigCommands[] = {
 	{ "badword",		_conf_badword,		_test_badword	},
 #endif
 	{ "ban", 		_conf_ban,		_test_ban	},
+	{ "cgiirc", 	_conf_cgiirc,	_test_cgiirc	},
 	{ "class", 		_conf_class,		_test_class	},
 	{ "deny",		_conf_deny,		_test_deny	},
 	{ "drpass",		_conf_drpass,		_test_drpass	},
@@ -281,6 +280,15 @@ static OperFlag _LogFlags[] = {
 	{ LOG_TKL, "tkl" },
 };
 
+/* This MUST be alphabetized */
+static OperFlag ExceptTklFlags[] = {
+	{ TKL_GLOBAL|TKL_KILL,	"gline" },
+	{ TKL_GLOBAL|TKL_NICK,	"gqline" },
+	{ TKL_GLOBAL|TKL_ZAP,	"gzline" },
+	{ TKL_NICK,		"qline" },
+	{ TKL_GLOBAL|TKL_SHUN,	"shun" }
+};
+
 #ifdef USE_SSL
 /* This MUST be alphabetized */
 static OperFlag _SSLFlags[] = {
@@ -294,27 +302,8 @@ struct {
 	unsigned conf_me : 1;
 	unsigned conf_admin : 1;
 	unsigned conf_listen : 1;
-	struct 
-	{
-		unsigned kline_address : 1;
-		unsigned maxchannelsperuser : 1;
-		unsigned name_server : 1;
-		unsigned host_timeout : 1;
-		unsigned host_retries : 1;
-		unsigned servicesserv : 1;
-		unsigned defaultserv : 1;
-		unsigned irc_network : 1;
-		unsigned operhost : 1;
-		unsigned adminhost : 1;
-		unsigned locophost : 1;
-		unsigned sadminhost : 1;
-		unsigned netadminhost : 1;
-		unsigned coadminhost : 1;
-		unsigned hlpchan : 1;
-		unsigned hidhost : 1;
-	} settings;
 } requiredstuff;
-
+struct SetCheck settings;
 /*
  * Utilities
 */
@@ -347,11 +336,14 @@ extern void		win_error();
 extern void add_entropy_configfile(struct stat st, char *buf);
 extern void unload_all_unused_snomasks();
 extern void unload_all_unused_umodes();
+extern void unload_all_unused_extcmodes(void);
 
-/* Stuff we only need here for spamfilter, so not in h.h... */
-extern aTKline *tklines[TKLISTLEN];
-extern inline int tkl_hash(char c);
-extern aTKline *tkl_del_line(aTKline *tkl);
+extern int charsys_test_language(char *name);
+extern void charsys_add_language(char *name);
+extern void charsys_reset_pretest(void);
+int charsys_postconftest(void);
+void charsys_finish(void);
+void delete_cgiircblock(ConfigItem_cgiirc *e);
 
 /*
  * Config parser (IRCd)
@@ -377,6 +369,7 @@ ConfigItem_allow	*conf_allow = NULL;
 ConfigItem_except	*conf_except = NULL;
 ConfigItem_vhost	*conf_vhost = NULL;
 ConfigItem_link		*conf_link = NULL;
+ConfigItem_cgiirc	*conf_cgiirc = NULL;
 ConfigItem_ban		*conf_ban = NULL;
 ConfigItem_deny_dcc     *conf_deny_dcc = NULL;
 ConfigItem_deny_channel *conf_deny_channel = NULL;
@@ -619,18 +612,32 @@ long config_checkval(char *orig, unsigned short flags) {
 	return ret;
 }
 
+int iplist_onlist(IPList *iplist, char *ip)
+{
+IPList *e;
+
+	for (e = iplist; e; e = e->next)
+		if (!match(e->mask, ip))
+			return 1;
+	return 0;
+}
+
 void set_channelmodes(char *modes, struct ChMode *store, int warn)
 {
 	aCtab *tab;
 	char *params = strchr(modes, ' ');
 	char *parambuf = NULL;
 	char *param = NULL;
+	char *save = NULL;
+	
+	warn = 0; // warn is broken
+	
 	if (params)
 	{
 		params++;
 		parambuf = MyMalloc(strlen(params)+1);
 		strcpy(parambuf, params);
-		param = strtok(parambuf, " ");
+		param = strtoken(&save, parambuf, " ");
 	}		
 
 	for (; *modes && *modes != ' '; modes++)
@@ -653,14 +660,13 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 #ifdef NEWCHFLOODPROT
 				char *myparam = param;
 
-				/* TODO */
 				ChanFloodProt newf;
 				
 				memset(&newf, 0, sizeof(newf));
 				if (!myparam)
 					break;
 				/* Go to next parameter */
-				param = strtok(NULL, " ");
+				param = strtoken(&save, NULL, " ");
 
 				if (myparam[0] != '[')
 				{
@@ -804,7 +810,7 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 				if (!myparam)
 					break;
 				/* Go to next parameter */
-				param = strtok(NULL, " ");
+				param = strtoken(&save, NULL, " ");
 
 				if (*myparam == '*')
 					kmode = 1;
@@ -843,6 +849,11 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 				{
 					if (tab->flag == *modes)
 					{
+						if (tab->parameters)
+						{
+							/* INCOMPATIBLE */
+							break;
+						}
 						store->mode |= tab->mode;
 						break;
 					}
@@ -862,9 +873,12 @@ void set_channelmodes(char *modes, struct ChMode *store, int warn)
 							{
 								if (!param)
 									break;
-								store->extparams[i] = strdup(Channelmode_Table[i].conv_param(param));
+								param = Channelmode_Table[i].conv_param(param);
+								if (!param)
+									break; /* invalid parameter fmt, do not set mode. */
+								store->extparams[i] = strdup(param);
 								/* Get next parameter */
-								param = strtok(NULL, " ");
+								param = strtoken(&save, NULL, " ");
 							}
 							store->extmodes |= Channelmode_Table[i].mode;
 							break;
@@ -929,6 +943,15 @@ void chmode_str(struct ChMode modes, char *mbuf, char *pbuf)
 	*mbuf++=0;
 }
 
+int channellevel_to_int(char *s)
+{
+	if (!strcmp(s, "none"))
+		return CHFL_DEOPPED;
+	if (!strcmp(s, "op") || !strcmp(s, "chanop"))
+		return CHFL_CHANOP;
+	return 0; /* unknown or unsupported */
+}
+
 ConfigFile *config_load(char *filename)
 {
 	struct stat sb;
@@ -955,8 +978,9 @@ ConfigFile *config_load(char *filename)
 	}
 	if (!sb.st_size)
 	{
-		close(fd);
-		return NULL;
+		/* Workaround for empty files */
+		cfptr = config_parse(filename, " ");
+		return cfptr;
 	}
 	buf = MyMalloc(sb.st_size+1);
 	if (buf == NULL)
@@ -1140,11 +1164,15 @@ static ConfigFile *config_parse(char *filename, char *confdata)
 				start = ++ptr;
 				for(;*ptr;ptr++)
 				{
-					if ((*ptr == '\\') && (*(ptr+1) == '\"'))
+					if ((*ptr == '\\'))
 					{
-						char *tptr = ptr;
-						while((*tptr = *(tptr+1)))
-							tptr++;
+					
+						if (*(ptr+1) == '\\' || *(ptr+1) == '\"')
+						{
+							char *tptr = ptr;
+							while((*tptr = *(tptr+1)))
+								tptr++;
+						}
 					}
 					else if ((*ptr == '\"') || (*ptr == '\n'))
 						break;
@@ -1322,6 +1350,46 @@ void config_error(char *format, ...)
 	config_error_flag = 1;
 }
 
+static void inline config_error_missing(const char *filename, int line, const char *entry)
+{
+	config_error("%s:%d: %s falta", filename, line, entry);
+}
+
+static void inline config_error_unknown(const char *filename, int line, const char *block, 
+	const char *entry)
+{
+	config_error("%s:%d: Directriz desconocida '%s::%s'", filename, line, block, entry);
+}
+
+static void inline config_error_unknownflag(const char *filename, int line, const char *block,
+	const char *entry)
+{
+	config_error("%s:%d: Flag para %s desconocido '%s'", filename, line, block, entry);
+}
+
+static void inline config_error_unknownopt(const char *filename, int line, const char *block,
+	const char *entry)
+{
+	config_error("%s:%d: Opción para %s desconocida '%s'", filename, line, block, entry);
+}
+
+static void inline config_error_noname(const char *filename, int line, const char *block)
+{
+	config_error("%s:%d: %s le falta nombre", filename, line, block);
+}
+
+static void inline config_error_blank(const char *filename, int line, const char *block)
+{
+	config_error("%s:%d: Entrada para %s vacía", filename, line, block);
+}
+
+static void inline config_error_empty(const char *filename, int line, const char *block, 
+	const char *entry)
+{
+	config_error("%s:%d: %s::%s le falta valor",
+		filename, line, block, entry);
+}
+
 /* Like above */
 void config_status(char *format, ...)
 {
@@ -1341,6 +1409,31 @@ void config_status(char *format, ...)
 		win_log("* %s", buffer);
 #endif
 	sendto_realops("%s", buffer);
+}
+
+void config_warn(char *format, ...)
+{
+	va_list		ap;
+	char		buffer[1024];
+	char		*ptr;
+
+	va_start(ap, format);
+	vsnprintf(buffer, 1023, format, ap);
+	va_end(ap);
+	if ((ptr = strchr(buffer, '\n')) != NULL)
+		*ptr = '\0';
+	if (!loop.ircd_booted)
+#ifndef _WIN32
+		fprintf(stderr, "[advertencia] %s\n", buffer);
+#else
+		win_log("[advertencia] %s", buffer);
+#endif
+	sendto_realops("[advertencia] %s", buffer);
+}
+
+static void inline config_warn_duplicate(const char *filename, int line, const char *entry)
+{
+	config_warn("%s:%d: Directriz %s duplicada", filename, line, entry);
 }
 
 void config_progress(char *format, ...)
@@ -1363,9 +1456,25 @@ void config_progress(char *format, ...)
 	sendto_realops("%s", buffer);
 }
 
+static int inline config_is_blankorempty(ConfigEntry *cep, const char *block)
+{
+	if (!cep->ce_varname)
+	{
+		config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum, block);
+		return 1;
+	}
+	if (!cep->ce_vardata)
+	{
+		config_error_empty(cep->ce_fileptr->cf_filename, cep->ce_varlinenum, block,
+			cep->ce_varname);
+		return 1;
+	}
+	return 0;
+}
+
 ConfigCommand *config_binary_search(char *cmd) {
 	int start = 0;
-	int stop = sizeof(_ConfigCommands)/sizeof(_ConfigCommands[0])-1;
+	int stop = ARRAY_SIZEOF(_ConfigCommands)-1;
 	int mid;
 	while (start <= stop) {
 		mid = (start+stop)/2;
@@ -1385,6 +1494,7 @@ void	free_iConf(aConfiguration *i)
 {
 	ircfree(i->name_server);
 	ircfree(i->kline_address);
+	ircfree(i->gline_address);
 	ircfree(i->auto_join_chans);
 	ircfree(i->oper_auto_join_chans);
 	ircfree(i->oper_only_stats);
@@ -1442,6 +1552,15 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->spamfilter_ban_reason = strdup("Spam/advertising");
 	i->spamfilter_virus_help_channel = strdup("#help");
 	i->maxdccallow = 10;
+	i->channel_command_prefix = strdup("`!.");
+	i->check_target_nick_bans = 1;
+	i->maxbans = 60;
+	i->maxbanlength = 2048;
+	i->timesynch_enabled = 1;
+	i->timesynch_timeout = 3;
+	i->timesynch_server = strdup("193.67.79.202,192.43.244.18,128.250.36.3"); /* nlnet (EU), NIST (US), uni melbourne (AU). All open acces, nonotify, nodns. */
+	i->name_server = strdup("127.0.0.1"); /* default, especially needed for w2003+ in some rare cases */
+	i->level_on_join = CHFL_CHANOP;
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -1485,7 +1604,7 @@ char *encoded;
 	{
 		if (tk->type != TKL_SPAMF)
 			continue; /* global entry or something else.. */
-		if (!strcmp(tk->ptr.spamf->tkl_reason, "<internally added by ircd>"))
+		if (!strcmp(tk->ptr.spamf->tkl_reason, "(añadida intermamente por el ircd)"))
 		{
 			MyFree(tk->ptr.spamf->tkl_reason);
 			tk->ptr.spamf->tkl_reason = strdup(encoded);
@@ -1502,6 +1621,49 @@ char *encoded;
 	}
 }
 
+static void make_default_logblock(void)
+{
+ConfigItem_log *ca = MyMallocEx(sizeof(ConfigItem_log));
+
+	config_status("No se encuentra bloque log { }. Se usará uno por defecto: los errores se guardarán en 'ircd.log'");
+
+	ca->file = strdup("ircd.log");
+	ca->flags |= LOG_ERROR;
+	AddListItem(ca, conf_log);
+}
+
+int isanyserverlinked(void)
+{
+int i;
+aClient *acptr;
+
+	for (i = LastSlot; i >= 0; i--)
+		if ((acptr = local[i]) && (acptr != &me) && IsServer(acptr))
+			return 1;
+
+	return 0;
+}
+
+void applymeblock(void)
+{
+	if (!conf_me || !me.serv)
+		return; /* uh-huh? */
+	
+	/* Numeric change? */
+	if (conf_me->numeric != me.serv->numeric)
+	{
+		/* Can we apply ? */
+		if (!isanyserverlinked())
+		{
+			me.serv->numeric = conf_me->numeric;
+		} else {
+			config_warn("me::numeric: Cambio de numerico detectado. Este cambio no puede aplicarse "
+			            "puesto que está linkado a otros servidores. Deslínkase de todos los servidores y ejecute /REHASH "
+			            "otra vez.");
+		}
+	}
+}
+
 int	init_conf(char *rootconf, int rehash)
 {
 	config_status("Cargando configuración del IRCd ...");
@@ -1511,11 +1673,14 @@ int	init_conf(char *rootconf, int rehash)
 		return -1;
 	}
 	bzero(&tempiConf, sizeof(iConf));
+	bzero(&settings, sizeof(settings));
 	bzero(&requiredstuff, sizeof(requiredstuff));
 	config_setdefaultsettings(&tempiConf);
 	if (load_conf(rootconf) > 0)
 	{
-		if ((config_test() < 0) || (callbacks_check() < 0))
+		charsys_reset_pretest();
+		if ((config_test() < 0) || (callbacks_check() < 0) || (efunctions_check() < 0) ||
+		    (charsys_postconftest() < 0))
 		{
 			config_error("La configuración no ha pasado el test.");
 #ifdef _WIN32
@@ -1532,9 +1697,11 @@ int	init_conf(char *rootconf, int rehash)
 			return -1;
 		}
 		callbacks_switchover();
+		efunctions_switchover();
 		if (rehash)
 		{
 			Hook *h;
+			unrealdns_delasyncconnects();
 			config_rehash();
 #ifndef STATIC_LINKING
 			Unload_all_loaded_modules();
@@ -1565,6 +1732,7 @@ int	init_conf(char *rootconf, int rehash)
 			l_commands_Init(&ModCoreInfo);
 		}
 #endif
+		charsys_reset();
 		if (config_run() < 0)
 		{
 			config_error("Bad case of config errors. Server will now die. This really shouldn't happen");
@@ -1574,11 +1742,12 @@ int	init_conf(char *rootconf, int rehash)
 #endif
 			abort();
 		}
-			
+		charsys_finish();
+		applymeblock();
 	}
 	else	
 	{
-		config_error("IRCd configuration failed to load");
+		config_error("Falla al cargar la configuración del IRCd");
 #ifndef STATIC_LINKING
 		Unload_all_testing_modules();
 #endif
@@ -1602,6 +1771,8 @@ int	init_conf(char *rootconf, int rehash)
 		RunHook0(HOOKTYPE_REHASH_COMPLETE);
 	}
 	do_weird_shun_stuff();
+	if (!conf_log)
+		make_default_logblock();
 	nextconnect = TStime() + 1; /* check for autoconnects */
 	config_status("Configuración cargada sin problemas ...");
 	return 0;
@@ -1656,6 +1827,7 @@ void	config_rehash()
 	ConfigItem_except 		*except_ptr;
 	ConfigItem_ban 			*ban_ptr;
 	ConfigItem_link 		*link_ptr;
+	ConfigItem_cgiirc 		*cgiirc_ptr;
 	ConfigItem_listen	 	*listen_ptr;
 	ConfigItem_tld			*tld_ptr;
 	ConfigItem_vhost		*vhost_ptr;
@@ -1699,6 +1871,10 @@ void	config_rehash()
 		{
 			next2 = (ListStruct *)oper_from->next;
 			ircfree(oper_from->name);
+			if (oper_from->netmask)
+			{
+				MyFree(oper_from->netmask);
+			}
 			DelListItem(oper_from, oper_ptr->from);
 			MyFree(oper_from);
 		}
@@ -1784,6 +1960,8 @@ void	config_rehash()
 		ircfree(tld_ptr->motd_file);
 		ircfree(tld_ptr->rules_file);
 		ircfree(tld_ptr->smotd_file);
+		ircfree(tld_ptr->opermotd_file);
+		ircfree(tld_ptr->botmotd_file);
 		if (!tld_ptr->flag.motdptr) {
 			while (tld_ptr->motd) {
 				motd = tld_ptr->motd->next;
@@ -1805,6 +1983,18 @@ void	config_rehash()
 			ircfree(tld_ptr->smotd->line);
 			ircfree(tld_ptr->smotd);
 			tld_ptr->smotd = motd;
+		}
+		while (tld_ptr->opermotd) {
+			motd = tld_ptr->opermotd->next;
+			ircfree(tld_ptr->opermotd->line);
+			ircfree(tld_ptr->opermotd);
+			tld_ptr->opermotd = motd;
+		}
+		while (tld_ptr->botmotd) {
+			motd = tld_ptr->botmotd->next;
+			ircfree(tld_ptr->botmotd->line);
+			ircfree(tld_ptr->botmotd);
+			tld_ptr->botmotd = motd;
 		}
 		DelListItem(tld_ptr, conf_tld);
 		MyFree(tld_ptr);
@@ -1956,7 +2146,7 @@ void	config_rehash()
 		ircfree(alias_ptr->nick);
 		del_Command(alias_ptr->alias, NULL, cmptr->func);
 		ircfree(alias_ptr->alias);
-		if (alias_ptr->format && alias_ptr->type == ALIAS_COMMAND) {
+		if (alias_ptr->format && (alias_ptr->type == ALIAS_COMMAND)) {
 			for (fmt = (ConfigItem_alias_format *) alias_ptr->format; fmt; fmt = (ConfigItem_alias_format *) next2)
 			{
 				next2 = (ListStruct *)fmt->next;
@@ -2003,6 +2193,8 @@ void	config_rehash()
 		ircfree(of_ptr->topic);
 		MyFree(of_ptr);
 	}
+	conf_offchans = NULL;
+	
 #ifdef EXTCMODE
 	for (i = 0; i < EXTCMODETABLESZ; i++)
 	{
@@ -2010,7 +2202,12 @@ void	config_rehash()
 			free(iConf.modes_on_join.extparams[i]);
 	}
 #endif
-	conf_offchans = NULL;
+
+	for (cgiirc_ptr = conf_cgiirc; cgiirc_ptr; cgiirc_ptr = (ConfigItem_cgiirc *) next)
+	{
+		next = (ListStruct *)cgiirc_ptr->next;
+		delete_cgiircblock(cgiirc_ptr);
+	}
 }
 
 int	config_post_test()
@@ -2024,37 +2221,40 @@ int	config_post_test()
 	if (!requiredstuff.conf_admin)
 		Error("falta bloque admin {}");
 	if (!requiredstuff.conf_listen)
-		Error("falta bloque listen {}");
-	if (!requiredstuff.settings.kline_address)
+		Error("falta bloque listen {}");	
+	if (!settings.has_kline_address)
 		Error("falta set::kline-address");
-	if (!requiredstuff.settings.maxchannelsperuser)
+	if (!settings.has_maxchannelsperuser)
+#if 0
 		Error("falta set::maxchannelsperuser");
-	if (!requiredstuff.settings.name_server)
+	if (!settings.has_dns_nameserver)
 		Error("falta set::dns::nameserver");
-	if (!requiredstuff.settings.host_timeout)
+	if (!settings.has_dns_timeout)
 		Error("falta set::dns::timeout");
-	if (!requiredstuff.settings.host_retries)
+	if (!settings.has_dns_retries)
 		Error("falta set::dns::retries");
-	if (!requiredstuff.settings.servicesserv)
+#endif
+	if (!settings.has_services_server)
 		Error("falta set::services-server");
-	if (!requiredstuff.settings.defaultserv)
+	if (!settings.has_default_server)
 		Error("falta set::default-server");
-	if (!requiredstuff.settings.irc_network)
+	if (!settings.has_network_name)
 		Error("falta set::network-name");
-	if (!requiredstuff.settings.operhost)
+	if (!settings.has_hosts_global)
 		Error("falta set::hosts::global");
-	if (!requiredstuff.settings.adminhost)
+	if (!settings.has_hosts_admin)
 		Error("falta set::hosts::admin");
-	if (!requiredstuff.settings.sadminhost)
+	if (!settings.has_hosts_servicesadmin)
 		Error("falta set::hosts::servicesadmin");
-	if (!requiredstuff.settings.netadminhost)
+	if (!settings.has_hosts_netadmin)
 		Error("falta set::hosts::netadmin");
-	if (!requiredstuff.settings.coadminhost)
+	if (!settings.has_hosts_coadmin)
 		Error("falta set::hosts::coadmin");
-	if (!requiredstuff.settings.hlpchan)
+	if (!settings.has_help_channel)
 		Error("falta set::help-channel");
-	if (!requiredstuff.settings.hidhost)
+	if (!settings.has_hiddenhost_prefix)
 		Error("falta set::hiddenhost-prefix");
+		
 	for (h = Hooks[HOOKTYPE_CONFIGPOSTTEST]; h; h = h->next) 
 	{
 		int value, errs = 0;
@@ -2121,7 +2321,7 @@ int	config_run()
 
 	if (errors > 0)
 	{
-		config_error("%i errores.", errors);
+		config_error("%i error(es).", errors);
 	}
 	return (errors > 0 ? -1 : 1);
 }
@@ -2214,7 +2414,7 @@ int	config_test()
 	errors += config_post_test();
 	if (errors > 0)
 	{
-		config_error("%i errores", errors);
+		config_error("%i error(es)", errors);
 	}
 	return (errors > 0 ? -1 : 1);
 }
@@ -2388,6 +2588,33 @@ ConfigItem_link *Find_link(char *username,
 
 }
 
+/* ugly ugly ugly */
+int match_ip46(char *a, char *b)
+{
+#ifdef INET6
+	if (!strncmp(a, "::ffff:", 7) && !strcmp(a+7, b))
+		return 0; // match
+#endif
+	return 1; //nomatch
+}
+
+ConfigItem_cgiirc *Find_cgiirc(char *username, char *hostname, char *ip, CGIIRCType type)
+{
+ConfigItem_cgiirc *e;
+
+	if (!username || !hostname || !ip)
+		return NULL;
+
+	for (e = conf_cgiirc; e; e = (ConfigItem_cgiirc *)e->next)
+	{
+		if ((e->type == type) && (!e->username || !match(e->username, username)) &&
+		    (!match(e->hostname, hostname) || !match(e->hostname, ip) || !match_ip46(e->hostname, ip)))
+			return e;
+	}
+
+	return NULL;
+}
+
 ConfigItem_ban 	*Find_ban(aClient *sptr, char *host, short type)
 {
 	ConfigItem_ban *ban;
@@ -2452,7 +2679,7 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 {
 	ConfigItem_allow *aconf;
 #ifdef UDB
-	udb *reg, *ireg;
+	Udb *reg, *bloq, *ireg;
 	int defmaxclons;
 	aClient *aux;
 #endif		
@@ -2469,41 +2696,36 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 			continue;
 		if (aconf->flags.ssl && !IsSecure(cptr))
 			continue;
-		if (hp)
-			for (i = 0, hname = hp->h_name; hname;
-			    hname = hp->h_aliases[i++])
+		if (hp && hp->h_name)
+		{
+			hname = hp->h_name;
+			strncpyzt(fullname, hname, sizeof(fullname));
+			add_local_domain(fullname, HOSTLEN - strlen(fullname));
+			Debug((DEBUG_DNS, "a_il: %s->%s", sockhost, fullname));
+			if (index(aconf->hostname, '@'))
 			{
-				strncpyzt(fullname, hname,
-				    sizeof(fullname));
-				add_local_domain(fullname,
-				    HOSTLEN - strlen(fullname));
-				Debug((DEBUG_DNS, "a_il: %s->%s",
-				    sockhost, fullname));
-				if (index(aconf->hostname, '@'))
-				{
-					/*
-					 * Doing strlcpy / strlcat here
-					 * would simply be a waste. We are
-					 * ALREADY sure that it is proper 
-					 * lengths
-					*/
-					if (aconf->flags.noident)
-						strcpy(uhost, username);
-					else
-						(void)strcpy(uhost, cptr->username);
-					(void)strcat(uhost, "@");
-				}
-				else
-					*uhost = '\0';
-				/* 
-				 * Same here as above
-				 * -Stskeeps 
+				/*
+				 * Doing strlcpy / strlcat here
+				 * would simply be a waste. We are
+				 * ALREADY sure that it is proper 
+				 * lengths
 				*/
-				(void)strncat(uhost, fullname,
-				    sizeof(uhost) - strlen(uhost));
-				if (!match(aconf->hostname, uhost))
-					goto attach;
+				if (aconf->flags.noident)
+					strcpy(uhost, username);
+				else
+					strcpy(uhost, cptr->username);
+				strcat(uhost, "@");
 			}
+			else
+				*uhost = '\0';
+			/* 
+			 * Same here as above
+			 * -Stskeeps 
+			*/
+			strncat(uhost, fullname, sizeof(uhost) - strlen(uhost));
+			if (!match(aconf->hostname, uhost))
+				goto attach;
+		}
 
 		if (index(aconf->ip, '@'))
 		{
@@ -2555,23 +2777,22 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 		{
 #endif
 #ifdef UDB
-			if (!(ireg = busca_registro(BDD_ILINES, ".")))
-				defmaxclons = aconf->maxperip;
+			if (!(ireg = BuscaBloque(S_CLO, UDB_SET)))
+				defmaxclons = aconf->maxperip ? aconf->maxperip : 2;
 			else
-				defmaxclons = atoi(ireg->value);
-			if (!(reg = busca_registro(BDD_ILINES, cptr->sockhost))) { }
-			else
-				defmaxclons = atoi(reg->value);
+				defmaxclons = ireg->data_long;
+			if ((reg = BuscaBloque(cptr->sockhost, UDB_IPS)) && (bloq = BuscaBloque(I_CLO, reg)))
+				defmaxclons = bloq->data_long;
 #endif		
 			ii = 1;
 #ifdef UDB
 			for (aux = client; aux; aux = aux->next)
 				if (IsClient(aux) &&
-#ifndef INET6
+ #ifndef INET6
 				    !strcmp(aux->user->realhost, cptr->sockhost))
-#else
+ #else
 				    !bcmp(aux->ip.S_ADDR, cptr->ip.S_ADDR, sizeof(cptr->ip.S_ADDR)))
-#endif
+ #endif
 #else
 			for (i = LastSlot; i >= 0; i--)
 				if (local[i] && MyClient(local[i]) &&
@@ -2579,17 +2800,17 @@ int	AllowClient(aClient *cptr, struct hostent *hp, char *sockhost, char *usernam
 				    local[i]->ip.S_ADDR == cptr->ip.S_ADDR)
 #else
 				    !bcmp(local[i]->ip.S_ADDR, cptr->ip.S_ADDR, sizeof(cptr->ip.S_ADDR)))
-#endif
+ #endif
 #endif /* UDB */
 				{
 					ii++;
 #ifdef UDB
 					if (ii > defmaxclons)
 					{
-						if (!(ireg = busca_registro(BDD_ILINES, reg && reg->value[0] ? "..." : "..")))
+						if (!(ireg = BuscaBloque(reg ? S_QIP : S_QCL, UDB_SET)))
 							exit_client(cptr, cptr, &me, "Demasiadas conexiones para tu IP");
 						else
-							exit_client(cptr, cptr, &me, ireg->value);
+							exit_client(cptr, cptr, &me, ireg->data_char);
 						return -5;
 					}	
 #else										
@@ -2719,7 +2940,7 @@ int	_conf_include(ConfigFile *conf, ConfigEntry *ce)
 	if (url_is_valid(ce->ce_vardata))
 		return remote_include(ce);
 #endif
-#if !defined(_WIN32) && !defined(_AMIGA) && DEFAULT_PERMISSIONS != 0
+#if !defined(_WIN32) && !defined(_AMIGA) && !defined(OSXTIGER) && DEFAULT_PERMISSIONS != 0
 	chmod(ce->ce_vardata, DEFAULT_PERMISSIONS);
 #endif
 #ifdef GLOBH
@@ -2845,6 +3066,13 @@ int	_test_admin(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep;
 	int 	    errors = 0;
+
+	if (requiredstuff.conf_admin)
+	{
+		config_warn_duplicate(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "admin");
+		return 0;
+	}
+
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!cep->ce_varname)
@@ -2865,81 +3093,110 @@ int	_conf_me(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry *cep;
 
 	if (!conf_me)
-	{
 		conf_me = MyMallocEx(sizeof(ConfigItem_me));
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
+	{
+		if (!strcmp(cep->ce_varname, "name"))
+		{
+			ircstrdup(conf_me->name, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "info"))
+		{
+			ircstrdup(conf_me->info, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "numeric"))
+		{
+			conf_me->numeric = atol(cep->ce_vardata);
+		}
 	}
-	cep = config_find_entry(ce->ce_entries, "name");
-	ircfree(conf_me->name);
-	ircstrdup(conf_me->name, cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "info");
-	ircfree(conf_me->info);
-	ircstrdup(conf_me->info, cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "numeric");
-	conf_me->numeric = atol(cep->ce_vardata);
 	return 1;
 }
 
 int	_test_me(ConfigFile *conf, ConfigEntry *ce)
 {
+	char has_name = 0, has_info = 0, has_numeric = 0;
 	ConfigEntry *cep;
-	long	    l;
 	int	    errors = 0;
-	
-	if (!(cep = config_find_entry(ce->ce_entries, "name")))
+
+	if (requiredstuff.conf_me)
 	{
-		config_error("%s:%i: me::name missing",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
+		config_warn_duplicate(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "me");
+		return 0;
 	}
-	else
+	
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (cep->ce_vardata)
+		if (config_is_blankorempty(cep, "me"))
+			continue;
+
+		/* me::name */
+		if (!strcmp(cep->ce_varname, "name"))
 		{
-			char *p;
+			if (has_name)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "me::name");
+				continue;
+			}
+			has_name = 1;
 			if (!strchr(cep->ce_vardata, '.'))
-			{	
+			{
 				config_error("%s:%i: illegal me::especifica el host entero",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+					cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum);
 				errors++;
 			}
 			if (!valid_host(cep->ce_vardata))
 			{
 				config_error("%s:%i: illegal me::name contiene caracteres inválidos, sólo a-z, 0-9, _, -, .",
+					cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum);
+				errors++;
+			}
+		}
+		/* me::info */
+		else if (!strcmp(cep->ce_varname, "info"))
+		{
+			char *p;
+			char valid = 0;
+			if (has_info)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "me::info");
+				continue;
+			}
+			has_info = 1;
+			if (strlen(cep->ce_vardata) > (REALLEN-1))
+			{
+				config_error("%s:%i: muy largo::info, máximo. %i caracteres",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
+					REALLEN-1);
+				errors++;
+			}
+		
+			/* Valid me::info? Any data except spaces is ok */
+			for (p=cep->ce_vardata; *p; p++)
+			{
+				if (*p != ' ')
+				{
+					valid = 1;
+					break;
+				}
+			}
+			if (!valid)
+			{
+				config_error("%s:%i: me::info está vacío, debería contener la descripción del servidor.",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 			}
 		}
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "info")))
-	{
-		config_error("%s:%i: me::info falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
+		/* me::numeric */
+		else if (!strcmp(cep->ce_varname, "numeric"))
+		{
+			long l;
 
-		if (cep->ce_vardata)
-		{
-			if (strlen(cep->ce_vardata) > (REALLEN-1))
-			{
-				config_error("%s:%i: muy largo::info, máximo. %i caracteres",
-					ce->ce_fileptr->cf_filename, ce->ce_varlinenum, REALLEN-1);
-				errors++;
-		
-			}
-		}
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "numeric")))
-	{
-		config_error("%s:%i: me::numeric falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (cep->ce_vardata)
-		{
+			has_numeric = 1;
 			l = atol(cep->ce_vardata);
 			if ((l < 0) || (l > 254))
 			{
@@ -2949,40 +3206,29 @@ int	_test_me(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 		}
-	}
-	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
-	{
-		if (!cep->ce_varname)
-		{
-			config_error("%s:%i: línea en blanco",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
-			errors++;
-			continue;
-		}
-		if (!cep->ce_vardata)
-		{
-			config_error("%s:%i: me::%s sin parámetro",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++;
-			continue;
-		}
-		if (!strcmp(cep->ce_varname, "name"))
-		{} else
-		if (!strcmp(cep->ce_varname, "info"))
-		{} else
-		if (!strcmp(cep->ce_varname, "numeric"))
-		{}
+		/* Unknown entry */
 		else
 		{
-			config_error("%s:%i: directriz desconocida me::%s",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++; continue;
+			config_error_unknown(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, 
+				"me", cep->ce_varname);
+			errors++;
 		}
+	}
+	if (!has_name)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "me::name");
+		errors++;
+	}
+	if (!has_info)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "me::info");
+		errors++;
+	}
+	if (!has_numeric)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, 
+			"me::numeric");
+		errors++;
 	}
 	requiredstuff.conf_me = 1;
 	return errors;
@@ -2999,249 +3245,333 @@ int	_conf_oper(ConfigFile *conf, ConfigEntry *ce)
 	ConfigItem_oper *oper = NULL;
 	ConfigItem_oper_from *from;
 	OperFlag *ofp = NULL;
-	unsigned char	isnew = 0;
+	struct irc_netmask tmp;
 
-	if (!ce->ce_vardata)
-	{
-		config_status("%s:%i: oper sin nombre",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		return -1;
-	}
-
-	if (!(oper = Find_oper(ce->ce_vardata)))
-	{
-		oper =  MyMallocEx(sizeof(ConfigItem_oper));
-		oper->name = strdup(ce->ce_vardata);
-		isnew = 1;
-	}
-	else
-	{
-		isnew = 0;
-	}
+	oper =  MyMallocEx(sizeof(ConfigItem_oper));
+	oper->name = strdup(ce->ce_vardata);
 	
-	cep = config_find_entry(ce->ce_entries, "password");
-	oper->auth = Auth_ConvertConf2AuthStruct(cep);
-	cep = config_find_entry(ce->ce_entries, "class");
-	oper->class = Find_class(cep->ce_vardata);
-	if (!oper->class)
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		config_status("%s:%i: illegal oper::class, clase '%s' desconocida. Se usará la clase 'default'",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_vardata);
-		oper->class = default_class;
-	}
-	
-	cep = config_find_entry(ce->ce_entries, "flags");
-	if (!cep->ce_entries)
-	{
-		char *m = "*";
-		int *i, flag;
+		if (!strcmp(cep->ce_varname, "password"))
+			oper->auth = Auth_ConvertConf2AuthStruct(cep);
+		else if (!strcmp(cep->ce_varname, "class"))
+		{
+			oper->class = Find_class(cep->ce_vardata);
+			if (!oper->class || (oper->class->flag.temporary == 1))
+			{
+				config_status("%s:%i: illegal oper::class, clase '%s' desconocida, se usará la 'default'",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+					cep->ce_vardata);
+				oper->class = default_class;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "flags"))
+		{
+			if (!cep->ce_entries)
+			{
+				char *m = "*";
+				int *i, flag;
 
-		for (m = (*cep->ce_vardata) ? cep->ce_vardata : m; *m; m++) {
-			for (i = _OldOperFlags; (flag = *i); i += 2)
-				if (*m == (char)(*(i + 1))) {
-					oper->oflags |= flag;
-					break;
+				for (m = (*cep->ce_vardata) ? cep->ce_vardata : m; *m; m++) 
+				{
+					for (i = _OldOperFlags; (flag = *i); i += 2)
+						if (*m == (char)(*(i + 1))) 
+						{
+							oper->oflags |= flag;
+							break;
+						}
 				}
+			}
+			else
+			{
+				for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+				{
+					if ((ofp = config_binary_flags_search(_OperFlags, cepp->ce_varname, ARRAY_SIZEOF(_OperFlags)))) 
+						oper->oflags |= ofp->flag;
+				}
+			}
 		}
-	}
-	else
-	{
-		for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+		else if (!strcmp(cep->ce_varname, "swhois"))
 		{
-			if ((ofp = config_binary_flags_search(_OperFlags, cepp->ce_varname, sizeof(_OperFlags)/sizeof(_OperFlags[0])))) 
-				oper->oflags |= ofp->flag;
+			ircstrdup(oper->swhois, cep->ce_vardata);
 		}
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "swhois")))
-	{
-		ircstrdup(oper->swhois, cep->ce_vardata);
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "snomask")))
-	{
-		ircstrdup(oper->snomask, cep->ce_vardata);
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "maxlogins")))
-	{
-		oper->maxlogins = (int)config_checkval(cep->ce_vardata, CFG_TIME);
-	}
-	cep = config_find_entry(ce->ce_entries, "from");
-	for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
-	{
-		if (!strcmp(cepp->ce_varname, "userhost"))
+		else if (!strcmp(cep->ce_varname, "snomask"))
 		{
-			from = MyMallocEx(sizeof(ConfigItem_oper_from));
-			ircstrdup(from->name, cepp->ce_vardata);
-			AddListItem(from, oper->from);
+			ircstrdup(oper->snomask, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "modes"))
+		{
+			oper->modes = set_usermode(cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "maxlogins"))
+		{
+			oper->maxlogins = atoi(cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "from"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "userhost"))
+				{
+					from = MyMallocEx(sizeof(ConfigItem_oper_from));
+					ircstrdup(from->name, cepp->ce_vardata);
+					tmp.type = parse_netmask(from->name, &tmp);
+					if (tmp.type != HM_HOST)
+					{
+						from->netmask = MyMallocEx(sizeof(struct irc_netmask));
+						bcopy(&tmp, from->netmask, sizeof(struct irc_netmask));
+					}
+					AddListItem(from, oper->from);
+				}
+			}
 		}
 	}
-	if (isnew)
-		AddListItem(oper, conf_oper);
+	AddListItem(oper, conf_oper);
 	return 1;
 }
 
 int	_test_oper(ConfigFile *conf, ConfigEntry *ce)
 {
+	char has_class = 0, has_password = 0, has_flags = 0, has_swhois = 0, has_snomask = 0;
+	char has_modes = 0, has_from = 0, has_maxlogins = 0;
+	int oper_flags = 0;
 	ConfigEntry *cep;
 	ConfigEntry *cepp;
+	OperFlag *ofp;
 	int	errors = 0;
+
 	if (!ce->ce_vardata)
 	{
-		config_error("%s:%i: oper sin nombre",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		config_error_noname(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "oper");
 		errors++;
 	}
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: oper item sin nombre de variable",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"oper");
+			errors++; 
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "password"))
 		{
+			if (has_password)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "oper::password");
+				continue;
+			}
+			has_password = 1;
 			if (Auth_CheckError(cep) < 0)
 				errors++;
-			/* should have some auth check if ok .. */
 			continue;
 		}
+		/* Regular variables */
 		if (!cep->ce_entries)
 		{
-			/* standard variable */
-			if (!cep->ce_vardata)
+			if (config_is_blankorempty(cep, "oper"))
 			{
-				config_error("%s:%i: oper::%s sin parámetro",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				errors++; 
+				continue;
 			}
+			/* oper::class */
 			if (!strcmp(cep->ce_varname, "class"))
 			{
+				if (has_class)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+						cep->ce_varlinenum, "oper::class");
+					continue;
+				}
+				has_class = 1;
 			}
-			else if (!strcmp(cep->ce_varname, "swhois")) {
+			/* oper::swhois */
+			else if (!strcmp(cep->ce_varname, "swhois")) 
+			{
+				if (has_swhois)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::swhois");
+					continue;
+				}
+				has_swhois = 1;
 			}
-			else if (!strcmp(cep->ce_varname, "snomask")) {
+			/* oper::snomask */
+			else if (!strcmp(cep->ce_varname, "snomask")) 
+			{
+				if (has_snomask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::snomask");
+					continue;
+				}
+				has_snomask = 1;
 			}
+			/* oper::modes */
+			else if (!strcmp(cep->ce_varname, "modes")) 
+			{
+				char *p;
+				for (p = cep->ce_vardata; *p; p++)
+					if (strchr("oOaANCrzS", *p))
+					{
+						config_error("%s:%i: oper::modes no puede tener '%c'",
+							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+						errors++;
+					}
+				if (has_modes)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::modes");
+					continue;
+				}
+				has_modes = 1;
+			}
+			/* oper::maxlogins */
 			else if (!strcmp(cep->ce_varname, "maxlogins"))
 			{
-				long l = config_checkval(cep->ce_vardata, CFG_TIME);
+				int l;
+
+				if (has_maxlogins)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::maxlogins");
+					continue;
+				}
+				has_maxlogins = 1;
+
+				l = atoi(cep->ce_vardata);
 				if ((l < 0) || (l > 5000))
 				{
 					config_error("%s:%i: oper::maxlogins: valor (%ld) entre 0-5000",
 						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, l);
-					errors++; continue;
+					errors++; 
+					continue;
 				}
 			}
+			/* oper::flags */
 			else if (!strcmp(cep->ce_varname, "flags"))
 			{
+				if (has_flags)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::flags");
+					continue;
+				}
+				has_flags = 1;
 			}
 			else
 			{
-				config_error("%s:%i: directriz desconocida oper::%s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-						cep->ce_varname);
-				errors++; continue;
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "oper", cep->ce_varname);
+				errors++;
+				continue;
 			}
 		}
+		/* Sections */
 		else
 		{
-			/* Section */
+			/* oper::flags {} */
 			if (!strcmp(cep->ce_varname, "flags"))
 			{
+				if (has_flags)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::flags");
+					continue;
+				}
+				has_flags = 1;
 				for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 				{
 					if (!cepp->ce_varname)
 					{
-						config_error("%s:%i: oper::flags item sin nombre de variable",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
+						config_error_empty(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, "oper::flags",
+							cep->ce_varname);
 						errors++; 
 						continue;
 					}
-					if (!config_binary_flags_search(_OperFlags, cepp->ce_varname, sizeof(_OperFlags)/sizeof(_OperFlags[0]))) {
-						if (!strcmp(cepp->ce_varname, "can_stealth"))
-						{
-						 config_status("%s:%i: modo oper obsoleto '%s'",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
-							cepp->ce_varname);
-						} else {
-						 config_error("%s:%i: modo oper desconocido '%s'",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
+					if (!(ofp = config_binary_flags_search(_OperFlags, cepp->ce_varname, ARRAY_SIZEOF(_OperFlags)))) {
+						config_error_unknownflag(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, "oper",
 							cepp->ce_varname);
 						errors++; 
-						}
-					}
+					} else
+						oper_flags |= ofp->flag;
 				}
 				continue;
 			}
-			else
-			if (!strcmp(cep->ce_varname, "from"))
+			/* oper::from {} */
+			else if (!strcmp(cep->ce_varname, "from"))
 			{
+				if (has_from)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "oper::from");
+					continue;
+				}
+				has_from = 1;
 				for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 				{
-					if (!cepp->ce_varname)
+					if (config_is_blankorempty(cepp, "oper::from"))
 					{
-						config_error("%s:%i: oper::from item sin nombre de variable",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-						errors++; continue;
+						errors++;
+						continue;
 					}
-					if (!cepp->ce_vardata)
+					/* Unknown Entry */
+					if (strcmp(cepp->ce_varname, "userhost"))
 					{
-						config_error("%s:%i: oper::from::%s sin parámetros",
-							cepp->ce_fileptr->cf_filename,
-							cepp->ce_varlinenum,
+						config_error_unknown(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, "oper::from",
 							cepp->ce_varname);
-						errors++; continue;
-					}
-					if (!strcmp(cepp->ce_varname, "userhost"))
-					{
-					}
-					else
-					{
-						config_error("%s:%i: directriz desconocida ::from::%s",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
-							cepp->ce_varname);
-						errors++; continue;
+						errors++;
+						continue;
 					}
 				}
 				continue;
 			}
 			else
 			{
-				config_error("%s:%i: directriz desconocida oper::%s (sección)",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-						cep->ce_varname);
-				errors++; continue;
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "oper", cep->ce_varname);
+				errors++; 
+				continue;
 			}
 		}
-
 	}
-	if (!config_find_entry(ce->ce_entries, "password"))
+	if (!has_password)
 	{
-		config_error("%s:%i: oper::password falta", ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"oper::password");
 		errors++;
 	}	
-	if (!config_find_entry(ce->ce_entries, "from"))
+	if (!has_from)
 	{
-		config_error("%s:%i: oper::from falta", ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"oper::from");
 		errors++;
 	}	
-	if (!config_find_entry(ce->ce_entries, "flags"))
+	if (!has_flags)
 	{
-		config_error("%s:%i: oper::flags falta", ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"oper::flags");
 		errors++;
-	}	
-	if (!config_find_entry(ce->ce_entries, "class"))
+	} else {
+		/* Check oper flags -- warning needed only (autoconvert) */
+		if (!(oper_flags & (OFLAG_GROUTE|OFLAG_GKILL|OFLAG_GNOTICE)) &&
+		    (oper_flags & (OFLAG_GZL|OFLAG_TKL|OFLAG_OVERRIDE)))
+		{
+			config_warn("%s:%i: oper::oflags: can_gzline/can_gkline/can_override (privilegios globales) "
+			            "incompatibles con operadores locales. El usuario será operador global",
+			            ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		}
+	}
+	if (!has_class)
 	{
-		config_error("%s:%i: oper::class falta", ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"oper::class");
 		errors++;
-	}	
+	}
 	return errors;
 	
 }
@@ -3251,7 +3581,7 @@ int	_test_oper(ConfigFile *conf, ConfigEntry *ce)
 */
 int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry *cep;
+	ConfigEntry *cep, *cep2;
 	ConfigItem_class *class;
 	unsigned char isnew = 0;
 
@@ -3264,82 +3594,102 @@ int	_conf_class(ConfigFile *conf, ConfigEntry *ce)
 	else
 	{
 		isnew = 0;
-		class->flag.temporary = 0; /* clear!!! damnit */
+		class->flag.temporary = 0;
+		class->options = 0; /* RESET OPTIONS */
 	}
-	cep = config_find_entry(ce->ce_entries, "pingfreq");
-	class->pingfreq = atol(cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "maxclients");
-	class->maxclients = atol(cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "sendq");
-	class->sendq = atol(cep->ce_vardata);
-	if ((cep = config_find_entry(ce->ce_entries, "recvq")))
+	ircstrdup(class->name, ce->ce_vardata);
+
+	class->connfreq = 60; /* default */
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		class->recvq = atol(cep->ce_vardata);
+		if (!strcmp(cep->ce_varname, "pingfreq"))
+			class->pingfreq = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "connfreq"))
+			class->connfreq = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "maxclients"))
+			class->maxclients = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "sendq"))
+			class->sendq = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "recvq"))
+			class->recvq = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
+			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+				if (!strcmp(cep2->ce_varname, "nofakelag"))
+					class->options |= CLASS_OPT_NOFAKELAG;
+		}
 	}
-	if ((cep = config_find_entry(ce->ce_entries, "connfreq")))
-	{
-		class->connfreq = atol(cep->ce_vardata);
-	}
-	if (isnew) 
+	if (isnew)
 		AddListItem(class, conf_class);
 	return 1;
 }
 
 int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry 	*cep;
-	long		l;
+	ConfigEntry 	*cep, *cep2;
 	int		errors = 0;
+	char has_pingfreq = 0, has_connfreq = 0, has_maxclients = 0, has_sendq = 0;
+	char has_recvq = 0;
+
 	if (!ce->ce_vardata)
 	{
-		config_error("%s:%i: clase sin nombre",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++; 
+		config_error_noname(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, "class");
+		errors++;
 	}
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname)
+		if (!strcmp(cep->ce_varname, "options"))
 		{
-			config_error("%s:%i: clase sin nombre de variable",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+			{
+#ifdef FAKELAG_CONFIGURABLE
+				if (!strcmp(cep2->ce_varname, "nofakelag"))
+					;
+				else
+#endif
+				{
+					config_error("%s:%d: Opción desconocida '%s' en class::options",
+						cep2->ce_fileptr->cf_filename, cep2->ce_varlinenum, cep2->ce_varname);
+					errors++;
+				}
+			}
 		}
-		if (!cep->ce_vardata)
+		else if (config_is_blankorempty(cep, "class"))
 		{
-			config_error("%s:%i: class item sin parámetro",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
-		if (!strcmp(cep->ce_varname, "pingfreq"))
+		/* class::pingfreq */
+		else if (!strcmp(cep->ce_varname, "pingfreq"))
 		{
 			int v = atol(cep->ce_vardata);
+			if (has_pingfreq)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "class::pingfreq");
+				continue;
+			}
+			has_pingfreq = 1;
 			if ((v < 30) || (v > 600))
 			{
 				config_error("%s:%i: class::pingfreq tiene que ser un valor razonable (30-600)",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
+				errors++;
+				continue;
 			}
-		} else
-		if (!strcmp(cep->ce_varname, "maxclients"))
-		{} else
-		if (!strcmp(cep->ce_varname, "connfreq"))
-		{} else
-		if (!strcmp(cep->ce_varname, "sendq"))
-		{} else
-		if (!strcmp(cep->ce_varname, "recvq"))
-		{}
-		else
+		} 
+		/* class::maxclients */
+		else if (!strcmp(cep->ce_varname, "maxclients"))
 		{
-			config_error("%s:%i: directriz desconocida class::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
-			errors++; continue;
-		}
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "pingfreq")))
-	{
-		if (cep->ce_vardata)
-		{
+			long l;
+			if (has_maxclients)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "class::maxclients");
+				continue;
+			}
+			has_maxclients = 1;
 			l = atol(cep->ce_vardata);
 			if ((l < 1) || (l > 1000000))
 			{
@@ -3348,36 +3698,36 @@ int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 		}
-	}
-	else
-	{
-		config_error("%s:%i: class::pingfreq falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "maxclients")))
-	{
-		if (cep->ce_vardata)
+		/* class::connfreq */
+		else if (!strcmp(cep->ce_varname, "connfreq"))
 		{
+			long l;
+			if (has_connfreq)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "class::connfreq");
+				continue;
+			}
+			has_connfreq = 1;
 			l = atol(cep->ce_vardata);
-			if ((l < 1) || (l > 1000000))
+			if ((l < 10) || (l > 604800))
 			{
 				config_error("%s:%i: class::maxclients con valor erróneo",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 			}
 		}
-	}
-	else
-	{
-		config_error("%s:%i: class::maxclients falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "sendq")))
-	{
-		if (cep->ce_vardata)
-		{	
+		/* class::sendq */
+		else if (!strcmp(cep->ce_varname, "sendq"))
+		{
+			long l;
+			if (has_sendq)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "class::sendq");
+				continue;
+			}
+			has_sendq = 1;
 			l = atol(cep->ce_vardata);
 			if ((l < 0) || (l > 2000000000))
 			{
@@ -3386,30 +3736,17 @@ int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 		}
-	}
-	else
-	{
-		config_error("%s:%i: class::sendq falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "connfreq")))
-	{
-		if (cep->ce_vardata)
+		/* class::recvq */
+		else if (!strcmp(cep->ce_varname, "recvq"))
 		{
-			l = atol(cep->ce_vardata);
-			if ((l < 10) || (l > 604800))
+			long l;
+			if (has_recvq)
 			{
-				config_error("%s:%i: class::connfreq con valor erróneo (<10)",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "class::recvq");
+				continue;
 			}
-		}
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "recvq")))
-	{
-		if (cep->ce_vardata)
-		{	
+			has_recvq = 1;
 			l = atol(cep->ce_vardata);
 			if ((l < 512) || (l > 32768))
 			{
@@ -3418,6 +3755,32 @@ int	_test_class(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 			}
 		}
+		/* Unknown */
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"class", cep->ce_varname);
+			errors++;
+			continue;
+		}
+	}
+	if (!has_pingfreq)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"class::pingfreq");
+		errors++;
+	}
+	if (!has_maxclients)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"class::maxclients");
+		errors++;
+	}
+	if (!has_sendq)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"class::sendq");
+		errors++;
 	}
 	
 	return errors;
@@ -3427,7 +3790,8 @@ int     _conf_drpass(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep;
 
-	if (!conf_drpass) {
+	if (!conf_drpass) 
+	{
 		conf_drpass =  MyMallocEx(sizeof(ConfigItem_drpass));
 	}
 
@@ -3455,39 +3819,50 @@ int     _test_drpass(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep;
 	int errors = 0;
+	char has_restart = 0, has_die = 0;
+
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname)
+		if (config_is_blankorempty(cep, "drpass"))
 		{
-			config_error("%s:%i: drpass item sin variable de nombre",
-			 cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
-		if (!cep->ce_vardata)
-		{
-			config_error("%s:%i: falta parámetro en drpass:%s",
-			 cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-			 	cep->ce_varname);
-			errors++; continue;
-		}
+		/* drpass::restart */
 		if (!strcmp(cep->ce_varname, "restart"))
 		{
+			if (has_restart)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "drpass::restart");
+				continue;
+			}
+			has_restart = 1;
 			if (Auth_CheckError(cep) < 0)
 				errors++;
 			continue;
 		}
+		/* drpass::die */
 		else if (!strcmp(cep->ce_varname, "die"))
 		{
+			if (has_die)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "drpass::die");
+				continue;
+			}
+			has_die = 1;
 			if (Auth_CheckError(cep) < 0)
 				errors++;
 			continue;
 		}
+		/* Unknown */
 		else
 		{
-			config_status("%s:%i: advertencia: directriz drpass desconocida '%s'",
-				 cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				 cep->ce_varname);
-			errors++; continue;
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"drpass", cep->ce_varname);
+			errors++;
+			continue;
 		}
 	}
 	return errors;
@@ -3503,13 +3878,6 @@ int	_conf_ulines(ConfigFile *conf, ConfigEntry *ce)
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname)
-		{
-			config_status("%s:%i: uline item vacío",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
-			continue;
-		}
 		ca = MyMallocEx(sizeof(ConfigItem_ulines));
 		ircstrdup(ca->servername, cep->ce_varname);
 		AddListItem(ca, conf_ulines);
@@ -3525,9 +3893,8 @@ int	_test_ulines(ConfigFile *conf, ConfigEntry *ce)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: uline item vacío",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
+			config_error_blank(cep->ce_fileptr->cf_filename,
+				cep->ce_varlinenum, "ulines");
 			errors++;
 			continue;
 		}
@@ -3541,33 +3908,50 @@ int     _conf_tld(ConfigFile *conf, ConfigEntry *ce)
 	ConfigItem_tld *ca;
 
 	ca = MyMallocEx(sizeof(ConfigItem_tld));
-	cep = config_find_entry(ce->ce_entries, "mask");
-	ca->mask = strdup(cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "motd");
-	ca->motd_file = strdup(cep->ce_vardata);
-	ca->motd = read_file_ex(cep->ce_vardata, NULL, &ca->motd_tm);
- 	if ((cep = config_find_entry(ce->ce_entries, "shortmotd")))
-	{
-		ca->smotd_file = strdup(cep->ce_vardata);
-		ca->smotd = read_file_ex(cep->ce_vardata, NULL, &ca->smotd_tm);
-	}
 
-	cep = config_find_entry(ce->ce_entries, "rules");
-	ca->rules_file = strdup(cep->ce_vardata);
-	ca->rules = read_file(cep->ce_vardata, NULL);
-	cep = config_find_entry(ce->ce_entries, "options");
-	if (cep)
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		for (cep = cep->ce_entries; cep; cep = cep->ce_next)
+		if (!strcmp(cep->ce_varname, "mask"))
+			ca->mask = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "motd"))
 		{
-			if (!strcmp(cep->ce_varname, "ssl"))
-				ca->options |= TLD_SSL;
-			else if (!strcmp(cep->ce_varname, "remote"))
-				ca->options |= TLD_REMOTE;
+			ca->motd_file = strdup(cep->ce_vardata);
+			ca->motd = read_file_ex(cep->ce_vardata, NULL, &ca->motd_tm);
 		}
-	}	
-	if ((cep = config_find_entry(ce->ce_entries, "channel")))
-		ca->channel = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "shortmotd"))
+		{
+			ca->smotd_file = strdup(cep->ce_vardata);
+			ca->smotd = read_file_ex(cep->ce_vardata, NULL, &ca->smotd_tm);
+		}
+		else if (!strcmp(cep->ce_varname, "opermotd"))
+		{
+			ca->opermotd_file = strdup(cep->ce_vardata);
+			ca->opermotd = read_file(cep->ce_vardata, NULL);
+		}
+		else if (!strcmp(cep->ce_varname, "botmotd"))
+		{
+			ca->botmotd_file = strdup(cep->ce_vardata);
+			ca->botmotd = read_file(cep->ce_vardata, NULL);
+		}
+		else if (!strcmp(cep->ce_varname, "rules"))
+		{
+			ca->rules_file = strdup(cep->ce_vardata);
+			ca->rules = read_file(cep->ce_vardata, NULL);
+		}
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
+			ConfigEntry *cepp;
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "ssl"))
+					ca->options |= TLD_SSL;
+				else if (!strcmp(cepp->ce_varname, "remote"))
+					ca->options |= TLD_REMOTE;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "channel"))
+			ca->channel = strdup(cep->ce_vardata);
+	}
 	AddListItem(ca, conf_tld);
 	return 1;
 }
@@ -3577,73 +3961,46 @@ int     _test_tld(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry *cep;
 	int	    errors = 0;
 	int	    fd = -1;
+	char has_mask = 0, has_motd = 0, has_rules = 0, has_shortmotd = 0, has_channel = 0;
+	char has_opermotd = 0, has_botmotd = 0, has_options = 0;
+
         for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: tld item vacío",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"tld");
+			errors++;
+			continue;
 		}
 		if (!cep->ce_vardata && strcmp(cep->ce_varname, "options"))
 		{
-			config_error("%s:%i: falta parámetro en tld::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++; continue;
+			config_error_empty(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"tld", cep->ce_varname);
+			errors++;
+			continue;
 		}
-		if (!strcmp(cep->ce_varname, "mask")) {
-		}
-		else if (!strcmp(cep->ce_varname, "motd")) {
-		}
-		else if (!strcmp(cep->ce_varname, "rules")) {
-		}
-		else if (!strcmp(cep->ce_varname, "channel")) {
-		}
-		else if (!strcmp(cep->ce_varname, "shortmotd")) {
-		}
-		else if (!strcmp(cep->ce_varname, "options")) {
-			ConfigEntry *cep2;
-			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+		/* tld::mask */
+		if (!strcmp(cep->ce_varname, "mask")) 
+		{
+			if (has_mask)
 			{
-				if (!strcmp(cep2->ce_varname, "ssl")) {
-				}
-				else if (!strcmp(cep2->ce_varname, "remote")) {
-				}
-				else
-				{
-					config_error("%s:%i: opción desconocida tld::options::%s",
-						cep2->ce_fileptr->cf_filename, cep2->ce_varlinenum,
-						cep2->ce_varname);
-					errors++;
-				}
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::mask");
+				continue;
 			}
+			has_mask = 1;
 		}
-		else
+		/* tld::motd */
+		else if (!strcmp(cep->ce_varname, "motd")) 
 		{
-			config_error("%s:%i: directriz desconocida tld::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++; continue;
-		}
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "mask")))
-	{
-		config_error("%s:%i: tld::mask falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "motd")))
-	{
-		config_error("%s:%i: tld::motd falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (cep->ce_vardata)
-		{
+			if (has_motd)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::motd");
+				continue;
+			}
+			has_motd = 1;
 			if (((fd = open(cep->ce_vardata, O_RDONLY)) == -1))
 			{
 				config_error("%s:%i: tld::motd: %s: %s",
@@ -3654,19 +4011,16 @@ int     _test_tld(ConfigFile *conf, ConfigEntry *ce)
 			else
 				close(fd);
 		}
-		
-	}
-	
-	if (!(cep = config_find_entry(ce->ce_entries, "rules")))
-	{
-		config_error("%s:%i: tld::rules falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (cep->ce_vardata)
+		/* tld::rules */
+		else if (!strcmp(cep->ce_varname, "rules"))
 		{
+			if (has_rules)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::rules");
+				continue;
+			}
+			has_rules = 1;
 			if (((fd = open(cep->ce_vardata, O_RDONLY)) == -1))
 			{
 				config_error("%s:%i: tld::rules: %s: %s",
@@ -3677,8 +4031,132 @@ int     _test_tld(ConfigFile *conf, ConfigEntry *ce)
 			else
 				close(fd);
 		}
+		/* tld::channel */
+		else if (!strcmp(cep->ce_varname, "channel"))
+		{
+			if (has_channel)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::channel");
+				continue;
+			}
+			has_channel = 1;
+		}
+		/* tld::shortmotd */
+		else if (!strcmp(cep->ce_varname, "shortmotd"))
+		{
+			if (has_shortmotd)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::shortmotd");
+				continue;
+			}
+			has_shortmotd = 1;
+			if (((fd = open(cep->ce_vardata, O_RDONLY)) == -1))
+			{
+				config_error("%s:%i: tld::shortmotd: %s: %s",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+					cep->ce_vardata, strerror(errno));
+				errors++;
+			}
+			else
+				close(fd);
+		}
+		/* tld::opermotd */
+		else if (!strcmp(cep->ce_varname, "opermotd"))
+		{
+			if (has_opermotd)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::opermotd");
+				continue;
+			}
+			has_opermotd = 1;
+			if (((fd = open(cep->ce_vardata, O_RDONLY)) == -1))
+			{
+				config_error("%s:%i: tld::opermotd: %s: %s",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+					cep->ce_vardata, strerror(errno));
+				errors++;
+			}
+			else
+				close(fd);
+		}
+		/* tld::botmotd */
+		else if (!strcmp(cep->ce_varname, "botmotd"))
+		{
+			if (has_botmotd)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::botmotd");
+				continue;
+			}
+			has_botmotd = 1;
+			if (((fd = open(cep->ce_vardata, O_RDONLY)) == -1))
+			{
+				config_error("%s:%i: tld::botmotd: %s: %s",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+					cep->ce_vardata, strerror(errno));
+				errors++;
+			}
+			else
+				close(fd);
+		}
+		/* tld::options */
+		else if (!strcmp(cep->ce_varname, "options")) {
+			ConfigEntry *cep2;
+
+			if (has_options)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "tld::options");
+				continue;
+			}
+			has_options = 1;
+
+			for (cep2 = cep->ce_entries; cep2; cep2 = cep2->ce_next)
+			{
+				if (!cep2->ce_varname)
+				{
+					config_error_blank(cep2->ce_fileptr->cf_filename,
+						cep2->ce_varlinenum, "tld::options");
+					continue;
+				}
+				if (strcmp(cep2->ce_varname, "ssl") && 
+					strcmp(cep2->ce_varname, "remote")) 
+				{
+					config_error_unknownopt(cep2->ce_fileptr->cf_filename,
+						cep2->ce_varlinenum, "tld", cep2->ce_varname);
+					errors++;
+				}
+			}
+		}
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"tld", cep->ce_varname);
+			errors++;
+			continue;
+		}
 	}
-	
+	if (!has_mask)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"tld::mask");
+		errors++;
+	}
+	if (!has_motd)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"tld::motd");
+		errors++;
+	}
+	if (!has_rules)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"tld::rules");
+		errors++;
+	}
 	return errors;
 }
 
@@ -3691,14 +4169,8 @@ int	_conf_listen(ConfigFile *conf, ConfigEntry *ce)
 	char	    copy[256];
 	char	    *ip;
 	char	    *port;
-	int	    start, end, iport;
+	int	    start, end, iport, isnew;
 	int tmpflags =0;
-	unsigned char	isnew = 0;
-
-	if (!ce->ce_vardata)
-	{
-		return -1;
-	}
 
 	strcpy(copy, ce->ce_vardata);
 	/* Seriously cheap hack to make listen <port> work -Stskeeps */
@@ -3727,32 +4199,23 @@ int	_conf_listen(ConfigFile *conf, ConfigEntry *ce)
 		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
-				if ((ofp = config_binary_flags_search(_ListenerFlags, cepp->ce_varname, sizeof(_ListenerFlags)/sizeof(_ListenerFlags[0]))))
+				if ((ofp = config_binary_flags_search(_ListenerFlags, cepp->ce_varname, ARRAY_SIZEOF(_ListenerFlags))))
 					tmpflags |= ofp->flag;
 			}
-#ifndef USE_SSL
-			if (tmpflags & LISTENER_SSL)
-			{
-				config_status("%s:%i: modo SSL en un ircd sin soporte SSL",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				tmpflags &= ~LISTENER_SSL;
-			}
-#endif
-		
 		}
 	}
-
+#ifndef USE_SSL
+	tmpflags &= ~LISTENER_SSL;
+#endif
 	for (iport = start; iport < end; iport++)
 	{
-		
 		if (!(listen = Find_listen(ip, iport)))
 		{
 			listen = MyMallocEx(sizeof(ConfigItem_listen));
 			listen->ip = strdup(ip);
 			listen->port = iport;
 			isnew = 1;
-		}
-		else
+		} else
 			isnew = 0;
 
 		if (listen->options & LISTENER_BOUND)
@@ -3775,6 +4238,8 @@ int	_test_listen(ConfigFile *conf, ConfigEntry *ce)
 	char	    *port;
 	int	    start, end;
 	int	    errors = 0;
+	char has_options = 0;
+	OperFlag    *ofp;
 
 	if (!ce->ce_vardata)
 	{
@@ -3807,10 +4272,18 @@ int	_test_listen(ConfigFile *conf, ConfigEntry *ce)
 #ifdef INET6
 	if ((strlen(ip) > 6) && !strchr(ip, ':') && isdigit(ip[strlen(ip)-1]))
 	{
-		config_error("%s:%i: listen: ip fijada en '%s' (ipv4) en un ircd IPv6, "
-		              "usa ::ffff:1.2.3.4",
+		char crap[32];
+		if (inet_pton(AF_INET, ip, crap) != 0)
+		{
+			char ipv6buf[128];
+			snprintf(ipv6buf, sizeof(ipv6buf), "[::ffff:%s]:%s", ip, port);
+			ce->ce_vardata = strdup(ipv6buf);
+		} else {
+		/* Insert IPv6 validation here */
+			config_error("%s:%i: listen: '%s' parece IPv4 pero no es una dirección correcta.",
 					ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ip);
-		return 1;
+			return 1;
+		}
 	}
 #endif
 	port_range(port, &start, &end);
@@ -3849,43 +4322,51 @@ int	_test_listen(ConfigFile *conf, ConfigEntry *ce)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: listen item sin variable de nombre",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"listen");
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "options"))
 		{
-			if (!cep->ce_entries)
+			if (has_options)
 			{
-				config_error("%s:%i: listen::%s sin parámetro",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "listen::options");
+				continue;
 			}
+			has_options = 1;
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
 				if (!cepp->ce_varname)
 				{
-					config_error("%s:%i: listen::options item sin variable de nombre",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-					errors++; continue;
+					config_error_blank(cepp->ce_fileptr->cf_filename, 
+						cepp->ce_varlinenum, "listen::options");
+					errors++;
+					continue;
 				}
-				if (!config_binary_flags_search(_ListenerFlags, cepp->ce_varname, sizeof(_ListenerFlags)/sizeof(_ListenerFlags[0])))
+				if (!(ofp = config_binary_flags_search(_ListenerFlags, cepp->ce_varname, ARRAY_SIZEOF(_ListenerFlags))))
 				{
-					config_error("%s:%i: opción desconocida listen '%s'",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
-						cepp->ce_varname);
-					errors++; continue;
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename, 
+						cepp->ce_varlinenum, "class", cepp->ce_varname);
+					errors++;
+					continue;
 				}
+#ifndef USE_SSL
+				else if (ofp->flag & LISTENER_SSL)
+				{
+					config_warn("%s:%i: listen con opción SSL en una compilación sin soporte SSL",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				}
+#endif
 			}
 		}
 		else
 		{
-			config_error("%s:%i: directriz desconocida listen::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
-			errors++; continue;
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"listen", cep->ce_varname);
+			errors++;
+			continue;
 		}
 
 	}
@@ -3919,57 +4400,56 @@ int	_conf_allow(ConfigFile *conf, ConfigEntry *ce)
 		}
 	}
 	allow = MyMallocEx(sizeof(ConfigItem_allow));
-	cep = config_find_entry(ce->ce_entries, "ip");
-	allow->ip = strdup(cep->ce_vardata);
-	/* CIDR */
-	tmp.type = parse_netmask(allow->ip, &tmp);
-	if (tmp.type != HM_HOST)
-	{
-		allow->netmask = MyMallocEx(sizeof(struct irc_netmask));
-		bcopy(&tmp, allow->netmask, sizeof(struct irc_netmask));
-	}
 	
-	cep = config_find_entry(ce->ce_entries, "hostname");
-	allow->hostname = strdup(cep->ce_vardata);
-	if ((cep = config_find_entry(ce->ce_entries, "password")))
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		allow->auth = Auth_ConvertConf2AuthStruct(cep);
-	}
-	cep = config_find_entry(ce->ce_entries, "class");
-	allow->class = Find_class(cep->ce_vardata);
-	if (!allow->class)
-	{
-		config_status("%s:%i: illegal allow::class, clase desconocida '%s'. Se usará la clase 'default'",
-			cep->ce_fileptr->cf_filename,
-			cep->ce_varlinenum,
-			cep->ce_vardata);
-			allow->class = default_class;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "maxperip")))
-	{
-		allow->maxperip = atoi(cep->ce_vardata);
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "redirect-server")))
-	{
-		allow->server = strdup(cep->ce_vardata);
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "redirect-port")))
-	{
-		allow->port = atoi(cep->ce_vardata);
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "options")))
-	{
-		for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
-			if (!strcmp(cepp->ce_varname, "noident"))
-				allow->flags.noident = 1;
-			else if (!strcmp(cepp->ce_varname, "useip")) 
-				allow->flags.useip = 1;
-			else if (!strcmp(cepp->ce_varname, "ssl")) 
-				allow->flags.ssl = 1;
-			else if (!strcmp(cepp->ce_varname, "nopasscont")) 
-				allow->flags.nopasscont = 1;
+		if (!strcmp(cep->ce_varname, "ip"))
+		{
+			allow->ip = strdup(cep->ce_vardata);
+			/* CIDR */
+			tmp.type = parse_netmask(allow->ip, &tmp);
+			if (tmp.type != HM_HOST)
+			{
+				allow->netmask = MyMallocEx(sizeof(struct irc_netmask));
+				bcopy(&tmp, allow->netmask, sizeof(struct irc_netmask));
+			}
 		}
-	
+		else if (!strcmp(cep->ce_varname, "hostname"))
+			allow->hostname = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "password"))
+			allow->auth = Auth_ConvertConf2AuthStruct(cep);
+		else if (!strcmp(cep->ce_varname, "class"))
+		{
+			allow->class = Find_class(cep->ce_vardata);
+			if (!allow->class || (allow->class->flag.temporary == 1))
+			{
+				config_status("%s:%i: allow::class prohibida, clase desconocida '%s', se usará 'default'",
+					cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum,
+					cep->ce_vardata);
+					allow->class = default_class;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "maxperip"))
+			allow->maxperip = atoi(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "redirect-server"))
+			allow->server = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "redirect-port"))
+			allow->port = atoi(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) 
+			{
+				if (!strcmp(cepp->ce_varname, "noident"))
+					allow->flags.noident = 1;
+				else if (!strcmp(cepp->ce_varname, "useip")) 
+					allow->flags.useip = 1;
+				else if (!strcmp(cepp->ce_varname, "ssl")) 
+					allow->flags.ssl = 1;
+				else if (!strcmp(cepp->ce_varname, "nopasscont")) 
+					allow->flags.nopasscont = 1;
+			}
+		}
 	}
 	AddListItem(allow, conf_allow);
 	return 1;
@@ -3980,6 +4460,8 @@ int	_test_allow(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry *cep, *cepp;
 	int		errors = 0;
 	Hook *h;
+	char has_ip = 0, has_hostname = 0, has_maxperip = 0, has_password = 0, has_class = 0;
+	char has_redirectserver = 0, has_redirectport = 0, has_options = 0;
 	
 	if (ce->ce_vardata)
 	{
@@ -4027,166 +4509,143 @@ int	_test_allow(ConfigFile *conf, ConfigEntry *ce)
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname)
+		if (strcmp(cep->ce_varname, "options") && config_is_blankorempty(cep, "allow"))
 		{
-			config_status("%s:%i: allow item sin nombre de variable",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "ip"))
 		{
-			if (!cep->ce_vardata)
+			if (has_ip)
 			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::ip");
+				continue;
 			}
-		} else
-		if (!strcmp(cep->ce_varname, "maxperip"))
-		{
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		} else
-		if (!strcmp(cep->ce_varname, "hostname"))
-		{
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		} else
-		if (!strcmp(cep->ce_varname, "password"))
-		{
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		} else
-		if (!strcmp(cep->ce_varname, "class"))
-		{
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		}
-		else if (!strcmp(cep->ce_varname, "redirect-server"))
-		{
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		}
-		else if (!strcmp(cep->ce_varname, "redirect-port")) {
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: allow::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
-			}
-		}
-		else if (!strcmp(cep->ce_varname, "options")) {
-		}
-		else
-		{
-			config_error("%s:%i: directriz desconocida allow::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
-			errors++; continue;
-		}
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "ip")))
-	{
-		config_error("%s:%i: allow::ip falta",
-			ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
-		errors++;
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "hostname")))
-	{
-		config_error("%s:%i: allow::hostname falta",
-			ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
-		errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "password")))
-	{
-		/* some auth check stuff? */
-		if (Auth_CheckError(cep) < 0)
-			errors++;
-	}
-	if (!(cep = config_find_entry(ce->ce_entries, "class")))
-	{
-		config_error("%s:%i: allow::class missing",
-			ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
-		errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "maxperip")))
-	{
-		if (cep->ce_vardata)
+			has_ip = 1;
+		} 
+		else if (!strcmp(cep->ce_varname, "maxperip"))
 		{
 			int v = atoi(cep->ce_vardata);
+			if (has_maxperip)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::maxperip");
+				continue;
+			}
+			has_maxperip = 1;
 			if ((v <= 0) || (v > 65535))
 			{
-				config_error("%s:%i: allow::maxperip valor erróneo (>0)",
+				config_error("%s:%i: allow::maxperip con un valor ilegal (debe estar entre 1-65535)",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 			}
 		}
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "options")))
-	{
-		if (!cep->ce_entries)
+		else if (!strcmp(cep->ce_varname, "hostname"))
 		{
-			config_error("%s:%i: allow::%s sin parámetro",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++;
-		}
-		for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
-			if (!strcmp(cepp->ce_varname, "noident"))
-			{}
-			else if (!strcmp(cepp->ce_varname, "useip")) 
-			{}
-			else if (!strcmp(cepp->ce_varname, "ssl")) 
-			{}
-			else if (!strcmp(cepp->ce_varname, "nopasscont")) 
-			{}
-			else
+			if (has_hostname)
 			{
-				config_error("%s:%i: allow::options item desconocido '%s'",
-					cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, 
-					cepp->ce_varname);
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::hostname");
+				continue;
+			}
+			has_hostname = 1;
+		} 
+		else if (!strcmp(cep->ce_varname, "password"))
+		{
+			if (has_password)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::password");
+				continue;
+			}
+			has_password = 1;
+			/* some auth check stuff? */
+			if (Auth_CheckError(cep) < 0)
 				errors++;
+		}
+		else if (!strcmp(cep->ce_varname, "class"))
+		{
+			if (has_class)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::class");
+				continue;
+			}
+			has_class = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "redirect-server"))
+		{
+			if (has_redirectserver)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::redirect-server");
+				continue;
+			}
+			has_redirectserver = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "redirect-port"))
+		{
+			if (has_redirectport)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::redirect-port");
+				continue;
+			}
+			has_redirectport = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
+			if (has_options)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow::options");
+				continue;
+			}
+			has_options = 1;
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "noident"))
+				{}
+				else if (!strcmp(cepp->ce_varname, "useip")) 
+				{}
+				else if (!strcmp(cepp->ce_varname, "ssl")) 
+				{}
+				else if (!strcmp(cepp->ce_varname, "nopasscont")) 
+				{}
+				else
+				{
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "allow", cepp->ce_varname);
+					errors++;
+				}
 			}
 		}
-	
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"allow", cep->ce_varname);
+			errors++;
+			continue;
+		}
+	}
+	if (!has_ip)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"allow::ip");
+		errors++;
+	}
+	if (!has_hostname)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"allow::hostname");
+		errors++;
+	}
+	if (!has_class)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"allow::class");
+		errors++;
 	}
 	return errors;
 }
@@ -4212,33 +4671,36 @@ int	_test_allow_channel(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry		*cep;
 	int			errors = 0;
-	
+	char			has_channel = 0;	
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname || !cep->ce_vardata)
+		if (config_is_blankorempty(cep, "allow channel"))
 		{
-			config_error("%s:%i: allow channel item sin contenidos",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "channel"))
-		{
-		}
+			has_channel = 1;
 		else
 		{
-			config_error("%s:%i: unknown allow channel directive %s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
-				cep->ce_varname);
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"allow channel", cep->ce_varname);
 			errors++;
 		}
+	}
+	if (!has_channel)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"allow channel::channel");
+		errors++;
 	}
 	return errors;
 }
 
 int	_conf_allow_dcc(ConfigFile *conf, ConfigEntry *ce)
 {
-ConfigItem_allow_dcc *allow = NULL;
-ConfigEntry *cep;
+	ConfigItem_allow_dcc *allow = NULL;
+	ConfigEntry *cep;
 
 	allow = MyMallocEx(sizeof(ConfigItem_allow_dcc));
 	
@@ -4259,42 +4721,80 @@ ConfigEntry *cep;
 
 int	_test_allow_dcc(ConfigFile *conf, ConfigEntry *ce)
 {
-ConfigEntry *cep;
-int errors = 0, gotfilename=0;
+	ConfigEntry *cep;
+	int errors = 0, has_filename = 0, has_soft = 0;
 	
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname || !cep->ce_vardata)
+		if (config_is_blankorempty(cep, "allow dcc"))
 		{
-			config_error("%s:%i: allow dcc item without contents",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "filename"))
-			gotfilename=1;
+		{
+			if (has_filename)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "allow dcc::filename");
+				continue;
+			}				
+			has_filename = 1;
+		}
 		else if (!strcmp(cep->ce_varname, "soft"))
-			;
+		{
+			if (has_soft)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "allow dcc::soft");
+				continue;
+			}
+			has_soft = 1;
+		}
 		else
 		{
-			config_error("%s:%i: directriz desconocida allow channel %s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
-				cep->ce_varname);
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"allow dcc", cep->ce_varname);
 			errors++;
 		}
 	}
-	if (!gotfilename)
+	if (!has_filename)
 	{
-		config_error("%s:%i: allow dcc: no 'filename' specified.",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"allow dcc::filename");
 		errors++;
 	}
 	return errors;
 }
 
+void create_tkl_except(char *mask, char *type)
+{
+	ConfigItem_except *ca;
+	struct irc_netmask tmp;
+	OperFlag *opf;
+	ca = MyMallocEx(sizeof(ConfigItem_except));
+	ca->mask = strdup(mask);
+	
+	opf = config_binary_flags_search(ExceptTklFlags, type, ARRAY_SIZEOF(ExceptTklFlags));
+	ca->type = opf->flag;
+	
+	if (ca->type & TKL_KILL || ca->type & TKL_ZAP || ca->type & TKL_SHUN)
+	{
+		tmp.type = parse_netmask(ca->mask, &tmp);
+		if (tmp.type != HM_HOST)
+		{
+			ca->netmask = MyMallocEx(sizeof(struct irc_netmask));
+			bcopy(&tmp, ca->netmask, sizeof(struct irc_netmask));
+		}
+	}
+	ca->flag.type = CONF_EXCEPT_TKL;
+	AddListItem(ca, conf_except);
+}
+
 int     _conf_except(ConfigFile *conf, ConfigEntry *ce)
 {
 
-	ConfigEntry *cep, *cep2, *cep3;
+	ConfigEntry *cep;
 	ConfigItem_except *ca;
 	Hook *h;
 	struct irc_netmask tmp;
@@ -4341,34 +4841,22 @@ int     _conf_except(ConfigFile *conf, ConfigEntry *ce)
 	}
 #endif
 	else if (!strcmp(ce->ce_vardata, "tkl")) {
-		cep2 = config_find_entry(ce->ce_entries, "mask");
-		cep3 = config_find_entry(ce->ce_entries, "type");
-		ca = MyMallocEx(sizeof(ConfigItem_except));
-		ca->mask = strdup(cep2->ce_vardata);
-		if (!strcmp(cep3->ce_vardata, "gline"))
-			ca->type = TKL_KILL|TKL_GLOBAL;
-		else if (!strcmp(cep3->ce_vardata, "qline"))
-			ca->type = TKL_NICK;
-		else if (!strcmp(cep3->ce_vardata, "gqline"))
-			ca->type = TKL_NICK|TKL_GLOBAL;
-		else if (!strcmp(cep3->ce_vardata, "gzline"))
-			ca->type = TKL_ZAP|TKL_GLOBAL;
-		else if (!strcmp(cep3->ce_vardata, "shun"))
-			ca->type = TKL_SHUN|TKL_GLOBAL;
-		else 
-		{}
-		
-		if (ca->type & TKL_KILL || ca->type & TKL_ZAP || ca->type & TKL_SHUN)
+		ConfigEntry *mask = NULL, *type = NULL;
+		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			tmp.type = parse_netmask(ca->mask, &tmp);
-			if (tmp.type != HM_HOST)
-			{
-				ca->netmask = MyMallocEx(sizeof(struct irc_netmask));
-				bcopy(&tmp, ca->netmask, sizeof(struct irc_netmask));
-			}
+			if (!strcmp(cep->ce_varname, "mask"))
+				mask = cep;
+			else if (!strcmp(cep->ce_varname, "type"))
+				type = cep;
 		}
-		ca->flag.type = CONF_EXCEPT_TKL;
-		AddListItem(ca, conf_except);
+		if (type->ce_vardata)
+			create_tkl_except(mask->ce_vardata, type->ce_vardata);
+		else
+		{
+			ConfigEntry *cepp;
+			for (cepp = type->ce_entries; cepp; cepp = cepp->ce_next)
+				create_tkl_except(mask->ce_vardata, cepp->ce_varname);
+		}
 	}
 	else {
 		int value;
@@ -4384,10 +4872,10 @@ int     _conf_except(ConfigFile *conf, ConfigEntry *ce)
 
 int     _test_except(ConfigFile *conf, ConfigEntry *ce)
 {
-
-	ConfigEntry *cep, *cep3;
+	ConfigEntry *cep;
 	int	    errors = 0;
 	Hook *h;
+	char has_mask = 0;
 
 	if (!ce->ce_vardata)
 	{
@@ -4396,122 +4884,190 @@ int     _test_except(ConfigFile *conf, ConfigEntry *ce)
 		return 1;
 	}
 
-	if (!strcmp(ce->ce_vardata, "ban")) {
-		if (!config_find_entry(ce->ce_entries, "mask"))
-		{
-			config_error("%s:%i: except ban sin máscara",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			return 1;
-		}
+	if (!strcmp(ce->ce_vardata, "ban")) 
+	{
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_vardata)
+			if (config_is_blankorempty(cep, "except ban"))
 			{
-				config_error("%s:%i: except ban item sin contenidos",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 				continue;
 			}
 			if (!strcmp(cep->ce_varname, "mask"))
 			{
+				if (has_mask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+						cep->ce_varlinenum, "except ban::mask");
+					continue;
+				}
+				has_mask = 1;
 			}
 			else
 			{
-				config_error("%s:%i: directriz desconocida except ban %s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "except ban", cep->ce_varname);
 				errors++;
 				continue;
 			}
+		}
+		if (!has_mask)
+		{
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"except ban::mask");
+			errors++;
 		}
 		return errors;
 	}
 #ifdef THROTTLING
 	else if (!strcmp(ce->ce_vardata, "throttle")) {
-		if (!config_find_entry(ce->ce_entries, "mask"))
-		{
-			config_error("%s:%i: except throttle sin máscara",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			return 1;
-		}
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_vardata)
+			if (config_is_blankorempty(cep, "except throttle"))
 			{
-				config_error("%s:%i: except throttle item sin contenidos",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 				continue;
 			}
 			if (!strcmp(cep->ce_varname, "mask"))
 			{
+				if (has_mask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+						cep->ce_varlinenum, "except throttle::mask");
+					continue;
+				}
+				has_mask = 1;
 			}
 			else
 			{
-				config_error("%s:%i: directriz desconocida except throttle %s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "except throttle", cep->ce_varname);
 				errors++;
 				continue;
 			}
+		}
+		if (!has_mask)
+		{
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"except throttle::mask");
+			errors++;
 		}
 		return errors;
 	}
 #endif
 	else if (!strcmp(ce->ce_vardata, "tkl")) {
-		if (!config_find_entry(ce->ce_entries, "mask"))
-		{
-			config_error("%s:%i: except tkl sin máscara",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			return 1;
-		}
-		if (!(cep3 = config_find_entry(ce->ce_entries, "type")))
-		{
-			config_error("%s:%i: except tkl sin tipo",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			return 1;
-		}
+		char has_type = 0;
+
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_vardata)
+			if (!cep->ce_varname)
 			{
-				config_error("%s:%i: except tkl item sin contenidos",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				config_error_blank(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "except tkl");
 				errors++;
 				continue;
 			}
 			if (!strcmp(cep->ce_varname, "mask"))
 			{
+				if (!cep->ce_vardata)
+				{
+					config_error_empty(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "except tkl", "mask");
+					errors++;
+					continue;
+				}
+				if (has_mask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "except tkl::mask");
+					continue;
+				}
+				has_mask = 1;
 			}
-			else if (!strcmp(cep->ce_varname, "type")) {}
+			else if (!strcmp(cep->ce_varname, "type"))
+			{
+				if (has_type)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "except tkl::type");
+					continue;
+				}					
+				if (cep->ce_vardata)
+				{
+					if (!strcmp(cep->ce_vardata, "tkline") || 
+					    !strcmp(cep->ce_vardata, "tzline"))
+					{
+						config_error("%s:%i: except tkl de tipo %s no se"
+							     " recomienda. Use except ban {}",
+							     cep->ce_fileptr->cf_filename,
+							     cep->ce_varlinenum, 
+							     cep->ce_vardata);
+						errors++;
+					}
+					if (!config_binary_flags_search(ExceptTklFlags, 
+					     cep->ce_vardata, ARRAY_SIZEOF(ExceptTklFlags)))
+					{
+						config_error("%s:%i: tipo except tkl desconocido %s",
+							     cep->ce_fileptr->cf_filename, 
+							     cep->ce_varlinenum,
+							     cep->ce_vardata);
+						return 1;
+					}
+				}
+				else if (cep->ce_entries)
+				{
+					ConfigEntry *cepp;
+					for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+					{
+						if (!strcmp(cepp->ce_varname, "tkline") || 
+						    !strcmp(cepp->ce_varname, "tzline"))
+						{
+							config_error("%s:%i: except tkl de tipo %s no se"
+							     " recomienda. Use except ban {}",
+								     cepp->ce_fileptr->cf_filename,
+								     cepp->ce_varlinenum, 
+								     cepp->ce_varname);
+							errors++;
+						}
+						if (!config_binary_flags_search(ExceptTklFlags, 
+						     cepp->ce_varname, ARRAY_SIZEOF(ExceptTklFlags)))
+						{
+							config_error("%s:%i: tipo except tkl desconocido %s",
+								     cepp->ce_fileptr->cf_filename, 
+								     cepp->ce_varlinenum,
+								     cepp->ce_varname);
+							return 1;
+						}
+					}
+				}
+				else
+				{
+					config_error_empty(cep->ce_fileptr->cf_filename, 
+						cep->ce_varlinenum, "except tkl", "type");
+					errors++;
+					continue;
+				}
+				has_type = 1;
+			}
 			else
 			{
-				config_error("%s:%i: directriz desconocida except tkl %s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "except tkl", cep->ce_varname);
 				errors++;
 				continue;
 			}
 		}
-		if (!strcmp(cep3->ce_vardata, "gline")) {}
-		else if (!strcmp(cep3->ce_vardata, "qline")) {}
-		else if (!strcmp(cep3->ce_vardata, "gqline")) {}
-		else if (!strcmp(cep3->ce_vardata, "gzline")){}
-		else if (!strcmp(cep3->ce_vardata, "shun")) {}
-		else if (!strcmp(cep3->ce_vardata, "tkline")) {
-			config_error("%s:%i: except tkl para tkline inválido. Usa ban {}", 
-				cep3->ce_fileptr->cf_filename, cep3->ce_varlinenum);
-			errors++;
-		}
-		else if (!strcmp(cep3->ce_vardata, "tzline")) {
-			config_error("%s:%i: except tkl para tzline inválido. Usa ban {}", 
-				cep3->ce_fileptr->cf_filename, cep3->ce_varlinenum);
-			errors++;
-		}
-		else 
+		if (!has_mask)
 		{
-			config_error("%s:%i: tipo desconocido except tkl %s",
-				cep3->ce_fileptr->cf_filename, cep3->ce_varlinenum,
-				cep3->ce_vardata);
+			config_error("%s:%i: except tkl sin máscara",
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 			return 1;
-
+		}
+		if (!has_type)
+		{
+			config_error("%s:%i: except tkl sin tipo",
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+			return 1;
 		}
 		return errors;
 	}
@@ -4562,34 +5118,41 @@ int	_conf_vhost(ConfigFile *conf, ConfigEntry *ce)
 	ConfigItem_oper_from *from;
 	ConfigEntry *cep, *cepp;
 	vhost = MyMallocEx(sizeof(ConfigItem_vhost));
-	cep = config_find_entry(ce->ce_entries, "vhost");
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		char *user, *host;
-		user = strtok(cep->ce_vardata, "@");
-		host = strtok(NULL, "");
-		if (!host)
-			vhost->virthost = strdup(user);
-		else {
-			vhost->virtuser = strdup(user);
-			vhost->virthost = strdup(host);
-		}
-	}
-	cep = config_find_entry(ce->ce_entries, "login");
-	vhost->login = strdup(cep->ce_vardata);	
-	cep = config_find_entry(ce->ce_entries, "password");
-	vhost->auth = Auth_ConvertConf2AuthStruct(cep);
-	cep = config_find_entry(ce->ce_entries, "from");
-	for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
-	{
-		if (!strcmp(cepp->ce_varname, "userhost"))
+		if (!strcmp(cep->ce_varname, "vhost"))
 		{
-			from = MyMallocEx(sizeof(ConfigItem_oper_from));
-			ircstrdup(from->name, cepp->ce_vardata);
-			AddListItem(from, vhost->from);
+			char *user, *host;
+			user = strtok(cep->ce_vardata, "@");
+			host = strtok(NULL, "");
+			if (!host)
+				vhost->virthost = strdup(user);
+			else 
+			{
+				vhost->virtuser = strdup(user);
+				vhost->virthost = strdup(host);
+			}
 		}
+		else if (!strcmp(cep->ce_varname, "login"))
+			vhost->login = strdup(cep->ce_vardata);	
+		else if (!strcmp(cep->ce_varname, "password"))
+			vhost->auth = Auth_ConvertConf2AuthStruct(cep);
+		else if (!strcmp(cep->ce_varname, "from"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "userhost"))
+				{
+					from = MyMallocEx(sizeof(ConfigItem_oper_from));
+					ircstrdup(from->name, cepp->ce_vardata);
+					AddListItem(from, vhost->from);
+				}
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "swhois"))
+			vhost->swhois = strdup(cep->ce_vardata);
 	}
-	if ((cep = config_find_entry(ce->ce_entries, "swhois")))
-		vhost->swhois = strdup(cep->ce_vardata);
 	AddListItem(vhost, conf_vhost);
 	return 1;
 }
@@ -4597,181 +5160,183 @@ int	_conf_vhost(ConfigFile *conf, ConfigEntry *ce)
 int	_test_vhost(ConfigFile *conf, ConfigEntry *ce)
 {
 	int errors = 0;
-	ConfigEntry *vhost, *swhois, *from, *login, *password, *cep;
-	if (!ce->ce_entries)
+	ConfigEntry *cep;
+	char has_vhost = 0, has_login = 0, has_password = 0, has_swhois = 0, has_from = 0;
+	char has_userhost = 0;
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		config_error("%s:%i: empty vhost block", 
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		return 1;
-	}
-	if (!(vhost = config_find_entry(ce->ce_entries, "vhost")))
-	{
-		config_error("%s:%i: vhost::vhost falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		char *at, *tmp, *host;
-		if (!vhost->ce_vardata)
+		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: vhost::vhost sin contenidos",
-				vhost->ce_fileptr->cf_filename, vhost->ce_varlinenum);
+			config_error_blank(cep->ce_fileptr->cf_filename,
+				cep->ce_varlinenum, "vhost");
 			errors++;
-		}	
-		if ((at = strchr(vhost->ce_vardata, '@')))
+			continue;
+		}
+		if (!strcmp(cep->ce_varname, "vhost"))
 		{
-			for (tmp = vhost->ce_vardata; tmp != at; tmp++)
+			char *at, *tmp, *host;
+			if (has_vhost)
 			{
-				if (*tmp == '~' && tmp == vhost->ce_vardata)
-					continue;
-				if (!isallowed(*tmp))
-					break;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "vhost::vhost");
+				continue;
 			}
-			if (tmp != at)
+			has_vhost = 1;
+			if (!cep->ce_vardata)
 			{
-				config_error("%s:%i: vhost::vhost contiene una ident inválida",
-					ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "vhost", "vhost");
 				errors++;
-			}
-			host = at+1;
-		}
-		else
-			host = vhost->ce_vardata;
-		if (!*host)
-		{
-			config_error("%s:%i: vhost::vhost no tiene host relacionado",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			errors++;
-		}
-		else
-		{
-			for (; *host; host++)
+				continue;
+			}	
+			if ((at = strchr(cep->ce_vardata, '@')))
 			{
-				if (!isallowed(*host) && *host != ':')
+				for (tmp = cep->ce_vardata; tmp != at; tmp++)
 				{
-					config_error("%s:%i: vhost::vhost contiene host erróneo",
-						ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-					errors++;
-					break;
+					if (*tmp == '~' && tmp == cep->ce_vardata)
+						continue;
+					if (!isallowed(*tmp))
+						break;
 				}
-			}
-		}
-	}
-	if (!(login = config_find_entry(ce->ce_entries, "login")))
-	{
-		config_error("%s:%i: vhost::login falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-		
-	}
-	else
-	{
-		if (!login->ce_vardata)
-		{
-			config_error("%s:%i: vhost::login sin contenidos",
-				login->ce_fileptr->cf_filename, login->ce_varlinenum);
-			errors++;
-		}
-	}
-	if (!(password = config_find_entry(ce->ce_entries, "password")))
-	{
-		config_error("%s:%i: vhost::password falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (Auth_CheckError(password) < 0)
-			errors++;
-	}
-	if (!(from = config_find_entry(ce->ce_entries, "from")))
-	{
-		config_error("%s:%i: vhost::from falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (!from->ce_entries)
-		{
-			config_error("%s:%i: vhost::from block sin contenidos",
-				from->ce_fileptr->cf_filename, from->ce_varlinenum);
-			errors++;
-		}
-		else
-		{
-			for (cep = from->ce_entries; cep; cep = cep->ce_next)
-			{
-				if (!cep->ce_varname)
+				if (tmp != at)
 				{
-					config_error("%s:%i: vhost::from block item sin variable de nombre",
+					config_error("%s:%i: vhost::vhost contiene una ident incorrecta",
 						cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 					errors++;
+				}
+				host = at+1;
+			}
+			else
+				host = cep->ce_vardata;
+			if (!*host)
+			{
+				config_error("%s:%i: vhost::vhost contiene una ident incorrecta",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				errors++;
+			}
+			else
+			{
+				if (!valid_host(host))
+				{
+					config_error("%s:%i: vhost::vhost contiene host erróneo",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+					errors++;
+				}
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "login"))
+		{
+			if (has_login)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "vhost::login");
+			}
+			has_login = 1;
+			if (!cep->ce_vardata)
+			{
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "vhost", "login");
+				errors++;
+				continue;
+			}	
+		}
+		else if (!strcmp(cep->ce_varname, "password"))
+		{
+			if (has_password)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "vhost::password");
+			}
+			has_password = 1;
+			if (!cep->ce_vardata)
+			{
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "vhost", "password");
+				errors++;
+				continue;
+			}	
+			if (Auth_CheckError(cep) < 0)
+				errors++;
+		}
+		else if (!strcmp(cep->ce_varname, "from"))
+		{
+			ConfigEntry *cepp;
+
+			if (has_from)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "vhost::from");
+				continue;
+			}
+			has_from = 1;
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (config_is_blankorempty(cepp, "vhost::from"))
+				{
+					errors++;
 					continue;
 				}
-				
-				if (!strcmp(cep->ce_varname, "userhost"))
-				{
-					if (!cep->ce_vardata)
-					{
-						config_error("%s:%i: vhost::from::userhost item sin contenidos",
-							cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-						errors++;
-						continue;	
-					}
-				}
+				if (!strcmp(cepp->ce_varname, "userhost"))
+					has_userhost = 1;
 				else
 				{
-					config_error("%s:%i: vhost::from desconocido block item '%s'",
-						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
-						cep->ce_varname);
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "vhost::from",
+						cepp->ce_varname);
 					errors++;
 					continue;	
 				}
 			}
 		}
-	}
-	if ((swhois = config_find_entry(ce->ce_entries, "swhois")))
-	{
-		if (!swhois->ce_vardata)
+		else if (!strcmp(cep->ce_varname, "swhois"))
 		{
-			config_error("%s:%i: vhost::swhois sin contenidos",
-				swhois->ce_fileptr->cf_filename, swhois->ce_varlinenum);
-			errors++;
-		}
-	}
-	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
-	{
-		if (!cep->ce_varname)
-		{
-			config_error("%s:%i: vhost item sin contenidos",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
-		}
-		if (!cep->ce_vardata)
-		{
-			if (strcmp(cep->ce_varname, "from"))
+			if (has_swhois)
 			{
-				config_error("%s:%i: vhost item sin contenidos",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "vhost::swhois");
+				continue;
 			}
+			has_swhois = 1;
 		}
-		if (!stricmp(cep->ce_varname, "vhost")) {}
-		else if (!strcmp(cep->ce_varname, "login")) {}
-		else if (!strcmp(cep->ce_varname, "password")) {}
-		else if (!strcmp(cep->ce_varname, "from")) {}
-		else if (!strcmp(cep->ce_varname, "swhois")) {}
 		else
 		{
-			config_error("%s:%i: directriz desconocida unknown vhost::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
-				cep->ce_varname);
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"vhost", cep->ce_varname);
 			errors++;
 		}
 	}
-
+	if (!has_vhost)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"vhost::vhost");
+		errors++;
+	}
+	if (!has_login)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"vhost::login");
+		errors++;
+		
+	}
+	if (!has_password)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"vhost::password");
+		errors++;
+	}
+	if (!has_from)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"vhost::from");
+		errors++;
+	}
+	if (!has_userhost)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"vhost::userhost");
+		errors++;
+	}
 	return errors;
 }
 
@@ -4794,7 +5359,7 @@ static ConfigItem_badword *copy_badword_struct(ConfigItem_badword *ca, int regex
 
 int     _conf_badword(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry *cep;
+	ConfigEntry *cep, *word = NULL;
 	ConfigItem_badword *ca;
 	char *tmp;
 	short regex = 0;
@@ -4806,25 +5371,34 @@ int     _conf_badword(ConfigFile *conf, ConfigEntry *ce)
 	ca = MyMallocEx(sizeof(ConfigItem_badword));
 	ca->action = BADWORD_REPLACE;
 	regflags = REG_ICASE|REG_EXTENDED;
-	if ((cep = config_find_entry(ce->ce_entries, "action")))
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!strcmp(cep->ce_vardata, "block"))
+		if (!strcmp(cep->ce_varname, "action"))
 		{
-			ca->action = BADWORD_BLOCK;
-			/* If it is set to just block, then we don't need to worry about
-			 * replacements 
-			 */
-			regflags |= REG_NOSUB;
+			if (!strcmp(cep->ce_vardata, "block"))
+			{
+				ca->action = BADWORD_BLOCK;
+				/* If it is set to just block, then we don't need to worry about
+				 * replacements 
+				 */
+				regflags |= REG_NOSUB;
+			}
 		}
+		else if (!strcmp(cep->ce_varname, "replace"))
+		{
+			ircstrdup(ca->replace, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "word"))
+			word = cep;
 	}
-	cep = config_find_entry(ce->ce_entries, "word");
 #ifdef FAST_BADWORD_REPLACE
 	/* The fast badwords routine can do: "blah" "*blah" "blah*" and "*blah*",
 	 * in all other cases use regex.
 	 */
-	for (tmp = cep->ce_vardata; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
-			if ((cep->ce_vardata == tmp) && (*tmp == '*')) {
+	for (tmp = word->ce_vardata; *tmp; tmp++) {
+		if (!isalnum(*tmp) && !(*tmp >= 128)) {
+			if ((word->ce_vardata == tmp) && (*tmp == '*')) {
 				ast_l = 1; /* Asterisk at the left */
 				continue;
 			}
@@ -4836,16 +5410,19 @@ int     _conf_badword(ConfigFile *conf, ConfigEntry *ce)
 			break;
 		}
 	}
-	if (regex) {
+	if (regex) 
+	{
 		ca->type = BADW_TYPE_REGEX;
-		ircstrdup(ca->word, cep->ce_vardata);
+		ircstrdup(ca->word, word->ce_vardata);
 		regcomp(&ca->expr, ca->word, regflags);
-	} else {
+	}
+	else
+	{
 		char *tmpw;
 		ca->type = BADW_TYPE_FAST;
-		ca->word = tmpw = MyMalloc(strlen(cep->ce_vardata) - ast_l - ast_r + 1);
+		ca->word = tmpw = MyMalloc(strlen(word->ce_vardata) - ast_l - ast_r + 1);
 		/* Copy except for asterisks */
-		for (tmp = cep->ce_vardata; *tmp; tmp++)
+		for (tmp = word->ce_vardata; *tmp; tmp++)
 			if (*tmp != '*')
 				*tmpw++ = *tmp;
 		*tmpw = '\0';
@@ -4855,29 +5432,28 @@ int     _conf_badword(ConfigFile *conf, ConfigEntry *ce)
 			ca->type |= BADW_TYPE_FAST_R;
 	}
 #else
-	for (tmp = cep->ce_vardata; *tmp; tmp++) {
-		if ((int)*tmp < 65 || (int)*tmp > 123) {
+	for (tmp = word->ce_vardata; *tmp; tmp++)
+	{
+		if (!isalnum(*tmp) && !(*tmp >= 128))
+		{
 			regex = 1;
 			break;
 		}
 	}
-	if (regex) {
-		ircstrdup(ca->word, cep->ce_vardata);
+	if (regex)
+	{
+		ircstrdup(ca->word, word->ce_vardata);
 	}
-	else {
-		ca->word = MyMalloc(strlen(cep->ce_vardata) + strlen(PATTERN) -1);
-		ircsprintf(ca->word, PATTERN, cep->ce_vardata);
+	else
+	{
+		ca->word = MyMalloc(strlen(word->ce_vardata) + strlen(PATTERN) -1);
+		ircsprintf(ca->word, PATTERN, word->ce_vardata);
 	}
 	/* Yes this is called twice, once in test, and once here, but it is still MUCH
 	   faster than calling it each time a message is received like before. -- codemastr
 	 */
 	regcomp(&ca->expr, ca->word, regflags);
 #endif
-	if ((cep = config_find_entry(ce->ce_entries, "replace"))) {
-		ircstrdup(ca->replace, cep->ce_vardata);
-	}
-	else
-		ca->replace = NULL;
 	if (!strcmp(ce->ce_vardata, "channel"))
 		AddListItem(ca, conf_badword_channel);
 	else if (!strcmp(ce->ce_vardata, "message"))
@@ -4893,16 +5469,12 @@ int     _conf_badword(ConfigFile *conf, ConfigEntry *ce)
 	return 1;
 }
 
-int _test_badword(ConfigFile *conf, ConfigEntry *ce) { 
+int _test_badword(ConfigFile *conf, ConfigEntry *ce) 
+{ 
 	int errors = 0;
-	ConfigEntry *word, *replace, *cep;
-	regex_t expr;
-	if (!ce->ce_entries)
-	{
-		config_error("%s:%i: badword block vacío", 
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		return 1;
-	}
+	ConfigEntry *cep;
+	char has_word = 0, has_replace = 0, has_action = 0, action = 'r';
+
 	if (!ce->ce_vardata)
 	{
 		config_error("%s:%i: badword sin tipo",
@@ -4915,87 +5487,87 @@ int _test_badword(ConfigFile *conf, ConfigEntry *ce) {
 				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 		return 1;
 	}
-	if (!(word = config_find_entry(ce->ce_entries, "word")))
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		config_error("%s:%i: badword::word falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else
-	{
-		if (!word->ce_vardata)
+		if (config_is_blankorempty(cep, "badword"))
 		{
-			config_error("%s:%i: badword::word sin contenidos",
-				word->ce_fileptr->cf_filename, word->ce_varlinenum);
 			errors++;
+			continue;
 		}
-		else 
+		if (!strcmp(cep->ce_varname, "word"))
 		{
-			char *errbuf = unreal_checkregex(word->ce_vardata,1,0);
-			if (errbuf)
+			char *errbuf;
+			if (has_word)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "badword::word");
+				continue;
+			}
+			has_word = 1;
+			if ((errbuf = unreal_checkregex(cep->ce_vardata,1,1)))
 			{
 				config_error("%s:%i: badword::%s regex no válida: %s",
-					word->ce_fileptr->cf_filename,
-					word->ce_varlinenum,
-					word->ce_varname, errbuf);
+					cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum,
+					cep->ce_varname, errbuf);
 				errors++;
 			}
 		}
-
-	}
-	if ((replace = config_find_entry(ce->ce_entries, "replace")))
-	{
-		if (!replace->ce_vardata)
-		{
-			config_error("%s:%i: badword::replace sin contenidos",
-				replace->ce_fileptr->cf_filename, replace->ce_varlinenum);
-			errors++;
-		}
-	}
-	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
-	{
-		if (!cep->ce_varname || !cep->ce_vardata)
-		{
-			config_error("%s:%i: badword item sin contenidos",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
-		}
-		if (!stricmp(cep->ce_varname, "word"))
-			;
 		else if (!strcmp(cep->ce_varname, "replace"))
-			;
+		{
+			if (has_replace)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "badword::replace");
+				continue;
+			}
+			has_replace = 1;
+		}
 		else if (!strcmp(cep->ce_varname, "action"))
 		{
-			if (!strcmp(cep->ce_vardata, "replace"))
-				;
-			else if (!strcmp(cep->ce_vardata, "block"))
+			if (has_action)
 			{
-				if (replace)
-				{
-					config_error("%s:%i: badword::action incompatible con badword::replace",
-						cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-					errors++;
-					continue;
-				}
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "badword::action");
+				continue;
 			}
+			has_action = 1;
+			if (!strcmp(cep->ce_vardata, "replace"))
+				action = 'r';
+			else if (!strcmp(cep->ce_vardata, "block"))
+				action = 'b';
 			else
 			{
 				config_error("%s:%i: action desconocida %s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
 					cep->ce_vardata);
 				errors++;
 			}
+				
 		}
 		else
 		{
-			config_error("%s:%i: directriz desconocida badword::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
-				cep->ce_varname);
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"badword", cep->ce_varname);
 			errors++;
 		}
 	}
 
-	
+	if (!has_word)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"badword::word");
+		errors++;
+	}
+	if (has_action)
+	{
+		if (has_replace && action == 'b')
+		{
+			config_error("%s:%i: badword::action es block pero existe badword::replace",
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+			errors++;
+		}
+	}
 	return errors; 
 }
 #endif
@@ -5003,44 +5575,64 @@ int _test_badword(ConfigFile *conf, ConfigEntry *ce) {
 int _conf_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep;
+	ConfigEntry *cepp;
 	aTKline *nl = MyMallocEx(sizeof(aTKline));
-	int target = 0, action = 0;
-	char *word;
+	char *word = NULL, *reason = NULL, *bantime = NULL;
+	int action = 0, target = 0;
+	char has_reason = 0, has_bantime = 0;
 	
-	cep = config_find_entry(ce->ce_entries, "regex");
-	word = cep->ce_vardata;
-		
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
+	{
+		if (!strcmp(cep->ce_varname, "regex"))
+		{
+			nl->reason = strdup(cep->ce_vardata);
+
+			word = cep->ce_vardata;
+		}
+		else if (!strcmp(cep->ce_varname, "target"))
+		{
+			if (cep->ce_vardata)
+				target = spamfilter_getconftargets(cep->ce_vardata);
+			else
+			{
+				for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+					target |= spamfilter_getconftargets(cepp->ce_varname);
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "action"))
+		{
+			action = banact_stringtoval(cep->ce_vardata);
+			nl->hostmask = strdup(cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "reason"))
+		{
+			has_reason = 1;
+			reason = cep->ce_vardata;
+		}
+		else if (!strcmp(cep->ce_varname, "ban-time"))
+		{
+			has_bantime = 1;
+			bantime = cep->ce_vardata;
+		}
+	}
 	nl->type = TKL_SPAMF;
 	nl->expire_at = 0;
 	nl->set_at = TStime();
-	nl->reason = strdup(word);
-
-	cep = config_find_entry(ce->ce_entries, "target");
-	if (cep->ce_vardata)
-		target = spamfilter_getconftargets(cep->ce_vardata);
-	else {
-		for (cep = cep->ce_entries; cep; cep = cep->ce_next)
-			target |= spamfilter_getconftargets(cep->ce_varname);
-	}
 
 	strncpyzt(nl->usermask, spamfilter_target_inttostring(target), sizeof(nl->usermask));
 	nl->subtype = target;
 
-	cep = config_find_entry(ce->ce_entries, "action");
-	action = banact_stringtoval(cep->ce_vardata);
-	nl->hostmask = strdup(cep->ce_vardata);
 	nl->setby = BadPtr(me.name) ? NULL : strdup(me.name); /* Hmm! */
-	
 	nl->ptr.spamf = unreal_buildspamfilter(word);
 	nl->ptr.spamf->action = action;
 
-	if ((cep = config_find_entry(ce->ce_entries, "reason")))
-		nl->ptr.spamf->tkl_reason = strdup(unreal_encodespace(cep->ce_vardata));
+	if (has_reason)
+		nl->ptr.spamf->tkl_reason = strdup(unreal_encodespace(reason));
 	else
 		nl->ptr.spamf->tkl_reason = strdup("(añadida por el ircd)");
 
-	if ((cep = config_find_entry(ce->ce_entries, "ban-time")))
-		nl->ptr.spamf->tkl_duration = config_checkval(cep->ce_vardata, CFG_TIME);
+	if (has_bantime)
+		nl->ptr.spamf->tkl_duration = config_checkval(bantime, CFG_TIME);
 	else
 		nl->ptr.spamf->tkl_duration = (SPAMFILTER_BAN_TIME ? SPAMFILTER_BAN_TIME : 86400);
 		
@@ -5050,105 +5642,159 @@ int _conf_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 
 int _test_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 {
-	ConfigEntry *cep;
+	ConfigEntry *cep, *cepp;
 	int errors = 0;
-	int got = 0;
 	char *regex = NULL, *reason = NULL;
+	char has_target = 0, has_regex = 0, has_action = 0, has_reason = 0, has_bantime = 0;
 	
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: spamfilter ítem vacío",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"spamfilter");
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "target"))
+		{
+			if (has_target)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter::target");
+				continue;
+			}
+			has_target = 1;
+			if (cep->ce_vardata)
+			{
+				if (!spamfilter_getconftargets(cep->ce_vardata))
+				{
+					config_error("%s:%i: tipo spamfilter desconocido '%s'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
+					errors++;
+				}
+			}
+			else if (cep->ce_entries)
+			{
+				for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+				{
+					if (!cepp->ce_varname)
+					{
+						config_error_blank(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, 
+							"spamfilter::target");
+						errors++;
+						continue;
+					}
+					if (!spamfilter_getconftargets(cepp->ce_varname))
+					{
+						config_error("%s:%i: destino spamfilter desconocido '%s'",
+							cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, cepp->ce_varname);
+						errors++;
+					}
+				}
+			}
+			else
+			{
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter", cep->ce_varname);
+				errors++;
+			}
 			continue;
+		}
 		if (!cep->ce_vardata)
 		{
-			config_error("%s:%i: spamfilter::%s sin valor",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
-			errors++; continue;
+			config_error_empty(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"spamfilter", cep->ce_varname);
+			errors++;
+			continue;
 		}
 		if (!strcmp(cep->ce_varname, "reason"))
-			reason = cep->ce_vardata;
-		if (!strcmp(cep->ce_varname, "regex") || !strcmp(cep->ce_varname, "action") ||
-		    !strcmp(cep->ce_varname, "reason") || !strcmp(cep->ce_varname, "ban-time"))
-			continue;
-		
-		config_error("%s:%i: directriz desconocida spamfilter::%s",
-			cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
-		errors++;
-	}
-
-	if (!(cep = config_find_entry(ce->ce_entries, "regex")))
-	{
-		config_error("%s:%i: spamfilter::regex falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	} else if (cep->ce_vardata) {
-		/* Check if it's a valid one */
-		char *errbuf = unreal_checkregex(cep->ce_vardata,0,0);
-		regex = cep->ce_vardata;
-		if (errbuf)
 		{
-			config_error("%s:%i: spamfilter::regex regex no válida: %s",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				errbuf);
-			errors++;
-		}
-	}
-
-	if (!(cep = config_find_entry(ce->ce_entries, "target")))
-	{
-		config_error("%s:%i: spamfilter::target falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	} else if (cep->ce_vardata) {
-		if (!spamfilter_getconftargets(cep->ce_vardata))
-		{
-			config_error("%s:%i: spamfilter desconocido tipo '%s'",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
-			errors++;
-		}
-	} else if (cep->ce_entries) {
-		for (cep = cep->ce_entries; cep; cep = cep->ce_next)
-		{
-			if (!cep->ce_varname)
+			if (has_reason)
 			{
-				config_error("%s:%i: spamfiler::target ítem vacío",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue; /* I don't understand how this would be possible, but.. */
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter::reason");
+				continue;
 			}
-			if (!spamfilter_getconftargets(cep->ce_varname))
+			has_reason = 1;
+			reason = cep->ce_vardata;
+		}
+		else if (!strcmp(cep->ce_varname, "regex"))
+		{
+			char *errbuf;
+			if (has_regex)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter::regex");
+				continue;
+			}
+			has_regex = 1;
+			if ((errbuf = unreal_checkregex(cep->ce_vardata,0,0)))
+			{
+				config_error("%s:%i: spamfilter::regex contiene expresión incorrecta: %s",
+					cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum,
+					errbuf);
+				errors++;
+				continue;
+			}
+			regex = cep->ce_vardata;
+		}
+		else if (!strcmp(cep->ce_varname, "action"))
+		{
+			if (has_action)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter::action");
+				continue;
+			}
+			has_action = 1;
+			if (!banact_stringtoval(cep->ce_vardata))
 			{
 				config_error("%s:%i: tipo desconocido '%s'",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname);
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
 				errors++;
 			}
 		}
-	} else {
-		config_error("%s:%i: spamfilter::target bloque vacío",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-
-	if (!(cep = config_find_entry(ce->ce_entries, "action")))
-	{
-		config_error("%s:%i: spamfilter::action falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	} else if (cep->ce_vardata) {
-		if (!banact_stringtoval(cep->ce_vardata))
+		else if (!strcmp(cep->ce_varname, "ban-time"))
 		{
-			config_error("%s:%i: spamfilter::action tipo desconocido '%s'",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, cep->ce_vardata);
+			if (has_bantime)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "spamfilter::ban-time");
+				continue;
+			}
+			has_bantime = 1;
+		}
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"spamfilter", cep->ce_varname);
 			errors++;
+			continue;
 		}
 	}
 
+	if (!has_regex)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"spamfilter::regex");
+		errors++;
+	} 
+	if (!has_target)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"spamfilter::target");
+		errors++;
+	}
+	if (!has_action)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"spamfilter::action");
+		errors++;
+	}
 	if (regex && reason && (strlen(regex) + strlen(reason) > 505))
 	{
 		config_error("%s:%i: spamfilter block problem: regex + reason field are together over 505 bytes, "
@@ -5193,7 +5839,7 @@ int _test_help(ConfigFile *conf, ConfigEntry *ce) {
 	ConfigEntry *cep;
 	if (!ce->ce_entries)
 	{
-		config_error("%s:%i: help block vacío", 
+		config_error("%s:%i: empty help block", 
 			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
 		return 1;
 	}
@@ -5201,9 +5847,10 @@ int _test_help(ConfigFile *conf, ConfigEntry *ce) {
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: help item vacío",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"help");
+			errors++;
+			continue;
 		}
 	}
 	return errors; 
@@ -5220,13 +5867,15 @@ int     _conf_log(ConfigFile *conf, ConfigEntry *ce)
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!strcmp(cep->ce_varname, "maxsize")) {
+		if (!strcmp(cep->ce_varname, "maxsize")) 
+		{
 			ca->maxsize = config_checkval(cep->ce_vardata,CFG_SIZE);
 		}
-		else if (!strcmp(cep->ce_varname, "flags")) {
+		else if (!strcmp(cep->ce_varname, "flags")) 
+		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
-				if ((ofp = config_binary_flags_search(_LogFlags, cepp->ce_varname, sizeof(_LogFlags)/sizeof(_LogFlags[0])))) 
+				if ((ofp = config_binary_flags_search(_LogFlags, cepp->ce_varname, ARRAY_SIZEOF(_LogFlags)))) 
 					ca->flags |= ofp->flag;
 			}
 		}
@@ -5238,7 +5887,8 @@ int     _conf_log(ConfigFile *conf, ConfigEntry *ce)
 
 int _test_log(ConfigFile *conf, ConfigEntry *ce) { 
 	int errors = 0;
-	ConfigEntry *cep, *flags, *maxsize, *cepp;
+	ConfigEntry *cep, *cepp;
+	char has_flags = 0, has_maxsize = 0;
 
 	if (!ce->ce_vardata)
 	{
@@ -5256,58 +5906,73 @@ int _test_log(ConfigFile *conf, ConfigEntry *ce) {
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: log item vacío",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"log");
+			errors++;
+			continue;
 		}
-		if (!strcmp(cep->ce_varname, "flags")) {}
-		else if (!strcmp(cep->ce_varname, "maxsize")) {
-		}
-		else {
-			config_error("%s:%i: directriz desconocida log::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++; continue;
-		}
-	}
-	if ((maxsize = config_find_entry(ce->ce_entries, "maxsize"))) 
-	{
-		if (!maxsize->ce_vardata) 
+		if (!strcmp(cep->ce_varname, "flags")) 
 		{
-			config_error("%s:%i: log::maxsize sin contenidos",
-				maxsize->ce_fileptr->cf_filename, maxsize->ce_varlinenum);
-			errors++;
-		}
-	}
-	if (!(flags = config_find_entry(ce->ce_entries, "flags"))) {
-		config_error("%s:%i: log::flags falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		errors++;
-	}
-	else {
-		if (!flags->ce_entries) {
-			config_error("%s:%i: log::flags sin contenidos",
-				flags->ce_fileptr->cf_filename, flags->ce_varlinenum);
-			errors++;
-		}
-		else {
-			for (cepp = flags->ce_entries; cepp; cepp = cepp->ce_next)
+			if (has_flags)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "log::flags");
+				continue;
+			}
+			has_flags = 1;
+			if (!cep->ce_entries)
+			{
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "log", cep->ce_varname);
+				errors++;
+				continue;
+			}
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
 				if (!cepp->ce_varname)
 				{
-					config_error("%s:%i: log::flags item sin variable de nombre",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-					errors++; continue;
+					config_error_blank(cepp->ce_fileptr->cf_filename, 
+						cepp->ce_varlinenum, "log::flags");
+					errors++;
+					continue;
 				}
-				if (!config_binary_flags_search(_LogFlags, cepp->ce_varname, sizeof(_LogFlags)/sizeof(_LogFlags[0]))) {
-					 config_error("%s:%i: modo desconocido log '%s'",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
-						cepp->ce_varname);
-
+				if (!config_binary_flags_search(_LogFlags, cepp->ce_varname, ARRAY_SIZEOF(_LogFlags))) 
+				{
+					config_error_unknownflag(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "log", cepp->ce_varname);
 					errors++; 
 				}
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "maxsize")) 
+		{
+			if (has_maxsize)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "log::maxsize");
+				continue;
+			}
+			has_maxsize = 1;
+			if (!cep->ce_vardata)
+			{
+				config_error_empty(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "log", cep->ce_varname);
+				errors++;
+			}
+		}
+		else 
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"log", cep->ce_varname);
+			errors++;
+			continue;
+		}
+	}
+	if (!has_flags)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"log::flags");
+		errors++;
 	}
 	return errors; 
 }
@@ -5323,65 +5988,55 @@ int	_conf_link(ConfigFile *conf, ConfigEntry *ce)
 	link = (ConfigItem_link *) MyMallocEx(sizeof(ConfigItem_link));
 	link->servername = strdup(ce->ce_vardata);
 	/* ugly, but it works. if it fails, we know _test_link failed miserably */
-	link->username = strdup(config_find_entry(ce->ce_entries, "username")->ce_vardata);
-	link->hostname = strdup(config_find_entry(ce->ce_entries, "hostname")->ce_vardata);
-	link->bindip = strdup(config_find_entry(ce->ce_entries, "bind-ip")->ce_vardata);
-	link->port = atol(config_find_entry(ce->ce_entries, "port")->ce_vardata);
-	link->recvauth = Auth_ConvertConf2AuthStruct(config_find_entry(ce->ce_entries, "password-receive"));
-	link->connpwd = strdup(config_find_entry(ce->ce_entries, "password-connect")->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "class");
-	link->class = Find_class(cep->ce_vardata);
-	if (!link->class)
-	{
-		config_status("%s:%i: illegal link::class, clase desconocida '%s'. Se usará la clase 'default'",
-			cep->ce_fileptr->cf_filename,
-			cep->ce_varlinenum,
-			cep->ce_vardata);
-		link->class = default_class;
-	}
-	link->class->xrefcount++;
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!strcmp(cep->ce_varname, "options"))
+		if (!strcmp(cep->ce_varname, "username"))
+			link->username = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "hostname"))
+			link->hostname = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "bind-ip"))
+			link->bindip = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "port"))
+			link->port = atol(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "password-receive"))
+			link->recvauth = Auth_ConvertConf2AuthStruct(cep);
+		else if (!strcmp(cep->ce_varname, "password-connect"))
+			link->connpwd = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "class"))
 		{
-			/* remove options */
+			link->class = Find_class(cep->ce_vardata);
+			if (!link->class || (link->class->flag.temporary == 1))
+			{
+				config_status("%s:%i: prohibido link::class, clase desconocida '%s', se usará 'default'",
+					cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum,
+					cep->ce_vardata);
+				link->class = default_class;
+			}
+			link->class->xrefcount++;
+		}
+		else if (!strcmp(cep->ce_varname, "options"))
+		{
 			link->options = 0;
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
-				if (!cepp->ce_varname)
-				{
-					config_status("%s:%i: link::flag item sin variable de nombre",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-					continue;
-				}
-				if ((ofp = config_binary_flags_search(_LinkFlags, cepp->ce_varname, sizeof(_LinkFlags)/sizeof(_LinkFlags[0])))) 
+				if ((ofp = config_binary_flags_search(_LinkFlags, cepp->ce_varname, ARRAY_SIZEOF(_LinkFlags)))) 
 					link->options |= ofp->flag;
-
 			}
-		} else
-		if (!strcmp(cep->ce_varname, "hub"))
-		{
+		}
+		else if (!strcmp(cep->ce_varname, "hub"))
 			link->hubmask = strdup(cep->ce_vardata);
-		} else
-		if (!strcmp(cep->ce_varname, "leaf"))
-		{
+		else if (!strcmp(cep->ce_varname, "leaf"))
 			link->leafmask = strdup(cep->ce_vardata);
-		} else
-		if (!strcmp(cep->ce_varname, "leafdepth"))
-		{
+		else if (!strcmp(cep->ce_varname, "leafdepth"))
 			link->leafdepth = atol(cep->ce_vardata);
-		} 
 #ifdef USE_SSL
 		else if (!strcmp(cep->ce_varname, "ciphers"))
-		{
 			link->ciphers = strdup(cep->ce_vardata);
-		}
 #endif
 #ifdef ZIP_LINKS
 		else if (!strcmp(cep->ce_varname, "compression-level"))
-		{
 			link->compression_level = atoi(cep->ce_vardata);
-		}
 #endif
 	}
 	AddListItem(link, conf_link);
@@ -5393,21 +6048,15 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry	*cep, *cepp;
 	OperFlag 	*ofp;
 	int		errors = 0;
-	char 		**p;
-	char		*requiredsections[] = {
-				"username", "hostname", "bind-ip", "port",
-				"password-receive", "password-connect",
-				"class", NULL
-			};
-	char		*knowndirc[] = 
-			{
-				"username", "hostname", "bind-ip",
-				"port", "password-receive",
-				"password-connect", "class",
-				"hub", "leaf", 
-				"leafdepth", "ciphers", "compression-level",
-				NULL
-			};
+	char has_username = 0, has_hostname = 0, has_bindip = 0, has_port = 0;
+	char has_passwordreceive = 0, has_passwordconnect = 0, has_class = 0;
+	char has_hub = 0, has_leaf = 0, has_leafdepth = 0, has_ciphers = 0;
+	char has_options = 0;
+	char has_autoconnect = 0;
+	char has_hostname_wildcards = 0;
+#ifdef ZIP_LINKS
+	char has_compressionlevel = 0;
+#endif
 	if (!ce->ce_vardata)
 	{
 		config_error("%s:%i: link sin nombre de servidor",
@@ -5422,137 +6071,460 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 		return 1;
 	}
 	
-	for (p = requiredsections; *p; p++)
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if ((cep = config_find_entry(ce->ce_entries, *p)))
+		if (!cep->ce_varname)
 		{
-			if (!cep->ce_vardata)
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"link");
+			errors++;
+			continue;
+		}
+		if (!strcmp(cep->ce_varname, "options"))
+		{
+			if (has_options)
 			{
-				config_error("%s:%i: link::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum, cep->ce_varname);
-				errors++;
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::options");
+				continue;
 			}
-		}
-		else
-		{
-			config_error("%s:%i: link::%s falta",
-				ce->ce_fileptr->cf_filename,
-				ce->ce_varlinenum, *p);
-			errors++;
-		}
-	}
-#ifdef INET6
-	/* I'm nice... I'll help those poort ipv6 users. -- Syzop */
-	if ((cep = config_find_entry(ce->ce_entries, "hostname")))
-	{
-		/* [ not null && len>6 && has not a : in it && last character is a digit ] */
-		if (cep->ce_vardata && (strlen(cep->ce_vardata) > 6) && !strchr(cep->ce_vardata, ':') &&
-		    isdigit(cep->ce_vardata[strlen(cep->ce_vardata)-1]))
-		{
-			config_error("%s:%i: link %s has link::hostname set to '%s' (IPv4) on a IPv6 compile, "
-			              "use the ::ffff:1.2.3.4 form instead",
-						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata,
-						cep->ce_vardata);
-			errors++;
-		}
-	}
-#endif
-	if ((cep = config_find_entry(ce->ce_entries, "password-receive")))
-	{
-		if (Auth_CheckError(cep) < 0)
-			errors++;
-	}
-	if ((cep = config_find_entry(ce->ce_entries, "password-connect")))
-	{
-		if (cep->ce_entries)
-		{
-			config_error("%s:%i: link::password-connect no pueden estar encriptadas",
-				     ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-			errors++;
-		}
-	}
-#ifdef ZIP_LINKS
-		if ((cep = config_find_entry(ce->ce_entries, "compression-level")))
-		{
-			if (!cep->ce_vardata)
+			has_options = 1;
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
-				config_error("%s:%i: link::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum, cep->ce_varname);
-				errors++;
-			} else {
-				if ((atoi(cep->ce_vardata) < 1) || (atoi(cep->ce_vardata) > 9))
+				if (!cepp->ce_varname)
 				{
-					config_error("%s:%i: compression-level 1..9",
-						cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+					config_error_blank(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "link::options");
+					errors++; 
+					continue;
+				}
+				if (!(ofp = config_binary_flags_search(_LinkFlags, cepp->ce_varname, ARRAY_SIZEOF(_LinkFlags)))) 
+				{
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "link", cepp->ce_varname);
+					errors++;
+					continue;
+				}
+#ifndef USE_SSL
+				if (ofp->flag == CONNECT_SSL)
+				{
+					config_warn("%s:%i: link %s con opción SSL sin soporte SSL",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
+					errors++;
+				}
+#endif
+#ifndef ZIP_LINKS
+				if (ofp->flag == CONNECT_ZIP)
+				{
+					config_warn("%s:%i: link %s con opción ZIP sin soporte ZIP",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
+					errors++;
+				}
+#endif				
+				if (ofp->flag == CONNECT_AUTO)
+				{
+					has_autoconnect = 1;
+				}
+			}
+			continue;
+		}
+		if (!cep->ce_vardata)
+		{
+			config_error_empty(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"link", cep->ce_varname);
+			errors++;
+			continue;
+		}
+		if (!strcmp(cep->ce_varname, "username"))
+		{
+			if (has_username)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::username");
+				continue;
+			}
+			has_username = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "hostname"))
+		{
+			if (has_hostname)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::hostname");
+				continue;
+			}
+			has_hostname = 1;
+#ifdef INET6
+			/* I'm nice... I'll help those poor ipv6 users. -- Syzop */
+			/* [ not null && len>6 && has not a : in it && last character is a digit ] */
+			if (cep->ce_vardata && (strlen(cep->ce_vardata) > 6) && !strchr(cep->ce_vardata, ':') &&
+			    isdigit(cep->ce_vardata[strlen(cep->ce_vardata)-1]))
+			{
+				char crap[32];
+				if (inet_pton(AF_INET, cep->ce_vardata, crap) != 0)
+				{
+					char ipv6buf[48];
+					snprintf(ipv6buf, sizeof(ipv6buf), "::ffff:%s", cep->ce_vardata);
+					cep->ce_vardata = strdup(ipv6buf);
+				} else {
+				/* Insert IPv6 validation here */
+					config_error( "%s:%i: listen: '%s' parece "
+						"IPv4 pero no es una dirección correcta.",
+						ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+						cep->ce_vardata);
 					errors++;
 				}
 			}
+#endif
+			if (strchr(cep->ce_vardata, '*') != NULL || strchr(cep->ce_vardata, '?'))
+			{
+				has_hostname_wildcards = 1;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "bind-ip"))
+		{
+			if (has_bindip)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::bind-ip");
+				continue;
+			}
+			has_bindip = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "port"))
+		{
+			if (has_port)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::port");
+				continue;
+			}
+			has_port = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "password-receive"))
+		{
+			if (has_passwordreceive)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::password-receive");
+				continue;
+			}
+			has_passwordreceive = 1;
+			if (Auth_CheckError(cep) < 0)
+				errors++;
+		}
+		else if (!strcmp(cep->ce_varname, "password-connect"))
+		{
+			if (has_passwordconnect)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::password-connect");
+				continue;
+			}
+			has_passwordconnect = 1;
+			if (cep->ce_entries)
+			{
+				config_error("%s:%i: link::password-connect no puede estar encriptado",
+					     ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+				errors++;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "class"))
+		{
+			if (has_class)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::class");
+				continue;
+			}
+			has_class = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "hub"))
+		{
+			if (has_hub)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::hub");
+				continue;
+			}
+			has_hub = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "leaf"))
+		{
+			if (has_leaf)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::leaf");
+				continue;
+			}
+			has_leaf = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "leafdepth"))
+		{
+			if (has_leafdepth)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::leafdepth");
+				continue;
+			}
+			has_leafdepth = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "ciphers"))
+		{
+			if (has_ciphers)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::ciphers");
+				continue;
+			}
+			has_ciphers = 1;
+		}
+#ifdef ZIP_LINKS
+		else if (!strcmp(cep->ce_varname, "compression-level"))
+		{
+			if (has_compressionlevel)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "link::compression-level");
+				continue;
+			}
+			has_compressionlevel = 1;
+			if ((atoi(cep->ce_vardata) < 1) || (atoi(cep->ce_vardata) > 9))
+			{
+				config_error("%s:%i: compression-level debería estar entre 1..9",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				errors++;
+			}
 		}
 #endif
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"link", cep->ce_varname);
+			errors++;
+		}
+	}
+	if (!has_username)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::username");
+		errors++;
+	}
+	if (!has_hostname)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::hostname");
+		errors++;
+	}
+	if (!has_port)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::port");
+		errors++;
+	}
+	if (!has_passwordreceive)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::password-receive");
+		errors++;
+	}
+	if (!has_passwordconnect)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::password-connect");
+		errors++;
+	}
+	if (!has_class)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"link::class");
+		errors++;
+	}
+	if (has_autoconnect && has_hostname_wildcards)
+	{
+		config_error("%s:%i: link block tiene autoconnect y comodines (* o ? en hostname)",
+				ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		errors++;
+	}
 	if (errors > 0)
 		return errors;
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!strcmp(cep->ce_varname, "options")) 
 		{
-			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
-			{
-				if (!cepp->ce_varname)
-				{
-					config_error("%s:%i: link::options item sin variable de nombre",
-							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
-						errors++; 
-						continue;
-				}
-				if (!(ofp = config_binary_flags_search(_LinkFlags, cepp->ce_varname, sizeof(_LinkFlags)/sizeof(_LinkFlags[0])))) {
-					 config_error("%s:%i: opción desconcida link '%s'",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
-						cepp->ce_varname);
-					errors++; 
-				}
-				else 
-				{
-#ifndef USE_SSL
-					if (ofp->flag == CONNECT_SSL)
-					{
-						config_status("%s:%i: link %s con SSL en un ircd sin soporte SSL",
-							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
-						errors++;
-					}
-#endif
-#ifndef ZIP_LINKS
-					if (ofp->flag == CONNECT_ZIP)
-					{
-						config_status("%s:%i: link %s con ZIP en un ircd sin soporte ZIP",
-							cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
-						errors++;
-					}
-#endif
-				}
-			}
 			continue;
-		}
-		for (p = knowndirc; *p; p++)
-			if (!strcmp(cep->ce_varname, *p))
-				break;
-		if (!*p)
-		{
-			config_error("%s:%i: directriz desconocida link::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++;
-		} else
-		if (!cep->ce_vardata) {
-			config_error("%s:%i: link::%s without contenidos",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum, cep->ce_varname);
-			errors++;
 		}
 	}
 	return errors;
 		
+}
+
+int	_conf_cgiirc(ConfigFile *conf, ConfigEntry *ce)
+{
+ConfigEntry *cep;
+ConfigEntry *cepp;
+ConfigItem_cgiirc *cgiirc = NULL;
+
+	cgiirc = (ConfigItem_cgiirc *) MyMallocEx(sizeof(ConfigItem_cgiirc));
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
+	{
+		if (!strcmp(cep->ce_varname, "username"))
+			cgiirc->username = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "hostname"))
+			cgiirc->hostname = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "password"))
+			cgiirc->auth = Auth_ConvertConf2AuthStruct(cep);
+		else if (!strcmp(cep->ce_varname, "type"))
+		{
+			if (!strcmp(cep->ce_vardata, "webirc"))
+				cgiirc->type = CGIIRC_WEBIRC;
+			else if (!strcmp(cep->ce_vardata, "old"))
+				cgiirc->type = CGIIRC_PASS;
+			else
+				abort();
+		}
+	}
+	AddListItem(cgiirc, conf_cgiirc);
+	return 0;
+}
+
+int	_test_cgiirc(ConfigFile *conf, ConfigEntry *ce)
+{
+	ConfigEntry	*cep, *cepp;
+	OperFlag 	*ofp;
+	int		errors = 0;
+	char has_username = 0; /* dup checking only, not mandatory */
+	char has_type     = 0; /* mandatory */
+	char has_hostname = 0; /* mandatory */
+	char has_password = 0; /* mandatory */
+	CGIIRCType type;
+
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
+	{
+		if (!cep->ce_varname)
+		{
+			config_error_blank(cep->ce_fileptr->cf_filename, cep->ce_varlinenum, "cgiirc");
+			errors++;
+			continue;
+		}
+		if (!cep->ce_vardata)
+		{
+			config_error_empty(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"cgiirc", cep->ce_varname);
+			errors++;
+			continue;
+		}
+		if (!strcmp(cep->ce_varname, "username"))
+		{
+			if (has_username)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "cgiirc::username");
+				continue;
+			}
+			has_username = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "hostname"))
+		{
+			if (has_hostname)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "cgiirc::hostname");
+				continue;
+			}
+			has_hostname = 1;
+#ifdef INET6
+			/* I'm nice... I'll help those poor ipv6 users. -- Syzop */
+			/* [ not null && len>6 && has not a : in it && last character is a digit ] */
+			if (cep->ce_vardata && (strlen(cep->ce_vardata) > 6) && !strchr(cep->ce_vardata, ':') &&
+			    isdigit(cep->ce_vardata[strlen(cep->ce_vardata)-1]))
+			{
+				char crap[32];
+				if (inet_pton(AF_INET, cep->ce_vardata, crap) != 0)
+				{
+					char ipv6buf[48];
+					snprintf(ipv6buf, sizeof(ipv6buf), "::ffff:%s", cep->ce_vardata);
+					cep->ce_vardata = strdup(ipv6buf);
+				} else {
+				/* Insert IPv6 validation here */
+					config_error( "%s:%i: cgiirc::hostname: '%s' parece "
+						"IPv4 pero no es una dirección correcta.",
+						ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+						cep->ce_vardata);
+					errors++;
+				}
+			}
+#endif
+		}
+		else if (!strcmp(cep->ce_varname, "password"))
+		{
+			if (has_password)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "cgiirc::password");
+				continue;
+			}
+			has_password = 1;
+			if (Auth_CheckError(cep) < 0)
+				errors++;
+		}
+		else if (!strcmp(cep->ce_varname, "type"))
+		{
+			if (has_type)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "cgiirc::type");
+			}
+			has_type = 1;
+			if (!strcmp(cep->ce_vardata, "webirc"))
+				type = CGIIRC_WEBIRC;
+			else if (!strcmp(cep->ce_vardata, "old"))
+				type = CGIIRC_PASS;
+			else
+			{
+				config_error("%s:%i: unknown cgiirc::type '%s', should be either 'webirc' or 'old'",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
+				errors++;
+			}
+		}
+		else
+		{
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"cgiirc", cep->ce_varname);
+			errors++;
+		}
+	}
+	if (!has_hostname)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"cgiirc::hostname");
+		errors++;
+	}
+	if (!has_type)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"cgiirc::type");
+		errors++;
+	} else
+	{
+		if (!has_password && (type == CGIIRC_WEBIRC))
+		{
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"cgiirc::password");
+			errors++;
+		} else
+		if (has_password && (type == CGIIRC_PASS))
+		{
+			config_error("%s:%i: cgiirc block has type set to 'old' but has a password set. "
+			             "Passwords are not used with type 'old'. Either remove the password or "
+			             "use the 'webirc' method instead.",
+			             ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+			errors++;
+		}
+	}
+
+	return errors;
 }
 
 int     _conf_ban(ConfigFile *conf, ConfigEntry *ce)
@@ -5567,10 +6539,13 @@ int     _conf_ban(ConfigFile *conf, ConfigEntry *ce)
 	{
 		aTKline *nl = MyMallocEx(sizeof(aTKline));
 		nl->type = TKL_NICK;
-		cep = config_find_entry(ce->ce_entries, "mask");
-		nl->hostmask = strdup(cep->ce_vardata);
-		cep = config_find_entry(ce->ce_entries, "reason");
-		nl->reason = strdup(cep->ce_vardata);
+		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
+		{
+			if (!strcmp(cep->ce_varname, "mask"))
+				nl->hostmask = strdup(cep->ce_vardata);
+			else if (!strcmp(cep->ce_varname, "reason"))
+				nl->reason = strdup(cep->ce_vardata);
+		}
 		strcpy(nl->usermask, "*");
 		AddListItem(nl, tklines[tkl_hash('q')]);
 		free(ca);
@@ -5600,24 +6575,27 @@ int     _conf_ban(ConfigFile *conf, ConfigEntry *ce)
 		}
 		return 0;
 	}
-	cep = config_find_entry(ce->ce_entries, "mask");	
-	ca->mask = strdup(cep->ce_vardata);
-	if (ca->flag.type == CONF_BAN_IP || ca->flag.type == CONF_BAN_USER)
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		struct irc_netmask tmp;
-		tmp.type = parse_netmask(ca->mask, &tmp);
-		if (tmp.type != HM_HOST)
+		if (!strcmp(cep->ce_varname, "mask"))
 		{
-			ca->netmask = MyMallocEx(sizeof(struct irc_netmask));
-			bcopy(&tmp, ca->netmask, sizeof(struct irc_netmask));
+			ca->mask = strdup(cep->ce_vardata);
+			if (ca->flag.type == CONF_BAN_IP || ca->flag.type == CONF_BAN_USER)
+			{
+				struct irc_netmask tmp;
+				tmp.type = parse_netmask(ca->mask, &tmp);
+				if (tmp.type != HM_HOST)
+				{
+					ca->netmask = MyMallocEx(sizeof(struct irc_netmask));
+					bcopy(&tmp, ca->netmask, sizeof(struct irc_netmask));
+				}
+			}
 		}
+		else if (!strcmp(cep->ce_varname, "reason"))
+			ca->reason = strdup(cep->ce_vardata);
+		else if (!strcmp(cep->ce_varname, "action"))
+			ca ->action = banact_stringtoval(cep->ce_vardata);
 	}
-
-	cep = config_find_entry(ce->ce_entries, "reason");
-	ca->reason = strdup(cep->ce_vardata);
-	cep = config_find_entry(ce->ce_entries, "action");
-	if (cep)
-		ca ->action = banact_stringtoval(cep->ce_vardata);
 	AddListItem(ca, conf_ban);
 	return 0;
 }
@@ -5627,6 +6605,8 @@ int     _test_ban(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry *cep;
 	int	    errors = 0;
 	Hook *h;
+	char type = 0;
+	char has_mask = 0, has_action = 0, has_reason = 0;
 	
 	if (!ce->ce_vardata)
 	{
@@ -5645,7 +6625,7 @@ int     _test_ban(ConfigFile *conf, ConfigEntry *ce)
 	else if (!strcmp(ce->ce_vardata, "realname"))
 	{}
 	else if (!strcmp(ce->ce_vardata, "version"))
-	{}
+		type = 'v';
 	else
 	{
 		int used = 0;
@@ -5684,49 +6664,68 @@ int     _test_ban(ConfigFile *conf, ConfigEntry *ce)
 		return errors;
 	}
 	
-	if (!(cep = config_find_entry(ce->ce_entries, "mask")))
+	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		config_error("%s:%i: ban %s::mask falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
-		errors++;
-	}
-	else {
-		if (!cep->ce_vardata)
+		if (config_is_blankorempty(cep, "ban"))
 		{
-			config_error("%s:%i: ban::%s sin contenidos",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
 			errors++;
+			continue;
+		}
+		if (!strcmp(cep->ce_varname, "mask"))
+		{
+			if (has_mask)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "ban::mask");
+				continue;
+			}
+			has_mask = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "reason"))
+		{
+			if (has_reason)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "ban::reason");
+				continue;
+			}
+			has_reason = 1;
+		}
+		else if (!strcmp(cep->ce_varname, "action"))
+		{
+			if (has_action)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "ban::action");
+			}
+			has_action = 1;
+			if (!banact_stringtoval(cep->ce_vardata))
+			{
+				config_error("%s:%i: ban::action has unknown action type '%s'",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, 
+					cep->ce_vardata);
+				errors++;
+			}
 		}
 	}
 
-	cep = config_find_entry(ce->ce_entries, "action");
-	if (cep)
+	if (!has_mask)
 	{
-		if (!banact_stringtoval(cep->ce_vardata))
-		{
-			config_error("%s:%i: ban %s::action acción desconocida '%s'",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata, cep->ce_vardata);
-			errors++;
-		}
-	}
-
-	if (!(cep = config_find_entry(ce->ce_entries, "reason")))
-	{
-		config_error("%s:%i: ban %s::reason falta",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"ban::mask");
 		errors++;
 	}
-	else {
-		if (!cep->ce_vardata)
-		{
-			config_error("%s:%i: ban::%s sin contenidos",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++;
-		}
+	if (!has_reason)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum, 
+			"ban::reason");
+		errors++;
+	}
+	if (has_action && type != 'v')
+	{
+		config_error("%s:%d: ban::action especificado aunque ban type no es 'version'",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		errors++;
 	}
 	return errors;	
 }
@@ -5735,13 +6734,15 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep, *cepp, *ceppp;
 	OperFlag 	*ofl = NULL;
-	char	    temp[512];
 	Hook *h;
 
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!strcmp(cep->ce_varname, "kline-address")) {
 			ircstrdup(tempiConf.kline_address, cep->ce_vardata);
+		}
+		if (!strcmp(cep->ce_varname, "gline-address")) {
+			ircstrdup(tempiConf.gline_address, cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-connect")) {
 			tempiConf.conn_modes = (long) set_usermode(cep->ce_vardata);
@@ -5758,6 +6759,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "snomask-on-connect")) {
 			ircstrdup(tempiConf.user_snomask, cep->ce_vardata);
 		}
+		else if (!strcmp(cep->ce_varname, "level-on-join")) {
+			tempiConf.level_on_join = channellevel_to_int(cep->ce_vardata);
+		}
 		else if (!strcmp(cep->ce_varname, "static-quit")) {
 			ircstrdup(tempiConf.static_quit, cep->ce_vardata);
 		}
@@ -5767,14 +6771,28 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "who-limit")) {
 			tempiConf.who_limit = atol(cep->ce_vardata);
 		}
+		else if (!strcmp(cep->ce_varname, "maxbans")) {
+			tempiConf.maxbans = atol(cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "maxbanlength")) {
+			tempiConf.maxbanlength = atol(cep->ce_vardata);
+		}
 		else if (!strcmp(cep->ce_varname, "silence-limit")) {
 			tempiConf.silence_limit = atol(cep->ce_vardata);
+			if (loop.ircd_booted)
+				IsupportSetValue(IsupportFind("SILENCE"), cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "auto-join")) {
 			ircstrdup(tempiConf.auto_join_chans, cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "oper-auto-join")) {
 			ircstrdup(tempiConf.oper_auto_join_chans, cep->ce_vardata);
+		}
+		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
+			tempiConf.check_target_nick_bans = config_checkval(cep->ce_vardata, CFG_YESNO);
+		}
+		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
+			tempiConf.pingpong_warning = config_checkval(cep->ce_vardata, CFG_YESNO);
 		}
 		else if (!strcmp(cep->ce_varname, "allow-userhost-change")) {
 			if (!stricmp(cep->ce_vardata, "always"))
@@ -5785,6 +6803,10 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 				tempiConf.userhost_allowed = UHALLOW_NOCHANS;
 			else
 				tempiConf.userhost_allowed = UHALLOW_REJOIN;
+		}
+		else if (!strcmp(cep->ce_varname, "allowed-nickchars")) {
+			for (cepp = cep->ce_entries; cepp; cepp=cepp->ce_next)
+				charsys_add_language(cepp->ce_varname);
 		}
 		else if (!strcmp(cep->ce_varname, "channel-command-prefix")) {
 			ircstrdup(tempiConf.channel_command_prefix, cep->ce_vardata);
@@ -5836,6 +6858,13 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		}
 		else if (!strcmp(cep->ce_varname, "maxchannelsperuser")) {
 			tempiConf.maxchannelsperuser = atoi(cep->ce_vardata);
+			if (loop.ircd_booted)
+			{
+				char tmpbuf[512];
+				IsupportSetValue(IsupportFind("MAXCHANNELS"), cep->ce_vardata);
+				ircsprintf(tmpbuf, "#:%s", cep->ce_vardata);
+				IsupportSetValue(IsupportFind("CHANLIMIT"), tmpbuf);
+			}
 		}
 		else if (!strcmp(cep->ce_varname, "maxdccallow")) {
 			tempiConf.maxdccallow = atoi(cep->ce_vardata);
@@ -5848,6 +6877,8 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 					*cep->ce_vardata='-';
 			}
 			ircstrdup(tempiConf.network.x_ircnet005, tmp);
+			if (loop.ircd_booted)
+				IsupportSetValue(IsupportFind("NETWORK"), tmp);
 			cep->ce_vardata = tmp;
 		}
 		else if (!strcmp(cep->ce_varname, "default-server")) {
@@ -5883,6 +6914,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else if (!strcmp(cepp->ce_varname, "nameserver")) {
 					ircstrdup(tempiConf.name_server, cepp->ce_vardata);
+				}
+				else if (!strcmp(cepp->ce_varname, "bind-ip")) {
+					ircstrdup(tempiConf.dns_bindip, cepp->ce_vardata);
 				}
 			}
 		}
@@ -6008,6 +7042,18 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 					tempiConf.ident_read_timeout = config_checkval(cepp->ce_vardata,CFG_TIME);
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "timesync") || !strcmp(cep->ce_varname, "timesynch"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				if (!strcmp(cepp->ce_varname, "enabled"))
+					tempiConf.timesynch_enabled = config_checkval(cepp->ce_vardata,CFG_YESNO);
+				else if (!strcmp(cepp->ce_varname, "timeout"))
+					tempiConf.timesynch_timeout = config_checkval(cepp->ce_vardata,CFG_TIME);
+				else if (!strcmp(cepp->ce_varname, "server"))
+					ircstrdup(tempiConf.timesynch_server, cepp->ce_vardata);
+			}
+		}
 		else if (!strcmp(cep->ce_varname, "spamfilter"))
 		{
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
@@ -6099,6 +7145,14 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 #endif
 		}
+#ifdef UDB
+		else if (!strcmp(cep->ce_varname, "udb"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) 
+			{
+			}
+		}
+#endif
 		else 
 		{
 			int value;
@@ -6117,27 +7171,28 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigEntry *cep, *cepp, *ceppp;
 	OperFlag 	*ofl = NULL;
-	long		templong, l1, l2,l3;
+	long		templong;
 	int		tempi;
-	int	    i;
 	int	    errors = 0;
 	Hook	*h;
-#define CheckNull(x) if ((!(x)->ce_vardata) || (!(*((x)->ce_vardata)))) { config_error("%s:%i: missing parameter", (x)->ce_fileptr->cf_filename, (x)->ce_varlinenum); errors++; continue; }
+#define CheckNull(x) if ((!(x)->ce_vardata) || (!(*((x)->ce_vardata)))) { config_error("%s:%i: falta un parámetro", (x)->ce_fileptr->cf_filename, (x)->ce_varlinenum); errors++; continue; }
+#define CheckDuplicate(cep, name, display) if (settings.has_##name) { config_warn_duplicate((cep)->ce_fileptr->cf_filename, cep->ce_varlinenum, "set::" display); continue; } else settings.has_##name = 1
+
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
 		if (!cep->ce_varname)
 		{
-			config_error("%s:%i: item vacío",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
+			config_error_blank(cep->ce_fileptr->cf_filename,
+				cep->ce_varlinenum, "set");
 			errors++;
 			continue;
 		}
 		if (!strcmp(cep->ce_varname, "kline-address")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, kline_address, "kline-address");
 			if (!strchr(cep->ce_vardata, '@') && !strchr(cep->ce_vardata, ':'))
 			{
-				config_error("%s:%i: set::kline-address tiene que ser un email o una web",
+				config_error("%s:%i: set::kline-address debe ser un e-mail o una web",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 				continue;
@@ -6148,25 +7203,43 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++; continue;
 			}
-			requiredstuff.settings.kline_address = 1;
 		}
-		else if (!strcmp(cep->ce_varname, "modes-on-connect")) {
+		else if (!strcmp(cep->ce_varname, "gline-address")) {
 			CheckNull(cep);
-			templong = (long) set_usermode(cep->ce_vardata);
-			if (templong & UMODE_OPER)
+			CheckDuplicate(cep, gline_address, "gline-address");
+			if (!strchr(cep->ce_vardata, '@') && !strchr(cep->ce_vardata, ':'))
 			{
-				config_error("%s:%i: set::modes-on-connect contiene el modo +o",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum);
+				config_error("%s:%i: set::kline-address tiene que ser un e-mail o una web",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 				continue;
 			}
+			else if (!match("*@unrealircd.com", cep->ce_vardata) || !match("*@unrealircd.org",cep->ce_vardata) || !match("unreal-*@lists.sourceforge.net",cep->ce_vardata)) 
+			{
+				config_error("%s:%i: set::kline-address no puede ser la dirección de UnrealIRCd",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				errors++; continue;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "modes-on-connect")) {
+			char *p;
+			CheckNull(cep);
+			CheckDuplicate(cep, modes_on_connect, "modes-on-connect");
+			for (p = cep->ce_vardata; *p; p++)
+				if (strchr("oOaANCrzSgHhqtW", *p))
+				{
+					config_error("%s:%i: set::modes-on-connect no puede tener '%s'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+				}
+			templong = (long) set_usermode(cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-join")) {
 			char *c;
 			struct ChMode temp;
 			bzero(&temp, sizeof(temp));
 			CheckNull(cep);
+			CheckDuplicate(cep, modes_on_join, "modes-on-join");
 			for (c = cep->ce_vardata; *c; c++)
 			{
 				if (*c == ' ')
@@ -6180,6 +7253,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					case 'v':
 					case 'b':
 					case 'e':
+					case 'I':
 					case 'O':
 					case 'A':
 					case 'z':
@@ -6214,38 +7288,84 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			
 		}
 		else if (!strcmp(cep->ce_varname, "modes-on-oper")) {
+			char *p;
 			CheckNull(cep);
+			CheckDuplicate(cep, modes_on_oper, "modes-on-oper");
+			for (p = cep->ce_vardata; *p; p++)
+				if (strchr("oOaANCrzS", *p))
+				{
+					config_error("%s:%i: set::modes-on-oper no puede tener '%c'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+				}
 			templong = (long) set_usermode(cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "snomask-on-oper")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, snomask_on_oper, "snomask-on-oper");
 		}
 		else if (!strcmp(cep->ce_varname, "snomask-on-connect")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, snomask_on_connect, "snomask-on-connect");
+		}
+		else if (!strcmp(cep->ce_varname, "level-on-join")) {
+			char *p;
+			CheckNull(cep);
+			CheckDuplicate(cep, level_on_join, "level-on-join");
+			if (!channellevel_to_int(cep->ce_vardata))
+			{
+				config_error("%s:%i: set::level-on-join: valor desconocido '%s', debería ser: none, op",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_vardata);
+				errors++;
+			}
 		}
 		else if (!strcmp(cep->ce_varname, "static-quit")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, static_quit, "static-quit");
 		}
 		else if (!strcmp(cep->ce_varname, "static-part")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, static_part, "static-part");
 		}
 		else if (!strcmp(cep->ce_varname, "who-limit")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, who_limit, "who-limit");
+		}
+		else if (!strcmp(cep->ce_varname, "maxbans")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, maxbans, "maxbans");
+		}
+		else if (!strcmp(cep->ce_varname, "maxbanlength")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, maxbanlength, "maxbanlength");
 		}
 		else if (!strcmp(cep->ce_varname, "silence-limit")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, silence_limit, "silence-limit");
 		}
 		else if (!strcmp(cep->ce_varname, "auto-join")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, auto_join, "auto-join");
 		}
 		else if (!strcmp(cep->ce_varname, "oper-auto-join")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, oper_auto_join, "oper-auto-join");
+		}
+		else if (!strcmp(cep->ce_varname, "check-target-nick-bans")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, check_target_nick_bans, "check-target-nick-bans");
+		}
+		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, pingpong_warning, "pingpong-warning");
 		}
 		else if (!strcmp(cep->ce_varname, "channel-command-prefix")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, channel_command_prefix, "channel-command-prefix");
 		}
 		else if (!strcmp(cep->ce_varname, "allow-userhost-change")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, allow_userhost_change, "allow-userhost-change");
 			if (stricmp(cep->ce_vardata, "always") && 
 			    stricmp(cep->ce_vardata, "never") &&
 			    stricmp(cep->ce_vardata, "not-on-channels") &&
@@ -6258,10 +7378,31 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				continue;
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "allowed-nickchars")) {
+			if (cep->ce_vardata)
+			{
+				config_error("%s:%i: set::allowed-nickchars: por favor use 'allowed-nickchars { nombre; };' "
+				             "y no 'allowed-nickchars nombre;'",
+				             cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
+				errors++;
+				continue;
+			}
+			for (cepp = cep->ce_entries; cepp; cepp=cepp->ce_next)
+			{
+				if (!charsys_test_language(cepp->ce_varname))
+				{
+					config_error("%s:%i: set::allowed-nickchars: Desconocido (sub)lenguaje '%s'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cepp->ce_varname);
+					errors++;
+				}
+			}
+		}
 		else if (!strcmp(cep->ce_varname, "anti-spam-quit-message-time")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, anti_spam_quit_message_time, "anti-spam-quit-message-time");
 		}
 		else if (!strcmp(cep->ce_varname, "oper-only-stats")) {
+			CheckDuplicate(cep, oper_only_stats, "oper-only-stats");
 			if (!cep->ce_entries)
 			{
 				CheckNull(cep);
@@ -6279,6 +7420,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		}
 		else if (!strcmp(cep->ce_varname, "maxchannelsperuser")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, maxchannelsperuser, "maxchannelsperuser");
 			tempi = atoi(cep->ce_vardata);
 			if (tempi < 1)
 			{
@@ -6288,32 +7430,43 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 				continue;
 			}
-			requiredstuff.settings.maxchannelsperuser = 1;
 		}
 		else if (!strcmp(cep->ce_varname, "maxdccallow")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, maxdccallow, "maxdccallow");
 		}
 		else if (!strcmp(cep->ce_varname, "network-name")) {
+			char *p;
 			CheckNull(cep);
-			requiredstuff.settings.irc_network = 1;
+			CheckDuplicate(cep, network_name, "network-name");
+			for (p = cep->ce_vardata; *p; p++)
+				if ((*p < ' ') || (*p > '~'))
+				{
+					config_error("%s:%i: set::network-name sólo puede contener caracteres ASCII 33-126. Caracter no válido = '%c'",
+						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, *p);
+					errors++;
+					break;
+				}
 		}
 		else if (!strcmp(cep->ce_varname, "default-server")) {
 			CheckNull(cep);
-			requiredstuff.settings.defaultserv = 1;
+			CheckDuplicate(cep, default_server, "default-server");
 		}
 		else if (!strcmp(cep->ce_varname, "services-server")) {
 			CheckNull(cep);
-			requiredstuff.settings.servicesserv = 1;
+			CheckDuplicate(cep, services_server, "services-server");
 		}
 		else if (!strcmp(cep->ce_varname, "stats-server")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, stats_server, "stats-server");
 		}
 		else if (!strcmp(cep->ce_varname, "help-channel")) {
 			CheckNull(cep);
-			requiredstuff.settings.hlpchan = 1;
+			CheckDuplicate(cep, help_channel, "help-channel");
 		}
 		else if (!strcmp(cep->ce_varname, "hiddenhost-prefix")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, hiddenhost_prefix, "hiddenhost-prefix");
 			if (strchr(cep->ce_vardata, ' ') || (*cep->ce_vardata == ':'))
 			{
 				config_error("%s:%i: set::hiddenhost-prefix no puede contener espacios o empezar con ':'",
@@ -6321,14 +7474,15 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				errors++;
 				continue;
 			}
-			requiredstuff.settings.hidhost = 1;
 		}
 		else if (!strcmp(cep->ce_varname, "prefix-quit")) {
 			CheckNull(cep);
+			CheckDuplicate(cep, prefix_quit, "prefix-quit");
 		}
 		else if (!strcmp(cep->ce_varname, "restrict-usermodes"))
 		{
 			CheckNull(cep);
+			CheckDuplicate(cep, restrict_usermodes, "restrict-usermodes");
 			if (cep->ce_varname) {
 				int warn = 0;
 				char *p;
@@ -6344,6 +7498,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "restrict-channelmodes"))
 		{
 			CheckNull(cep);
+			CheckDuplicate(cep, restrict_channelmodes, "restrict-channelmodes");
 			if (cep->ce_varname) {
 				int warn = 0;
 				char *p;
@@ -6358,19 +7513,21 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		}
 		else if (!strcmp(cep->ce_varname, "restrict-extendedbans"))
 		{
+			CheckDuplicate(cep, restrict_extendedbans, "restrict-extendedbans");
 			CheckNull(cep);
 		}
 		else if (!strcmp(cep->ce_varname, "dns")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
 				CheckNull(cepp);
 				if (!strcmp(cepp->ce_varname, "timeout")) {
-					requiredstuff.settings.host_timeout = 1;
+					CheckDuplicate(cepp, dns_timeout, "dns::timeout");
 				}
 				else if (!strcmp(cepp->ce_varname, "retries")) {
-					requiredstuff.settings.host_retries = 1;
+					CheckDuplicate(cepp, dns_retries, "dns::retries");
 				}
 				else if (!strcmp(cepp->ce_varname, "nameserver")) {
 					struct in_addr in;
+					CheckDuplicate(cepp, dns_nameserver, "dns::nameserver");
 					
 					in.s_addr = inet_addr(cepp->ce_vardata);
 					if (strcmp((char *)inet_ntoa(in), cepp->ce_vardata))
@@ -6381,13 +7538,27 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 						errors++;
 						continue;
 					}
-					requiredstuff.settings.name_server = 1;
+				}
+				else if (!strcmp(cepp->ce_varname, "bind-ip")) {
+					struct in_addr in;
+					CheckDuplicate(cepp, dns_bind_ip, "dns::bind-ip");
+					if (strcmp(cepp->ce_vardata, "*"))
+					{
+						in.s_addr = inet_addr(cepp->ce_vardata);
+						if (strcmp((char *)inet_ntoa(in), cepp->ce_vardata))
+						{
+							config_error("%s:%i: set::dns::bind-ip (%s) no es una dirección IP válida",
+								cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum,
+								cepp->ce_vardata);
+							errors++;
+							continue;
+						}
+					}
 				}
 				else
 				{
-					config_error("%s:%i: unknown option set::dns::%s",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::dns", 
 						cepp->ce_varname);
 						errors++;
 				}
@@ -6399,6 +7570,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				CheckNull(cepp);
 				if (!strcmp(cepp->ce_varname, "period")) {
 					int x = config_checkval(cepp->ce_vardata,CFG_TIME);
+					CheckDuplicate(cepp, throttle_period, "throttle::period");
 					if (x > 86400*7)
 					{
 						config_error("%s:%i: insane set::throttle::period value",
@@ -6410,9 +7582,10 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else if (!strcmp(cepp->ce_varname, "connections")) {
 					int x = atoi(cepp->ce_vardata);
+					CheckDuplicate(cepp, throttle_connections, "throttle::connections");
 					if ((x < 1) || (x > 127))
 					{
-						config_error("%s:%i: set::throttle::connections out of range, should be 1-127",
+						config_error("%s:%i: set::throttle::connections fuera de rango (1-127)",
 							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
 						errors++;
 						continue;
@@ -6420,9 +7593,8 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else
 				{
-					config_error("%s:%i: unknown option set::throttle::%s",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::throttle",
 						cepp->ce_varname);
 					errors++;
 					continue;
@@ -6433,13 +7605,17 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "anti-flood")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
 				CheckNull(cepp);
-				if (!strcmp(cepp->ce_varname, "unknown-flood-bantime")) {
+				if (!strcmp(cepp->ce_varname, "unknown-flood-bantime")) 
+				{
+					CheckDuplicate(cepp, anti_flood_unknown_flood_bantime, "anti-flood::unknown-flood-bantime");
 				}
 				else if (!strcmp(cepp->ce_varname, "unknown-flood-amount")) {
+					CheckDuplicate(cepp, anti_flood_unknown_flood_amount, "anti-flood::unknown-flood-amount");
 				}
 #ifdef NO_FLOOD_AWAY
 				else if (!strcmp(cepp->ce_varname, "away-count")) {
 					int temp = atol(cepp->ce_vardata);
+					CheckDuplicate(cepp, anti_flood_away_count, "anti-flood::away-count");
 					if (temp < 1 || temp > 255)
 					{
 						config_error("%s:%i: set::anti-flood::away-count valor entre 1 y 255",
@@ -6449,6 +7625,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else if (!strcmp(cepp->ce_varname, "away-period")) {
 					int temp = config_checkval(cepp->ce_vardata, CFG_TIME);
+					CheckDuplicate(cepp, anti_flood_away_period, "anti-flood::away-period");
 					if (temp < 10)
 					{
 						config_error("%s:%i: set::anti-flood::away-period mayor que 9",
@@ -6459,6 +7636,20 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				else if (!strcmp(cepp->ce_varname, "away-flood"))
 				{
 					int cnt, period;
+					if (settings.has_anti_flood_away_period)
+					{
+						config_warn("%s:%d: set::anti-flood::away-flood overrides set::anti-flood::away-period",
+							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
+						continue;
+					}
+					if (settings.has_anti_flood_away_count)
+					{
+						config_warn("%s:%d: set::anti-flood::away-flood overrides set::anti-flood::away-count",
+							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
+						continue;
+					}
+					settings.has_anti_flood_away_period = 1;
+					settings.has_anti_flood_away_count = 1;
 					if (!config_parse_flood(cepp->ce_vardata, &cnt, &period) ||
 					    (cnt < 1) || (cnt > 255) || (period < 10))
 					{
@@ -6472,6 +7663,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				else if (!strcmp(cepp->ce_varname, "nick-flood"))
 				{
 					int cnt, period;
+					CheckDuplicate(cepp, anti_flood_nick_flood, "anti-flood::nick-flood");
 					if (!config_parse_flood(cepp->ce_vardata, &cnt, &period) ||
 					    (cnt < 1) || (cnt > 255) || (period < 5))
 					{
@@ -6483,9 +7675,8 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else
 				{
-					config_error("%s:%i: opción desconocida set::anti-flood::%s",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::anti-flood",
 						cepp->ce_varname);
 					errors++;
 					continue;
@@ -6494,33 +7685,42 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		}
 		else if (!strcmp(cep->ce_varname, "options")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
-				if (!strcmp(cepp->ce_varname, "webtv-support")) {
+				if (!strcmp(cepp->ce_varname, "webtv-support")) 
+				{
+					CheckDuplicate(cepp, options_webtv_support, "options::webtv-support");
 				}
-				else if (!strcmp(cepp->ce_varname, "hide-ulines")) {
+				else if (!strcmp(cepp->ce_varname, "hide-ulines")) 
+				{
+					CheckDuplicate(cepp, options_hide_ulines, "options::hide-ulines");
 				}
 				else if (!strcmp(cepp->ce_varname, "flat-map")) {
-				}
-				else if (!strcmp(cepp->ce_varname, "no-stealth")) {
+					CheckDuplicate(cepp, options_flat_map, "options::flat-map");
 				}
 				else if (!strcmp(cepp->ce_varname, "show-opermotd")) {
+					CheckDuplicate(cepp, options_show_opermotd, "options::show-opermotd");
 				}
 				else if (!strcmp(cepp->ce_varname, "identd-check")) {
+					CheckDuplicate(cepp, options_identd_check, "options::identd-check");
 				}
 				else if (!strcmp(cepp->ce_varname, "fail-oper-warn")) {
+					CheckDuplicate(cepp, options_fail_oper_warn, "options::fail-oper-warn");
 				}
 				else if (!strcmp(cepp->ce_varname, "show-connect-info")) {
+					CheckDuplicate(cepp, options_show_connect_info, "options::show-connect-info");
 				}
 				else if (!strcmp(cepp->ce_varname, "dont-resolve")) {
+					CheckDuplicate(cepp, options_dont_resolve, "options::dont-resolve");
 				}
 				else if (!strcmp(cepp->ce_varname, "mkpasswd-for-everyone")) {
+					CheckDuplicate(cepp, options_mkpasswd_for_everyone, "options::mkpasswd-for-everyone");
 				}
 				else if (!strcmp(cepp->ce_varname, "allow-part-if-shunned")) {
+					CheckDuplicate(cepp, options_allow_part_if_shunned, "options::allow-part-if-shunned");
 				}
 				else
 				{
-					config_error("%s:%i: opción desconocida set::options::%s",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::options",
 						cepp->ce_varname);
 					errors++;
 					continue;
@@ -6530,47 +7730,103 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "hosts")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
+				char *c, *host;
 				if (!cepp->ce_vardata)
 				{
-					config_error("%s:%i: set::hosts item vacío",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
+					config_error_empty(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::hosts",
+						cepp->ce_varname);
 					errors++;
 					continue;
 				} 
 				if (!strcmp(cepp->ce_varname, "local")) {
-					requiredstuff.settings.locophost = 1;
+					CheckDuplicate(cepp, hosts_local, "hosts::local");
 				}
 				else if (!strcmp(cepp->ce_varname, "global")) {
-					requiredstuff.settings.operhost = 1;
+					CheckDuplicate(cepp, hosts_global, "hosts::global");
 				}
 				else if (!strcmp(cepp->ce_varname, "coadmin")) {
-					requiredstuff.settings.coadminhost = 1;
+					CheckDuplicate(cepp, hosts_coadmin, "hosts::coadmin");
 				}
 				else if (!strcmp(cepp->ce_varname, "admin")) {
-					requiredstuff.settings.adminhost = 1;
+					CheckDuplicate(cepp, hosts_admin, "hosts::admin");
 				}
 				else if (!strcmp(cepp->ce_varname, "servicesadmin")) {
-					requiredstuff.settings.sadminhost = 1;
+					CheckDuplicate(cepp, hosts_servicesadmin, "hosts::servicesadmin");
 				}
 				else if (!strcmp(cepp->ce_varname, "netadmin")) {
-					requiredstuff.settings.netadminhost = 1;
+					CheckDuplicate(cepp, hosts_netadmin, "hosts::netadmin");
 				}
 				else if (!strcmp(cepp->ce_varname, "host-on-oper-up")) {
+					CheckDuplicate(cepp, hosts_host_on_oper_up, "hosts::host-on-oper-up");
 				}
 				else
 				{
-					config_error("%s:%i: directriz desconocida set::hosts::%s",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
-						cepp->ce_varname);
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::hosts", cepp->ce_varname);
 					errors++;
 					continue;
 
+				}
+				if ((c = strchr(cepp->ce_vardata, '@')))
+				{
+					char *tmp;
+					if (!(*(c+1)) || (c-cepp->ce_vardata) > USERLEN ||
+					    c == cepp->ce_vardata)
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
+					for (tmp = cepp->ce_vardata; tmp != c; tmp++)
+					{
+						if (*tmp == '~' && tmp == cepp->ce_vardata)
+							continue;
+						if (!isallowed(*tmp))
+							break;
+					}
+					if (tmp != c)
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
+					host = c+1;
+				}
+				else
+					host = cepp->ce_vardata;
+				if (strlen(host) > HOSTLEN)
+				{
+					config_error("%s:%i: illegal value for set::hosts::%s",
+						     cepp->ce_fileptr->cf_filename,
+						     cepp->ce_varlinenum, 
+						     cepp->ce_varname);
+					errors++;
+					continue;
+				}
+				for (; *host; host++)
+				{
+					if (!isallowed(*host) && *host != ':')
+					{
+						config_error("%s:%i: illegal value for set::hosts::%s",
+							     cepp->ce_fileptr->cf_filename,
+							     cepp->ce_varlinenum, 
+							     cepp->ce_varname);
+						errors++;
+						continue;
+					}
 				}
 			}
 		}
 		else if (!strcmp(cep->ce_varname, "cloak-keys"))
 		{
+			CheckDuplicate(cep, cloak_keys, "cloak-keys");
 			for (h = Hooks[HOOKTYPE_CONFIGTEST]; h; h = h->next)
 			{
 				int value, errs = 0;
@@ -6598,10 +7854,21 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "ident")) {
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
 			{
+				int is_ok = 0;
 				CheckNull(cepp);
-				if (!strcmp(cepp->ce_varname, "connect-timeout") || !strcmp(cepp->ce_varname, "read-timeout"))
+				if (!strcmp(cepp->ce_varname, "connect-timeout"))
 				{
-					int v = config_checkval(cepp->ce_vardata,CFG_TIME);;
+					is_ok = 1;
+					CheckDuplicate(cepp, ident_connect_timeout, "ident::connect-timeout");
+				}
+				else if (!strcmp(cepp->ce_varname, "read-timeout"))
+				{
+					is_ok = 1;
+					CheckDuplicate(cepp, ident_read_timeout, "ident::read-timeout");
+				}
+				if (is_ok)
+				{
+					int v = config_checkval(cepp->ce_vardata,CFG_TIME);
 					if ((v > 60) || (v < 1))
 					{
 						config_error("%s:%i: set::ident::%s valor fuera de rango (%d), entre 1 y 60.",
@@ -6610,8 +7877,37 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 						continue;
 					}
 				} else {
-					config_error("%s:%i: directriz desconocida set::ident::%s",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, cepp->ce_varname);
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::ident",
+						cepp->ce_varname);
+					errors++;
+					continue;
+				}
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "timesync") || !strcmp(cep->ce_varname, "timesynch")) {
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				CheckNull(cepp);
+				if (!strcmp(cepp->ce_varname, "enabled"))
+				{
+				}
+				else if (!strcmp(cepp->ce_varname, "timeout"))
+				{
+					int v = config_checkval(cepp->ce_vardata,CFG_TIME);
+					if ((v > 5) || (v < 1))
+					{
+						config_error("%s:%i: set::timesync::%s fuera del rango (%d). Debe estar entre 1 y 5.",
+							cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, cepp->ce_varname, v);
+						errors++;
+						continue;
+					}
+				} else if (!strcmp(cepp->ce_varname, "server"))
+				{
+				} else {
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::timesync",
+						cepp->ce_varname);
 					errors++;
 					continue;
 				}
@@ -6624,6 +7920,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				if (!strcmp(cepp->ce_varname, "ban-time"))
 				{
 					long x;
+					CheckDuplicate(cepp, spamfilter_ban_time, "spamfilter::ban-time");
 					x = config_checkval(cepp->ce_vardata,CFG_TIME);
 					if ((x < 0) > (x > 2000000000))
 					{
@@ -6634,9 +7931,13 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					}
 				} else
 				if (!strcmp(cepp->ce_varname, "ban-reason"))
-				{ } else
-				if (!strcmp(cepp->ce_varname, "virus-help-channel"))
+				{ 
+					CheckDuplicate(cepp, spamfilter_ban_reason, "spamfilter::ban-reason");
+
+				} 
+				else if (!strcmp(cepp->ce_varname, "virus-help-channel"))
 				{
+					CheckDuplicate(cepp, spamfilter_virus_help_channel, "spamfilter::virus-help-channel");
 					if ((cepp->ce_vardata[0] != '#') || (strlen(cepp->ce_vardata) > CHANNELLEN))
 					{
 						config_error("%s:%i: set::spamfilter:virus-help-channel: "
@@ -6648,31 +7949,54 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 					}
 				} else 
 				if (!strcmp(cepp->ce_varname, "virus-help-channel-deny"))
-				{ } else
+				{ 
+					CheckDuplicate(cepp, spamfilter_virus_help_channel_deny, "spamfilter::virus-help-channel-deny");
+				} else
 				if (!strcmp(cepp->ce_varname, "except"))
-				{ } else
+				{ 
+					CheckDuplicate(cepp, spamfilter_except, "spamfilter::except");
+				} else
 				{
-					config_error("%s:%i: unknown directive set::spamfilter::%s",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, cepp->ce_varname);
+					config_error_unknown(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::spamfilter",
+						cepp->ce_varname);
 					errors++;
 					continue;
 				}
 			}
 		}
-		else if (!strcmp(cep->ce_varname, "default-bantime") ||
-		         !strcmp(cep->ce_varname, "ban-version-tkl-time")) {
+/* TODO: FIX THIS */
+		else if (!strcmp(cep->ce_varname, "default-bantime"))
+		{
 			long x;
+			CheckDuplicate(cep, default_bantime, "default-bantime");
+			CheckNull(cep);
+			x = config_checkval(cep->ce_vardata,CFG_TIME);
+			if ((x < 0) > (x > 2000000000))
+			{
+				config_error("%s:%i: set::default-bantime: value '%ld' out of range",
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, x);
+				errors++;
+			}
+		}
+		else if (!strcmp(cep->ce_varname, "ban-version-tkl-time")) {
+			long x;
+			CheckDuplicate(cep, ban_version_tkl_time, "ban-version-tkl-time");
+			CheckNull(cep);
 			x = config_checkval(cep->ce_vardata,CFG_TIME);
 			if ((x < 0) > (x > 2000000000))
 			{
 				config_error("%s:%i: set::%s: valor '%ld' fuera de rango",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, cep->ce_varname, x);
+					cep->ce_fileptr->cf_filename, cep->ce_varlinenum, x);
 				errors++;
 			}
 		}
 #ifdef NEWCHFLOODPROT
 		else if (!strcmp(cep->ce_varname, "modef-default-unsettime")) {
-			int v = atoi(cep->ce_vardata);
+			int v;
+			CheckDuplicate(cep, modef_default_unsettime, "modef-default-unsettime");
+			CheckNull(cep);
+			v = atoi(cep->ce_vardata);
 			if ((v <= 0) || (v > 255))
 			{
 				config_error("%s:%i: set::modef-default-unsettime: valor '%d' fuera de rango (1-255)",
@@ -6681,7 +8005,10 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 		}
 		else if (!strcmp(cep->ce_varname, "modef-max-unsettime")) {
-			int v = atoi(cep->ce_vardata);
+			int v;
+			CheckDuplicate(cep, modef_max_unsettime, "modef-max-unsettime");
+			CheckNull(cep);
+			v = atoi(cep->ce_vardata);
 			if ((v <= 0) || (v > 255))
 			{
 				config_error("%s:%i: set::modef-max-unsettime: valor '%d' fuera de rango (1-255)",
@@ -6694,21 +8021,26 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 #ifdef USE_SSL
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
 				if (!strcmp(cepp->ce_varname, "egd")) {
+					CheckDuplicate(cep, ssl_egd, "ssl::egd");
 				}
 				else if (!strcmp(cepp->ce_varname, "certificate"))
 				{
 					CheckNull(cepp);
+					CheckDuplicate(cep, ssl_certificate, "ssl::certificate");
 				}
 				else if (!strcmp(cepp->ce_varname, "key"))
 				{
 					CheckNull(cepp);
+					CheckDuplicate(cep, ssl_key, "ssl::key");
 				}
 				else if (!strcmp(cepp->ce_varname, "trusted-ca-file"))
 				{
 					CheckNull(cepp);
+					CheckDuplicate(cep, ssl_trusted_ca_file, "ssl::trusted-ca-file");
 				}
 				else if (!strcmp(cepp->ce_varname, "options"))
 				{
+					CheckDuplicate(cep, ssl_options, "ssl::options");
 					for (ceppp = cepp->ce_entries; ceppp; ceppp = ceppp->ce_next)
 					{
 						for (ofl = _SSLFlags; ofl->name; ofl++)
@@ -6730,6 +8062,22 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			}
 #endif
 		}
+#ifdef UDB
+		else if (!strcmp(cep->ce_varname, "udb"))
+		{
+			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next)
+			{
+				//else
+				{
+					config_error_unknownopt(cepp->ce_fileptr->cf_filename,
+						cepp->ce_varlinenum, "set::udb",
+						cepp->ce_varname);
+					errors++;
+					continue;
+				}
+			}
+		}
+#endif
 		else
 		{
 			int used = 0;
@@ -6760,7 +8108,7 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 			}
 			if (!used) {
-				config_error("%s:%i: directriz desconcida set::%s",
+				config_error("%s:%i: directriz desconocida set::%s",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
 					cep->ce_varname);
 				errors++;
@@ -6819,7 +8167,7 @@ int	_conf_loadmodule(ConfigFile *conf, ConfigEntry *ce)
 		*(cSlash+1)=0;
 	}
 	hFind = FindFirstFile(ce->ce_vardata, &FindData);
-	if (!FindData.cFileName) {
+	if (!FindData.cFileName || hFind == INVALID_HANDLE_VALUE) {
 		config_status("%s:%i: loadmodule %s: falla al cargar",
 			ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
 			ce->ce_vardata);
@@ -6834,7 +8182,7 @@ int	_conf_loadmodule(ConfigFile *conf, ConfigEntry *ce)
 		if ((ret = Module_Create(path))) {
 			config_status("%s:%i: loadmodule %s: no puede cargar: %s",
 				ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
-				FindData.cFileName, ret);
+				path, ret);
 			free(path);
 			return -1;
 		}
@@ -6976,8 +8324,9 @@ int	_test_offchans(ConfigFile *conf, ConfigEntry *ce)
 		{
 			if (!cep2->ce_vardata)
 			{
-				config_error("%s:%i: official-channels::%s: %s no tiene valor",
-					cep2->ce_fileptr->cf_filename, cep2->ce_varlinenum, cep->ce_varname, cep2->ce_varname);
+				config_error_empty(cep2->ce_fileptr->cf_filename, 
+					cep2->ce_varlinenum, "official-channels", 
+					cep2->ce_varname);
 				errors++;
 				continue;
 			}
@@ -6991,8 +8340,9 @@ int	_test_offchans(ConfigFile *conf, ConfigEntry *ce)
 					continue;
 				}
 			} else {
-				config_error("%s:%i: official-channels::%s: directriz desconocida '%s'.",
-					cep2->ce_fileptr->cf_filename, cep2->ce_varlinenum, cep->ce_varname, cep2->ce_varname);
+				config_error_unknown(cep2->ce_fileptr->cf_filename, 
+					cep2->ce_varlinenum, "official-channels", 
+					cep2->ce_varname);
 				errors++;
 				continue;
 			}
@@ -7001,7 +8351,6 @@ int	_test_offchans(ConfigFile *conf, ConfigEntry *ce)
 	return errors;
 }
 
-
 int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 {
 	ConfigItem_alias *alias = NULL;
@@ -7009,14 +8358,15 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 	ConfigEntry 	    	*cep, *cepp;
 	aCommand *cmptr;
 
-	if (!ce->ce_vardata)
-	{
-		config_status("%s:%i: alias sin nombre",
-			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
-		return -1;
-	}
 	if ((cmptr = find_Command(ce->ce_vardata, 0, M_ALIAS)))
 		del_Command(ce->ce_vardata, NULL, cmptr->func);
+	if (find_Command_simple(ce->ce_vardata))
+	{
+		config_warn("%s:%i: El alias '%s' tiene el nombre del comando '%s'. No se cargará.",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			ce->ce_vardata, ce->ce_vardata);
+		return 0;
+	}
 	if ((alias = Find_alias(ce->ce_vardata)))
 		DelListItem(alias, conf_alias);
 	alias = MyMallocEx(sizeof(ConfigItem_alias));
@@ -7028,7 +8378,9 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 			ircstrdup(format->format, cep->ce_vardata);
 			regcomp(&format->expr, cep->ce_vardata, REG_ICASE|REG_EXTENDED);
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
-				if (!strcmp(cepp->ce_varname, "nick")) {
+				if (!strcmp(cepp->ce_varname, "nick") ||
+				    !strcmp(cepp->ce_varname, "target") ||
+				    !strcmp(cepp->ce_varname, "command")) {
 					ircstrdup(format->nick, cepp->ce_vardata);
 				}
 				else if (!strcmp(cepp->ce_varname, "parameters")) {
@@ -7041,12 +8393,17 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 						format->type = ALIAS_STATS;
 					else if (!strcmp(cepp->ce_vardata, "normal"))
 						format->type = ALIAS_NORMAL;
+					else if (!strcmp(cepp->ce_vardata, "channel"))
+						format->type = ALIAS_CHANNEL;
+					else if (!strcmp(cepp->ce_vardata, "real"))
+						format->type = ALIAS_REAL;
 				}
 			}
 			AddListItem(format, alias->format);
 		}		
 				
-		else if (!strcmp(cep->ce_varname, "nick")) {
+		else if (!strcmp(cep->ce_varname, "nick") || !strcmp(cep->ce_varname, "target")) 
+		{
 			ircstrdup(alias->nick, cep->ce_vardata);
 		}
 		else if (!strcmp(cep->ce_varname, "type")) {
@@ -7056,10 +8413,13 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 				alias->type = ALIAS_STATS;
 			else if (!strcmp(cep->ce_vardata, "normal"))
 				alias->type = ALIAS_NORMAL;
+			else if (!strcmp(cep->ce_vardata, "channel"))
+				alias->type = ALIAS_CHANNEL;
 			else if (!strcmp(cep->ce_vardata, "command"))
 				alias->type = ALIAS_COMMAND;
 		}
-			
+		else if (!strcmp(cep->ce_varname, "spamfilter"))
+			alias->spamfilter = config_checkval(cep->ce_vardata, CFG_YESNO);
 	}
 	if (BadPtr(alias->nick) && alias->type != ALIAS_COMMAND) {
 		ircstrdup(alias->nick, alias->alias); 
@@ -7073,6 +8433,9 @@ int	_conf_alias(ConfigFile *conf, ConfigEntry *ce)
 int _test_alias(ConfigFile *conf, ConfigEntry *ce) { 
 	int errors = 0;
 	ConfigEntry *cep, *cepp;
+	char has_type = 0, has_target = 0, has_format = 0;
+	char type = 0;
+
 	if (!ce->ce_entries)
 	{
 		config_error("%s:%i: alias vacío", 
@@ -7090,40 +8453,27 @@ int _test_alias(ConfigFile *conf, ConfigEntry *ce) {
 			ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
 		errors++;
 	}
-	if (!config_find_entry(ce->ce_entries, "type"))
-	{
-		config_error("%s:%i: alias::type falta", ce->ce_fileptr->cf_filename,
-			ce->ce_varlinenum);
-		errors++;
-	}
 	for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 	{
-		if (!cep->ce_varname)
+		if (config_is_blankorempty(cep, "alias"))
 		{
-			config_error("%s:%i: alias item vacío",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-			errors++; continue;
+			errors++;
+			continue;
 		}
-		if (!cep->ce_vardata)
-		{
-			config_error("%s:%i: alias::%s sin parámetro",
-				cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum,
-				cep->ce_varname);
-			errors++; continue;
-		}
-
 		if (!strcmp(cep->ce_varname, "format")) {
 			int errorcode, errorbufsize;
 			char *errorbuf;
 			regex_t expr;
+			char has_type = 0, has_target = 0, has_parameters = 0;
+
+			has_format = 1;
 			errorcode = regcomp(&expr, cep->ce_vardata, REG_ICASE|REG_EXTENDED);
                         if (errorcode > 0)
                         {
                                 errorbufsize = regerror(errorcode, &expr, NULL, 0)+1;
                                 errorbuf = MyMalloc(errorbufsize);
                                 regerror(errorcode, &expr, errorbuf, errorbufsize);
-                                config_error("%s:%i: alias::format regex erróneo: %s",
+                                config_error("%s:%i: alias::format expresión errónea: %s",
  					cep->ce_fileptr->cf_filename,
  					cep->ce_varlinenum,
  					errorbuf);
@@ -7131,75 +8481,149 @@ int _test_alias(ConfigFile *conf, ConfigEntry *ce) {
                                 free(errorbuf);
                         }
 			regfree(&expr);	
-			if (!config_find_entry(cep->ce_entries, "type"))
-			{
-				config_error("%s:%i: alias::format::type falta", cep->ce_fileptr->cf_filename,
-				cep->ce_varlinenum);
-				errors++;
-			}
-			if (!config_find_entry(cep->ce_entries, "nick"))
-			{
-				config_error("%s:%i: alias::format::nick falta", cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum);
-				errors++;
-			}
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
-				if (!cepp->ce_vardata)
+				if (config_is_blankorempty(cepp, "alias::format"))
 				{
-					config_error("%s:%i: alias::format::%s sin parámetros",
-						cepp->ce_fileptr->cf_filename,
-						cepp->ce_varlinenum,
-						cepp->ce_varname);
-					errors++; continue;
+					errors++;
+					continue;
 				}
-				if (!strcmp(cepp->ce_varname, "nick")) 
-					;
+				if (!strcmp(cepp->ce_varname, "nick") ||
+				    !strcmp(cepp->ce_varname, "command") ||
+				    !strcmp(cepp->ce_varname, "target"))
+				{
+					if (has_target)
+					{
+						config_warn_duplicate(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, 
+							"alias::format::target");
+						continue;
+					}
+					has_target = 1;
+				}
 				else if (!strcmp(cepp->ce_varname, "type"))
 				{
+					if (has_type)
+					{
+						config_warn_duplicate(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, 
+							"alias::format::type");
+						continue;
+					}
+					has_type = 1;
 					if (!strcmp(cepp->ce_vardata, "services"))
 						;
 					else if (!strcmp(cepp->ce_vardata, "stats"))
 						;
 					else if (!strcmp(cepp->ce_vardata, "normal"))
 						;
-					else {
-						config_status("%s:%i: unknown alias type",
+					else if (!strcmp(cepp->ce_vardata, "channel"))
+						;
+					else if (!strcmp(cepp->ce_vardata, "real"))
+						;
+					else 
+					{
+						config_error("%s:%i: tipo alias desconocido",
 						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum);
 						errors++;
 					}
 				}
 				else if (!strcmp(cepp->ce_varname, "parameters")) 
-					;
-				else {
-					config_status("%s:%i: directriz desconocida alias::format::%s",
-						cepp->ce_fileptr->cf_filename, cepp->ce_varlinenum, cepp->ce_varname);
+				{
+					if (has_parameters)
+					{
+						config_warn_duplicate(cepp->ce_fileptr->cf_filename,
+							cepp->ce_varlinenum, 
+							"alias::format::parameters");
+						continue;
+					}
+					has_parameters = 1;
+				}
+				else 
+				{
+					config_error_unknown(cepp->ce_fileptr->cf_filename, 
+						cepp->ce_varlinenum, "alias::format",
+						cepp->ce_varname);
 					errors++;
 				}
 			}
+			if (!has_target)
+			{
+				config_error_missing(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "alias::format::target");
+				errors++;
+			}
+			if (!has_type)
+			{
+				config_error_missing(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "alias::format::type");
+				errors++;
+			}
+			if (!has_parameters)
+			{
+				config_error_missing(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "alias::format::parameters");
+				errors++;
+			}
 		}
-		else if (!strcmp(cep->ce_varname, "nick")) 
-			;
+		else if (!strcmp(cep->ce_varname, "nick") || !strcmp(cep->ce_varname, "target")) 
+		{
+			if (has_target)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "alias::target");
+				continue;
+			}
+			has_target = 1;
+		}
 		else if (!strcmp(cep->ce_varname, "type")) {
+			if (has_type)
+			{
+				config_warn_duplicate(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "alias::type");
+				continue;
+			}
+			has_type = 1;
 			if (!strcmp(cep->ce_vardata, "services"))
 				;
 			else if (!strcmp(cep->ce_vardata, "stats"))
 				;
 			else if (!strcmp(cep->ce_vardata, "normal"))
 				;
-			else if (!strcmp(cep->ce_vardata, "command"))
+			else if (!strcmp(cep->ce_vardata, "channel"))
 				;
+			else if (!strcmp(cep->ce_vardata, "command"))
+				type = 'c';
 			else {
-				config_status("%s:%i: desconocido tipo alias",
+				config_error("%s:%i: tipo alias desconocido",
 					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
 				errors++;
 			}
 		}
+		else if (!strcmp(cep->ce_varname, "spamfilter"))
+			;
 		else {
-			config_error("%s:%i: directriz desconocida alias::%s",
-				cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-				cep->ce_varname);
+			config_error_unknown(cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
+				"alias", cep->ce_varname);
 			errors++;
 		}
+	}
+	if (!has_type)
+	{
+		config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+			"alias::type");
+		errors++;
+	}
+	if (!has_format && type == 'c')
+	{
+		config_error("%s:%d: alias::type is 'command' but no alias::format was specified",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		errors++;
+	}
+	else if (has_format && type != 'c')
+	{
+		config_error("%s:%d: alias::format specified when type is not 'command'",
+			ce->ce_fileptr->cf_filename, ce->ce_varlinenum);
+		errors++;
 	}
 	return errors; 
 }
@@ -7359,130 +8783,182 @@ int     _test_deny(ConfigFile *conf, ConfigEntry *ce)
 	}
 	if (!strcmp(ce->ce_vardata, "dcc"))
 	{
+		char has_filename = 0, has_reason = 0, has_soft = 0;
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_varname)
+			if (config_is_blankorempty(cep, "deny dcc"))
 			{
-				config_error("%s:%i: deny item vacío",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
-			}
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: deny::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				errors++;
+				continue;
 			}
 			if (!strcmp(cep->ce_varname, "filename"))
-			;
+			{
+				if (has_filename)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny dcc::filename");
+					continue;
+				}
+				has_filename = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "reason"))
-			;
+			{
+				if (has_reason)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny dcc::reason");
+					continue;
+				}
+				has_reason = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "soft"))
-			;
+			{
+				if (has_soft)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny dcc::soft");
+					continue;
+				}
+				has_soft = 1;
+			}
 			else 
 			{
-				config_error("%s:%i: directriz desconocida deny::%s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "deny dcc", cep->ce_varname);
 				errors++;
 			}
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "filename")))
+		if (!has_filename)
 		{
-			config_error("%s:%i: deny %s::filename falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny dcc::filename");
 			errors++;
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "reason")))
+		if (!has_reason)
 		{
-			config_error("%s:%i: deny %s::reason falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny dcc::reason");
 			errors++;
 		}
 	}
 	else if (!strcmp(ce->ce_vardata, "channel"))
 	{
+		char has_channel = 0, has_warn = 0, has_reason = 0, has_redirect = 0;
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_varname)
+			if (config_is_blankorempty(cep, "deny channel"))
 			{
-				config_error("%s:%i: deny item vacío",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
-			}
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: deny::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				errors++;
+				continue;
 			}
 			if (!strcmp(cep->ce_varname, "channel"))
-				;
+			{
+				if (has_channel)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny channel::channel");
+					continue;
+				}
+				has_channel = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "redirect"))
-				;
+			{
+				if (has_redirect)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny channel::redirect");
+					continue;
+				}
+				has_redirect = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "reason"))
-				;
+			{
+				if (has_reason)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny channel::reason");
+					continue;
+				}
+				has_reason = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "warn"))
-				;
+			{
+				if (has_warn)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny channel::warn");
+					continue;
+				}
+				has_warn = 1;
+			}
 			else 
 			{
-				config_error("%s:%i: directriz desconocida deny::%s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "deny channel", cep->ce_varname);
 				errors++;
 			}
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "channel")))
+		if (!has_channel)
 		{
-			config_error("%s:%i: deny %s::channel falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny channel::channel");
 			errors++;
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "reason")))
+		if (!has_reason)
 		{
-			config_error("%s:%i: deny %s::reason falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny channel::reason");
 			errors++;
 		}
 	}
 	else if (!strcmp(ce->ce_vardata, "link"))
 	{
+		char has_mask = 0, has_rule = 0, has_type = 0;
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_varname)
+			if (config_is_blankorempty(cep, "deny link"))
 			{
-				config_error("%s:%i: deny item vacío",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
-			}
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: deny::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				errors++;
+				continue;
 			}
 			if (!strcmp(cep->ce_varname, "mask"))
-			;
+			{
+				if (has_mask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny link::mask");
+					continue;
+				}
+				has_mask = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "rule"))
 			{
 				int val = 0;
+				if (has_rule)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny link::rule");
+					continue;
+				}
+				has_rule = 1;
 				if ((val = crule_test(cep->ce_vardata)))
 				{
 					config_error("%s:%i: deny::%s expresión incorrecta: %s",
 						cep->ce_fileptr->cf_filename,
 						cep->ce_varlinenum,
-						cep->ce_varname, crule_errstring(val));
+						crule_errstring(val));
 					errors++;
 				}
 			}
 			else if (!strcmp(cep->ce_varname, "type"))
 			{
+				if (has_type)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny link::type");
+					continue;
+				}
+				has_type = 1;
 				if (!strcmp(cep->ce_vardata, "auto"))
 				;
 				else if (!strcmp(cep->ce_vardata, "all"))
@@ -7495,79 +8971,93 @@ int     _test_deny(ConfigFile *conf, ConfigEntry *ce)
 			}	
 			else 
 			{
-				config_error("%s:%i: directriz desconcida deny::%s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename,
+					cep->ce_varlinenum, "deny link", cep->ce_varname);
 				errors++;
 			}
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "mask")))
+		if (!has_mask)
 		{
-			config_error("%s:%i: deny %s::mask falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny link::mask");
 			errors++;
 		}	
-		if (!(cep = config_find_entry(ce->ce_entries, "rule")))
+		if (!has_rule)
 		{
-			config_error("%s:%i: deny %s::rule falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny link::rule");
 			errors++;
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "type")))
+		if (!has_type)
 		{
-			config_error("%s:%i: deny %s::type falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny link::type");
 			errors++;
 		}
 	}
 	else if (!strcmp(ce->ce_vardata, "version"))
 	{
+		char has_mask = 0, has_version = 0, has_flags = 0;
 		for (cep = ce->ce_entries; cep; cep = cep->ce_next)
 		{
-			if (!cep->ce_varname)
+			if (config_is_blankorempty(cep, "deny version"))
 			{
-				config_error("%s:%i: deny item vacío",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum);
-				errors++; continue;
-			}
-			if (!cep->ce_vardata)
-			{
-				config_error("%s:%i: deny::%s sin contenidos",
-					cep->ce_fileptr->cf_filename,
-					cep->ce_varlinenum,
-					cep->ce_varname);
-				errors++; continue;
+				errors++;
+				continue;
 			}
 			if (!strcmp(cep->ce_varname, "mask"))
-			;
+			{
+				if (has_mask)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny version::mask");
+					continue;
+				}
+				has_mask = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "version"))
-			;
+			{
+				if (has_version)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny version::version");
+					continue;
+				}
+				has_version = 1;
+			}
 			else if (!strcmp(cep->ce_varname, "flags"))
-			;
+			{
+				if (has_flags)
+				{
+					config_warn_duplicate(cep->ce_fileptr->cf_filename,
+						cep->ce_varlinenum, "deny version::flags");
+					continue;
+				}
+				has_flags = 1;
+			}
 			else 
 			{
-				config_error("%s:%i: directriz desconocida deny::%s",
-					cep->ce_fileptr->cf_filename, cep->ce_varlinenum,
-					cep->ce_varname);
+				config_error_unknown(cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, "deny version", cep->ce_varname);
 				errors++;
 			}
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "mask")))
+		if (!has_mask)
 		{
-			config_error("%s:%i: deny %s::mask falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny version::mask");
 			errors++;
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "version")))
+		if (!has_version)
 		{
-			config_error("%s:%i: deny %s::version falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny version::version");
 			errors++;
 		}
-		if (!(cep = config_find_entry(ce->ce_entries, "flags")))
+		if (!has_flags)
 		{
-			config_error("%s:%i: deny %s::flags falta",
-				ce->ce_fileptr->cf_filename, ce->ce_varlinenum, ce->ce_vardata);
+			config_error_missing(ce->ce_fileptr->cf_filename, ce->ce_varlinenum,
+				"deny version::flags");
 			errors++;
 		}
 	}
@@ -7642,7 +9132,7 @@ static void conf_download_complete(char *url, char *file, char *errorbuf, int ca
 			char *urlfile = url_getfilename(url);
 			char *file = unreal_getfilename(urlfile);
 			char *tmp = unreal_mktemp("tmp", file);
-			unreal_copyfile(inc->file, tmp);
+			unreal_copyfileex(inc->file, tmp, 1);
 			add_remote_include(tmp, url, 0, NULL);
 			free(urlfile);
 		}
@@ -7692,6 +9182,7 @@ int     rehash(aClient *cptr, aClient *sptr, int sig)
 		return rehash_internal(cptr, sptr, sig);
 	return 0;
 #else
+	loop.ircd_rehashing = 1;
 	return rehash_internal(cptr, sptr, sig);
 #endif
 }
@@ -7708,15 +9199,17 @@ int	rehash_internal(aClient *cptr, aClient *sptr, int sig)
 		write_pidfile();
 #endif
 	}
+	loop.ircd_rehashing = 1; /* double checking.. */
 	if (init_conf(configfile, 1) == 0)
 		run_configuration();
 	if (sig == 1)
 		reread_motdsandrules();
 	unload_all_unused_snomasks();
 	unload_all_unused_umodes();
+	unload_all_unused_extcmodes();
 #ifdef UDB
 	loop.ircd_rehashing = 1;
-	loadbdds();
+	CargaBloques();
 #endif	
 	loop.ircd_rehashing = 0;	
 	return 1;
@@ -7756,6 +9249,17 @@ void delete_linkblock(ConfigItem_link *link_ptr)
 	link_cleanup(link_ptr);
 	DelListItem(link_ptr, conf_link);
 	MyFree(link_ptr);
+}
+
+void delete_cgiircblock(ConfigItem_cgiirc *e)
+{
+	Debug((DEBUG_ERROR, "delete_cgiircblock: deleting %s", e->hostname));
+	if (e->auth)
+		Auth_DeleteAuthStruct(e->auth);
+	ircfree(e->hostname);
+	ircfree(e->username);
+	DelListItem(e, conf_cgiirc);
+	MyFree(e);
 }
 
 void delete_classblock(ConfigItem_class *class_ptr)

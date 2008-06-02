@@ -47,11 +47,7 @@
 
 /* l_commands.c/commands.so is a special case so we have to do this manually :p */
 #ifdef DYNAMIC_LINKING
-#if defined(USE_SSL) && !defined(_WIN32)
-DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9 "/SSL";
-#else
-DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9;
-#endif
+#include "modversion.h"
 #endif
 
 extern ModuleHeader m_svsnoop_Header;
@@ -65,7 +61,7 @@ ModuleHeader l_commands_Header
 #endif
   = {
 	"commands",	/* Name of module */
-	"$Id: l_commands.c,v 1.2 2004-07-04 02:47:35 Trocotronic Exp $", /* Version */
+	"$Id: l_commands.c,v 1.1.1.1.2.17 2007-03-20 14:50:15 Trocotronic Exp $", /* Version */
 	"Wrapper library for m_ commands", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -76,7 +72,10 @@ ModuleHeader l_commands_Header
  * want to
 */
 
-extern int m_htm_Test(ModuleInfo *modinfo);
+extern int m_htm_Test(ModuleInfo *modinfo), m_join_Test(ModuleInfo *modinfo);
+extern int m_mode_Test(ModuleInfo *modinfo), m_nick_Test(ModuleInfo *modinfo);
+extern int m_tkl_Test(ModuleInfo *modinfo), m_list_Test(ModuleInfo *modinfo);
+extern int m_message_Test(ModuleInfo *modinfo);
 
 extern int m_sethost_Init(ModuleInfo *modinfo), m_setname_Init(ModuleInfo *modinfo), m_chghost_Init(ModuleInfo *modinfo);
 extern int m_chgident_Init(ModuleInfo *modinfo), m_setident_Init(ModuleInfo *modinfo), m_sdesc_Init(ModuleInfo *modinfo);
@@ -88,7 +87,7 @@ extern int m_lag_Init(ModuleInfo *modinfo), m_rping_Init(ModuleInfo *modinfo), m
 extern int m_tsctl_Init(ModuleInfo *modinfo), m_htm_Init(ModuleInfo *modinfo), m_chgname_Init(ModuleInfo *modinfo);
 extern int m_message_Init(ModuleInfo *modinfo), m_whois_Init(ModuleInfo *modinfo), m_quit_Init(ModuleInfo *modinfo);
 extern int m_kill_Init(ModuleInfo *modinfo), m_pingpong_Init(ModuleInfo *modinfo), m_oper_Init(ModuleInfo *modinfo);
-extern int m_akill_Init(ModuleInfo *modinfo), m_rakill_Init(ModuleInfo *modinfo);
+extern int m_akill_Init(ModuleInfo *modinfo), m_rakill_Init(ModuleInfo *modinfo), m_userip_Init(ModuleInfo *modinfo);
 extern int m_unzline_Init(ModuleInfo *modinfo), m_unkline_Init(ModuleInfo *modinfo);
 extern int m_sqline_Init(ModuleInfo *modinfo), m_unsqline_Init(ModuleInfo *modinfo), m_tkl_Init(ModuleInfo *modinfo);
 extern int m_vhost_Init(ModuleInfo *modinfo), m_cycle_Init(ModuleInfo *modinfo), m_svsjoin_Init(ModuleInfo *modinfo);
@@ -116,6 +115,13 @@ extern int m_server_Init(ModuleInfo *modinfo), m_stats_Init(ModuleInfo *modinfo)
 extern int m_svsfline_Init(ModuleInfo *modinfo), m_undccdeny_Init(ModuleInfo *modinfo);
 extern int m_dccdeny_Init(ModuleInfo *modinfo), m_whowas_Init(ModuleInfo *modinfo);
 extern int m_connect_Init(ModuleInfo *modinfo), m_dccallow_Init(ModuleInfo *modinfo);
+extern int m_nick_Init(ModuleInfo *modinfo), m_user_Init(ModuleInfo *modinfo);
+extern int m_mode_Init(ModuleInfo *modinfo), m_watch_Init(ModuleInfo *modinfo);
+extern int m_part_Init(ModuleInfo *modinfo), m_join_Init(ModuleInfo *modinfo);
+extern int m_motd_Init(ModuleInfo *modinfo), m_opermotd_Init(ModuleInfo *modinfo);
+extern int m_botmotd_Init(ModuleInfo *modinfo), m_lusers_Init(ModuleInfo *modinfo);
+extern int m_names_Init(ModuleInfo *modinfo);
+extern int m_svsnolag_Init(ModuleInfo *modinfo);
 #ifdef GUEST
 extern int m_guest_Init(ModuleInfo *modinfo);
 #endif
@@ -130,7 +136,7 @@ extern int m_lag_Load(int module_load), m_rping_Load(int module_load), m_sendumo
 extern int m_tsctl_Load(int module_load), m_htm_Load(int module_load), m_chgname_Load(int module_load);
 extern int m_message_Load(int module_load), m_whois_Load(int module_load), m_quit_Load(int module_load);
 extern int m_kill_Load(int module_load), m_pingpong_Load(int module_load), m_oper_Load(int module_load);
-extern int m_akill_Load(int module_load), m_rakill_Load(int module_load);
+extern int m_akill_Load(int module_load), m_rakill_Load(int module_load), m_userip_Load(int unused);
 extern int m_unzline_Load(int module_load), m_unkline_Load(int module_load);
 extern int m_sqline_Load(int module_load), m_unsqline_Load(int module_load), m_tkl_Load(int module_load);
 extern int m_vhost_Load(int module_load), m_cycle_Load(int module_load), m_svsjoin_Load(int module_load);
@@ -158,6 +164,13 @@ extern int m_server_Load(int module_load), m_stats_Load(int module_load);
 extern int m_svsfline_Load(int module_load), m_undccdeny_Load(int module_load);
 extern int m_dccdeny_Load(int module_load), m_whowas_Load(int module_load);
 extern int m_connect_Load(int module_load), m_dccallow_Load(int module_load);
+extern int m_nick_Load(int module_load), m_user_Load(int module_load);
+extern int m_mode_Load(int module_load), m_watch_Load(int module_load);
+extern int m_part_Load(int module_load), m_join_Load(int module_load);
+extern int m_motd_Load(int module_load), m_opermotd_Load(int module_load);
+extern int m_botmotd_Load(int module_load), m_lusers_Load(int module_load);
+extern int m_names_Load(int module_load);
+extern int m_svsnolag_Load(int module_load);
 #ifdef GUEST
 extern int m_guest_Load(int module_load);
 #endif
@@ -170,12 +183,12 @@ extern int m_adminchat_Unload(), m_nachat_Unload(), m_lag_Unload(), m_rping_Unlo
 extern int m_sendumode_Unload(), m_tsctl_Unload(), m_htm_Unload(), m_chgname_Unload();
 extern int m_message_Unload(), m_whois_Unload(), m_quit_Unload(), m_kill_Unload();
 extern int m_pingpong_Unload(), m_oper_Unload(), m_akill_Unload(), m_rakill_Unload();
-extern int m_unzline_Unload(), m_unkline_Unload();
+extern int m_unzline_Unload(), m_unkline_Unload(), m_userip_Unload();
 extern int m_sqline_Unload(), m_unsqline_Unload(), m_tkl_Unload(), m_vhost_Unload();
 extern int m_cycle_Unload(), m_svsjoin_Unload(), m_svspart_Unload(), m_svslusers_Unload();
 extern int m_svswatch_Unload(), m_svssilence_Unload(), m_svskill_Unload();
 extern int m_sendsno_Unload(), m_svssno_Unload(), m_time_Unload();
-extern int m_sajoin_Unload(), m_sapart_Unload(), m_knock_Umload();
+extern int m_sajoin_Unload(), m_sapart_Unload();
 extern int m_kick_Unload(), m_topic_Unload(), m_umode2_Unload();
 extern int m_invite_Unload(), m_list_Unload(), m_squit_Unload();
 extern int m_samode_Unload(), m_sjoin_Unload(), m_protoctl_Unload();
@@ -189,6 +202,10 @@ extern int m_rules_Unload(), m_close_Unload(), m_map_Unload();
 extern int m_eos_Unload(), m_server_Unload(), m_stats_Unload();
 extern int m_svsfline_Unload(), m_dccdeny_Unload(), m_undccdeny_Unload();
 extern int m_whowas_Unload(), m_connect_Unload(), m_dccallow_Unload();
+extern int m_nick_Unload(), m_user_Unload(), m_mode_Unload();
+extern int m_watch_Unload(), m_part_Unload(), m_join_Unload();
+extern int m_motd_Unload(), m_opermotd_Unload(), m_botmotd_Unload();
+extern int m_lusers_Unload(), m_names_Unload(), m_svsnolag_Unload();
 #ifdef GUEST
 extern int m_guest_Unload();
 #endif
@@ -202,8 +219,15 @@ int l_commands_Test(ModuleInfo *modinfo)
 #ifdef SCAN_API
 	Module p;
 #endif
+	MARK_AS_OFFICIAL_MODULE(modinfo);
 	ModCmdsInfo = modinfo;
 	m_htm_Test(ModCmdsInfo);
+	m_join_Test(ModCmdsInfo);
+	m_mode_Test(ModCmdsInfo);
+	m_nick_Test(ModCmdsInfo);
+	m_tkl_Test(ModCmdsInfo);
+	m_list_Test(ModCmdsInfo);
+	m_message_Test(ModCmdsInfo);
 	return MOD_SUCCESS;
 }
 
@@ -310,6 +334,19 @@ int    l_commands_Init(ModuleInfo *modinfo)
 	m_whowas_Init(ModCmdsInfo);
 	m_connect_Init(ModCmdsInfo);
 	m_dccallow_Init(ModCmdsInfo);
+	m_userip_Init(ModCmdsInfo);
+	m_nick_Init(ModCmdsInfo);
+	m_user_Init(ModCmdsInfo);
+	m_mode_Init(ModCmdsInfo);
+	m_watch_Init(ModCmdsInfo);
+	m_part_Init(ModCmdsInfo);
+	m_join_Init(ModCmdsInfo);
+	m_motd_Init(ModCmdsInfo);
+	m_opermotd_Init(ModCmdsInfo);
+	m_botmotd_Init(ModCmdsInfo);
+	m_lusers_Init(ModCmdsInfo);
+	m_names_Init(ModCmdsInfo);
+	m_svsnolag_Init(ModCmdsInfo);
 #ifdef GUEST
 	m_guest_Init(ModCmdsInfo);
 #endif
@@ -410,6 +447,19 @@ int    l_commands_Load(int module_load)
 	m_whowas_Load(module_load);
 	m_connect_Load(module_load);
 	m_dccallow_Load(module_load);
+	m_userip_Load(module_load);
+	m_nick_Load(module_load);
+	m_user_Load(module_load);
+	m_mode_Load(module_load);
+	m_watch_Load(module_load);
+	m_part_Load(module_load);
+	m_join_Load(module_load);
+	m_motd_Load(module_load);
+	m_opermotd_Load(module_load);
+	m_botmotd_Load(module_load);
+	m_lusers_Load(module_load);
+	m_names_Load(module_load);
+	m_svsnolag_Load(module_load);
 #ifdef GUEST
 	m_guest_Load(module_load);
 #endif
@@ -510,6 +560,19 @@ int	l_commands_Unload(int module_unload)
 	m_whowas_Unload();
 	m_connect_Unload();
 	m_dccallow_Unload();
+	m_userip_Unload();
+	m_nick_Unload();
+	m_user_Unload();
+	m_mode_Unload();
+	m_watch_Unload();
+	m_part_Unload();
+	m_join_Unload();
+	m_motd_Unload();
+	m_opermotd_Unload();
+	m_botmotd_Unload();
+	m_lusers_Unload();
+	m_names_Unload();
+	m_svsnolag_Unload();
 #ifdef GUEST
 	m_guest_Unload();
 #endif

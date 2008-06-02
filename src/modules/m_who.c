@@ -23,11 +23,7 @@
 /* rewritten 06/02 by larne, the old one was unreadable. */
 /* changed indentation + some parts rewritten by Syzop. */
 
-/* $Id: m_who.c,v 1.2 2004-07-04 02:47:37 Trocotronic Exp $ */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/* $Id: m_who.c,v 1.1.1.1.2.11 2008-04-23 18:44:31 Trocotronic Exp $ */
 
 #include "config.h"
 #include "struct.h"
@@ -35,9 +31,27 @@
 #include "sys.h"
 #include "numeric.h"
 #include "msg.h"
-#include "channel.h"
-#include "h.h"
 #include "proto.h"
+#include "channel.h"
+#include <time.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#ifdef _WIN32
+#include <io.h>
+#endif
+#include <fcntl.h>
+#include "h.h"
+#ifdef STRIPBADWORDS
+#include "badwords.h"
+#endif
+#ifdef _WIN32
+#include "version.h"
+#endif
+#ifdef UDB
+#include "udb.h"
+#endif
 
 DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
@@ -48,7 +62,7 @@ DLLFUNC int m_who(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 ModuleHeader MOD_HEADER(m_who)
   = {
 	"who",	/* Name of module */
-	"$Id: m_who.c,v 1.2 2004-07-04 02:47:37 Trocotronic Exp $", /* Version */
+	"$Id: m_who.c,v 1.1.1.1.2.11 2008-04-23 18:44:31 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
 	NULL 
@@ -204,15 +218,15 @@ static void who_sendhelp(aClient *sptr)
     "Flag a: user is away",
     "Flag c <channel>:       user is on <channel>,",
     "                        no wildcards accepted",
-    "Flag h <host>:          user has string <host> in their hostname,",
+    "Flag h <host>:          user has string <host> in his/her hostname,",
     "                        wildcards accepted",
-    "Flag m <usermodes>:     user has <usermodes> set on them,",
-    "                        only O/o/C/A/a/N are allowed",
-    "Flag n <nick>:          user has string <nick> in their nickname,",
+    "Flag m <usermodes>:     user has <usermodes> set, only",
+    "                        O/o/C/A/a/N/B are allowed",
+    "Flag n <nick>:          user has string <nick> in his/her nickname,",
     "                        wildcards accepted",
     "Flag s <server>:        user is on server <server>,",
     "                        wildcards not accepted",
-    "Flag u <user>:          user has string <user> in their username,",
+    "Flag u <user>:          user has string <user> in his/her username,",
     "                        wildcards accepted",
     "Behavior flags:",
     "Flag M: check for user in channels I am a member of",
@@ -227,23 +241,23 @@ static void who_sendhelp(aClient *sptr)
     "Flag a: user is away",
     "Flag c <channel>:       user is on <channel>,",
     "                        no wildcards accepted",
-    "Flag g <gcos/realname>: user has string <gcos> in their GCOS,",
+    "Flag g <gcos/realname>: user has string <gcos> in his/her GCOS,",
     "                        wildcards accepted",
-    "Flag h <host>:          user has string <host> in their hostname,",
+    "Flag h <host>:          user has string <host> in his/her hostname,",
     "                        wildcards accepted",
-    "Flag i <ip>:            user has string <ip> in their hostname,",
+    "Flag i <ip>:            user has string <ip> in his/her IP address,",
     "                        wildcards accepted",
-    "Flag m <usermodes>:     user has <usermodes> set on them",
-    "Flag n <nick>:          user has string <nick> in their nickname,",
+    "Flag m <usermodes>:     user has <usermodes> set",
+    "Flag n <nick>:          user has string <nick> in his/her nickname,",
     "                        wildcards accepted",
     "Flag s <server>:        user is on server <server>,",
     "                        wildcards not accepted",
-    "Flag u <user>:          user has string <user> in their username,",
+    "Flag u <user>:          user has string <user> in his/her username,",
     "                        wildcards accepted",
     "Behavior flags:",
     "Flag M: check for user in channels I am a member of",
     "Flag R: show users' real hostnames",
-    "Flag I: show user's IP address",
+    "Flag I: show users' IP addresses",
     NULL
   };
   char **s;
@@ -353,7 +367,7 @@ int i = 1;
 					}
 
 					if (!IsAnOper(sptr))
-						*umodes = *umodes & (UMODE_OPER | UMODE_LOCOP | UMODE_SADMIN | UMODE_ADMIN | UMODE_COADMIN | UMODE_NETADMIN);
+						*umodes = *umodes & (UMODE_OPER | UMODE_LOCOP | UMODE_SADMIN | UMODE_ADMIN | UMODE_COADMIN | UMODE_NETADMIN | UMODE_BOT);
 					if (*umodes == 0)
 						return -1;
 				}
@@ -544,10 +558,16 @@ char has_common_chan = 0;
 		else
 		{
 			/* a user/mask who */
+
+			/* If the common channel info hasn't been set, set it now */
+			if (!wfl.common_channels_only)
+				has_common_chan = has_common_channels(sptr, acptr);
+
 			if (IsInvisible(acptr) && !has_common_chan)
 			{
-				/* don't show them unless it's an exact match */
-				if ((who_flags & WF_WILDCARD))
+				/* don't show them unless it's an exact match 
+				   or it is the user requesting the /who */
+				if ((who_flags & WF_WILDCARD) && sptr != acptr)
 					break;
 			}
 		}
@@ -571,7 +591,6 @@ char has_common_chan = 0;
 static void do_channel_who(aClient *sptr, aChannel *channel, char *mask)
 {
 	Member *cm = channel->members;
-  	int i = 0;
 	if (IsMember(sptr, channel) || IsNetAdmin(sptr))
 		who_flags |= WF_ONCHANNEL;
 
@@ -601,14 +620,19 @@ int i = 0;
 	if (IsARegNick(acptr))
 		status[i++] = 'r';
 
-	if (IsAnOper(acptr) && (!IsHideOper(acptr) || sptr == acptr || IsAnOper(sptr)
+	if (acptr->umodes & UMODE_BOT)
+		status[i++] = 'B';
 #ifdef UDB
-	|| IsHelpOp(acptr)
-#endif		
-	))
+	if (IsHOper(acptr) && (!IsHideOper(acptr) || sptr == acptr || IsAnOper(sptr)))
+#else
+	if (IsAnOper(acptr) && (!IsHideOper(acptr) || sptr == acptr || IsAnOper(sptr)))
+#endif
 		status[i++] = '*';
-
+#ifdef UDB
+	if (IsHOper(acptr) && (IsHideOper(acptr) && sptr != acptr && IsAnOper(sptr)))
+#else
 	if (IsAnOper(acptr) && (IsHideOper(acptr) && sptr != acptr && IsAnOper(sptr)))
+#endif
 		status[i++] = '!';
   
 	if (cansee & WHO_OPERSEE)
@@ -616,13 +640,24 @@ int i = 0;
 
 	if (cm)
         {
+#ifdef UDB
 #ifdef PREFIX_AQ
 		if (cm->flags & CHFL_CHANOWNER)
-#ifdef UDB
-			status[i++] = '.';
-#else
-			status[i++] = '~';
+			status[i++] = PF_OWN;
+		else if (cm->flags & CHFL_CHANPROT)
+			status[i++] = PF_ADMIN;
+		else
 #endif
+		if (cm->flags & CHFL_CHANOP)
+			status[i++] = PF_OP;
+		else if (cm->flags & CHFL_HALFOP)
+			status[i++] = PF_HALF;
+		else if (cm->flags & CHFL_VOICE)
+			status[i++] = PF_VOICE;
+#else
+#ifdef PREFIX_AQ
+		if (cm->flags & CHFL_CHANOWNER)
+			status[i++] = '~';
 		else if (cm->flags & CHFL_CHANPROT)
 			status[i++] = '&';
 		else
@@ -633,6 +668,7 @@ int i = 0;
 			status[i++] = '%';
 		else if (cm->flags & CHFL_VOICE)
 			status[i++] = '+';
+#endif
 	}
 
 	status[i] = '\0';
@@ -785,7 +821,7 @@ static char *first_visible_channel(aClient *sptr, aClient *acptr, int *flg)
 			cansee = 0;
 		if (!cansee)
 		{
-			if (IsAnOper(sptr))
+			if (OPCanSeeSecret(sptr))
 				*flg |= FVC_HIDDEN;
 			else
 				continue;

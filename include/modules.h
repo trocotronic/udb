@@ -16,28 +16,30 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: modules.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: modules.h,v 1.1.1.1.2.25 2008-03-08 14:13:36 Trocotronic Exp $
  */
 #ifndef MODULES_H
 #define MODULES_H
 #include "types.h"
-#define MOD_VERSION	"3.2-b5-1"
-#define MOD_WE_SUPPORT  "3.2-b5*"
 #define MAXCUSTOMHOOKS  30
 #define MAXHOOKTYPES	100
 #define MAXCALLBACKS	30
+#define MAXEFUNCTIONS	60
 #if defined(_WIN32)
+ #define MOD_EXTENSION "dll"
  #define DLLFUNC	_declspec(dllexport)
  #define irc_dlopen(x,y) LoadLibrary(x)
  #define irc_dlclose FreeLibrary
  #define irc_dlsym(x,y,z) z = (void *)GetProcAddress(x,y)
  #define irc_dlerror our_dlerror
 #elif defined(HPUX)
+ #define MOD_EXTENSION "so"
  #define irc_dlopen(x,y) shl_load(x,y,0L)
  #define irc_dlsym(x,y,z) shl_findsym(x,y,z)
  #define irc_dlclose shl_unload
  #define irc_dlerror() strerror(errno)
 #else
+ #define MOD_EXTENSION "so"
  #define irc_dlopen dlopen
  #define irc_dlclose dlclose
  #if defined(UNDERSCORE)
@@ -51,12 +53,19 @@
 
 #define EVENT(x) void (x) (void *data)
 
+/* Casts to int, void, void *, and char * function pointers */
+#define TO_INTFUNC(x) (int (*)())(x)
+#define TO_VOIDFUNC(x) (void (*)())(x)
+#define TO_PVOIDFUNC(x) (void *(*)())(x)
+#define TO_PCHARFUNC(x) (char *(*)())(x)
+
 typedef struct _mod_symboltable Mod_SymbolDepTable;
 typedef struct _event Event;
 typedef struct _eventinfo EventInfo;
 typedef struct _irchook Hook;
 typedef struct _hooktype Hooktype;
 typedef struct _irccallback Callback;
+typedef struct _ircefunction Efunction;
 
 /*
  * Module header that every module must include, with the name of
@@ -99,6 +108,9 @@ typedef struct {
 #define MOBJ_CMDOVERRIDE  0x0080
 #define MOBJ_EXTBAN       0x0100
 #define MOBJ_CALLBACK     0x0200
+#define MOBJ_ISUPPORT	  0x0400
+#define MOBJ_EFUNCTION    0x0800
+#define MOBJ_CMODE        0x1000
 
 typedef struct {
         long mode;
@@ -211,6 +223,17 @@ typedef struct {
 	 * aExtCMtableParam *: their parameter
 	 */
 	int			(*sjoin_check)(aChannel *, CmodeParam *, CmodeParam *);
+
+	/** Is this mode being unloaded?
+	 * This is set to 1 if the chanmode module providing this mode is unloaded
+	 * and we are waiting to see if in our new round of loads a "new" chanmode
+	 * module will popup to take this mode. This only happens during a rehash,
+	 * should never be 0 outside an internal rehash.
+	 */
+	char unloaded;
+	
+	/** Module owner */
+        Module *owner;
 } Cmode;
 
 typedef struct {
@@ -237,11 +260,16 @@ typedef struct {
 
 #define EXTBANTABLESZ		32
 
+typedef enum ExtbanOptions { EXTBOPT_CHSVSMODE=0x1 } ExtbanOptions;
+
 typedef struct {
 	/** extbans module */
 	Module *owner;
 	/** extended ban character */
 	char	flag;
+
+	/** extban options */
+	ExtbanOptions options;
 
 	/** access checking [optional].
 	 * aClient *: the client
@@ -277,8 +305,9 @@ typedef struct {
 
 typedef struct {
 	char	flag;
+	ExtbanOptions options;
 	int			(*is_ok)(aClient *, aChannel *, char *para, int, int, int);
-	char *		(*conv_param)(char *);
+	char *			(*conv_param)(char *);
 	int			(*is_banned)(aClient *, aChannel *, char *, int);
 } ExtbanInfo;
 
@@ -294,6 +323,13 @@ typedef struct _versionflag {
 	ModuleChild *parents;
 } Versionflag;
 
+typedef struct _isupport {
+	struct _isupport *prev, *next;
+	char *token;
+	char *value;
+	Module *owner;
+} Isupport;
+
 typedef struct _ModuleObject {
 	struct _ModuleObject *prev, *next;
 	short type;
@@ -308,6 +344,9 @@ typedef struct _ModuleObject {
 		Cmdoverride *cmdoverride;
 		Extban *extban;
 		Callback *callback;
+		Efunction *efunction;
+		Isupport *isupport;
+		Cmode *cmode;
 	} object;
 } ModuleObject;
 
@@ -328,6 +367,27 @@ struct _irccallback {
 	union {
 		int (*intfunc)();
 		void (*voidfunc)();
+		char *(*pcharfunc)();
+	} func;
+	Module *owner;
+	char willberemoved; /* will be removed on next rehash? (eg the 'old'/'current' one) */
+};
+
+/* Definition of an efunction: a MANDATORY Extern Function (in a module),
+ * for things like do_join, join_channel, etc.
+ * The difference between callbacks and efunctions are:
+ * - efunctions are mandatory, while callbacks can be optional (depends!)
+ * - efunctions are ment for internal usage, so 3rd party modules are not allowed
+ *   to add them.
+ * - all efunctions are declared as function pointers in modules.c
+ */
+struct _ircefunction {
+	Efunction *prev, *next;
+	short type;
+	union {
+		int (*intfunc)();
+		void (*voidfunc)();
+		void *(*pvoidfunc)();
 		char *(*pcharfunc)();
 	} func;
 	Module *owner;
@@ -372,6 +432,8 @@ struct _Module
 	unsigned char options;
 	unsigned char errorcode;
 	char *tmp_file;
+	unsigned long mod_sys_version;
+	unsigned int compiler_version;
 };
 /*
  * Symbol table
@@ -443,6 +505,7 @@ void	UnlockEventSystem(void);
 extern MODVAR Hook		*Hooks[MAXHOOKTYPES];
 extern MODVAR Hooktype		Hooktypes[MAXCUSTOMHOOKS];
 extern MODVAR Callback *Callbacks[MAXCALLBACKS], *RCallbacks[MAXCALLBACKS];
+extern MODVAR Efunction *Efunctions[MAXEFUNCTIONS];
 
 void    Module_Init(void);
 char    *Module_Create(char *path);
@@ -460,6 +523,11 @@ void *obsd_dlsym(void *handle, char *symbol);
 
 Versionflag *VersionflagAdd(Module *module, char flag);
 void VersionflagDel(Versionflag *vflag, Module *module);
+
+Isupport *IsupportAdd(Module *module, const char *token, const char *value);
+void IsupportSetValue(Isupport *isupport, const char *value);
+void IsupportDel(Isupport *isupport);
+Isupport *IsupportFind(const char *token);
 
 #define add_Hook(hooktype, func) HookAddMain(NULL, hooktype, func, NULL, NULL)
 #define HookAdd(hooktype, func) HookAddMain(NULL, hooktype, func, NULL, NULL)
@@ -518,6 +586,14 @@ void HooktypeDel(Hooktype *hooktype, Module *module);
 extern Callback	*CallbackAddMain(Module *module, int cbtype, int (*intfunc)(), void (*voidfunc)(), char *(*pcharfunc)());
 extern Callback	*CallbackDel(Callback *cb);
 
+#define EfunctionAdd(module, cbtype, func) EfunctionAddMain(module, cbtype, func, NULL, NULL, NULL)
+#define EfunctionAddVoid(module, cbtype, func) EfunctionAddMain(module, cbtype, NULL, func, NULL, NULL)
+#define EfunctionAddPVoid(module, cbtype, func) EfunctionAddMain(module, cbtype, NULL, NULL, func, NULL)
+#define EfunctionAddPChar(module, cbtype, func) EfunctionAddMain(module, cbtype, NULL, NULL, NULL, func)
+
+extern Efunction	*EfunctionAddMain(Module *module, int eftype, int (*intfunc)(), void (*voidfunc)(), void *(*pvoidfunc)(), char *(*pcharfunc)());
+extern Efunction	*EfunctionDel(Efunction *cb);
+
 Command *CommandAdd(Module *module, char *cmd, char *tok, int (*func)(), unsigned char params, int flags);
 void CommandDel(Command *command);
 int CommandExists(char *name);
@@ -569,6 +645,13 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 #define HOOKTYPE_TKL_DEL 40
 #define HOOKTYPE_LOCAL_KILL 41
 #define HOOKTYPE_LOG 42
+#define HOOKTYPE_REMOTE_JOIN 43
+#define HOOKTYPE_REMOTE_PART 44
+#define HOOKTYPE_REMOTE_KICK 45
+#define HOOKTYPE_LOCAL_SPAMFILTER 46
+#define HOOKTYPE_SILENCED 47
+#define HOOKTYPE_POST_SERVER_CONNECT 48
+#define HOOKTYPE_RAWPACKET_IN 49
 
 /* Hook return values */
 #define HOOK_CONTINUE 0
@@ -578,6 +661,43 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 /* Callback types */
 #define CALLBACKTYPE_CLOAK 1
 #define CALLBACKTYPE_CLOAKKEYCSUM 2
+#define CALLBACKTYPE_CLOAK_EX 3
+
+/* Efunction types */
+#define EFUNC_DO_JOIN       				1
+#define EFUNC_JOIN_CHANNEL  				2
+#define EFUNC_CAN_JOIN      				3
+#define EFUNC_DO_MODE       				4
+#define EFUNC_SET_MODE      				5
+#define EFUNC_M_UMODE						6
+#define EFUNC_REGISTER_USER					7
+#define EFUNC_TKL_HASH						8
+#define EFUNC_TKL_TYPETOCHAR				9
+#define EFUNC_TKL_ADD_LINE					10
+#define EFUNC_TKL_DEL_LINE					11
+#define EFUNC_TKL_CHECK_LOCAL_REMOVE_SHUN	12
+#define EFUNC_TKL_EXPIRE					13
+#define EFUNC_TKL_CHECK_EXPIRE				14
+#define EFUNC_FIND_TKLINE_MATCH				15
+#define EFUNC_FIND_SHUN						16
+#define EFUNC_FIND_SPAMFILTER_USER			17
+#define EFUNC_FIND_QLINE					18
+#define EFUNC_FIND_TKLINE_MATCH_ZAP			19
+#define EFUNC_TKL_STATS						20
+#define EFUNC_TKL_SYNCH						21
+#define EFUNC_M_TKL							22
+#define EFUNC_PLACE_HOST_BAN				23
+#define EFUNC_DOSPAMFILTER					24
+#define EFUNC_DOSPAMFILTER_VIRUSCHAN		25
+#define EFUNC_FIND_TKLINE_MATCH_ZAP_EX		26
+#define EFUNC_SEND_LIST						27
+#define EFUNC_STRIPBADWORDS_CHANNEL			28
+#define EFUNC_STRIPBADWORDS_MESSAGE			29
+#define EFUNC_STRIPBADWORDS_QUIT			30
+#define EFUNC_STRIPCOLORS					31
+#define EFUNC_STRIPCONTROLCODES				32
+#define EFUNC_SPAMFILTER_BUILD_USER_STRING	33
+#define EFUNC_IS_SILENCED					34
 
 /* Module flags */
 #define MODFLAG_NONE	0x0000
@@ -616,15 +736,8 @@ int CallCmdoverride(Cmdoverride *ovr, aClient *cptr, aClient *sptr, int parc, ch
 #define CLOAK_KEYCRC	RCallbacks[CALLBACKTYPE_CLOAKKEYCSUM]->func.pcharfunc()
 
 #ifdef DYNAMIC_LINKING
-/* ugly alert!!!! */
-#include "version.h"
- #if defined(USE_SSL) && !defined(_WIN32)
-  DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9 "/SSL";
- #else
-  DLLFUNC char Mod_Version[] = BASE_VERSION PATCH1 PATCH2 PATCH3 PATCH4 PATCH5 PATCH6 PATCH7 PATCH8 PATCH9;
- #endif /* USE_SSL && !WIN_32 */
-#endif /* DYNAMIC_LINKING */
-
+ #include "modversion.h"
+#endif
 
 #endif
 

@@ -17,7 +17,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: sjoin.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: sjoin.h,v 1.1.1.1.2.2 2004-05-30 21:26:43 Trocotronic Exp $
  */
 
 

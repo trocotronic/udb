@@ -1,7 +1,7 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
 // Used by GENERIC.RC
-// $Id: resource.h,v 1.1.1.1 2003-11-28 22:55:50 Trocotronic Exp $
+// $Id: resource.h,v 1.1.1.1.2.1 2004-02-16 16:48:03 Trocotronic Exp $
 #define IDC_USERID                      1051
 #define IDC_REALNAME                    1052
 #define IDC_PNICK                       1053

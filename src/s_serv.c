@@ -47,6 +47,9 @@ static char sccsid[] =
 #include <curl/curl.h>
 #endif
 extern VOIDSIG s_die();
+#ifdef UDB
+#include "udb.h"
+#endif
 
 static char buf[BUFSIZE];
 
@@ -66,6 +69,12 @@ struct tm smotd_tm;
 aMotd *read_file(char *filename, aMotd **list);
 aMotd *read_file_ex(char *filename, aMotd **list, struct tm *);
 extern aMotd *Find_file(char *, short);
+
+#ifdef USE_SSL
+extern void reinit_ssl(aClient *);
+#endif
+
+
 /*
 ** m_functions execute protocol messages on this server:
 **      CMD_FUNC(functionname) causes it to use the header
@@ -138,6 +147,8 @@ extern fdlist serv_fdlist;
 CMD_FUNC(m_version)
 {
 	extern char serveropts[];
+	extern char *IsupportStrings[];
+	int reply, i;
 
 	/* Only allow remote VERSIONs if registered -- Syzop */
 	if (!IsPerson(sptr) && !IsServer(cptr))
@@ -163,15 +174,15 @@ CMD_FUNC(m_version)
 		if (IsAnOper(sptr))
 			sendto_one(sptr, ":%s NOTICE %s :%s", me.name, sptr->name, curl_version());
 #endif
-		if (MyClient(sptr)) {
+		if (MyClient(sptr))
 normal:
-			sendto_one(sptr, ":%s 005 %s " PROTOCTL_CLIENT_1, me.name, sptr->name, PROTOCTL_PARAMETERS_1);
-			sendto_one(sptr, ":%s 005 %s " PROTOCTL_CLIENT_2, me.name, sptr->name, PROTOCTL_PARAMETERS_2);
-		}
-		else {
-			sendto_one(sptr, ":%s 105 %s " PROTOCTL_CLIENT_1, me.name, sptr->name, PROTOCTL_PARAMETERS_1);
-			sendto_one(sptr, ":%s 105 %s " PROTOCTL_CLIENT_2, me.name, sptr->name, PROTOCTL_PARAMETERS_2);
-		}
+			reply = RPL_ISUPPORT;
+		else
+			reply = RPL_REMOTEISUPPORT;
+		/* Send the text */
+		for (i = 0; IsupportStrings[i]; i++)
+			sendto_one(sptr, rpl_str(reply), me.name, sptr->name, 
+				   IsupportStrings[i]); 
 	}
 	return 0;
 }
@@ -185,9 +196,10 @@ char *num = NULL;
  */
 void send_proto(aClient *cptr, ConfigItem_link *aconf)
 {
-char buf[512];
-	sprintf(buf, "CHANMODES=%s%s,%s%s,%s%s,%s%s",
-		CHPAR1, EXPAR1, CHPAR2, EXPAR2, CHPAR3, EXPAR3, CHPAR4, EXPAR4);
+char buf[1024];
+
+	sprintf(buf, "CHANMODES=%s%s,%s%s,%s%s,%s%s NICKCHARS=%s",
+		CHPAR1, EXPAR1, CHPAR2, EXPAR2, CHPAR3, EXPAR3, CHPAR4, EXPAR4, langsinuse);
 #ifdef ZIP_LINKS
 	if (aconf->options & CONNECT_ZIP)
 	{
@@ -199,7 +211,7 @@ char buf[512];
 	}
 #endif
 #ifdef UDB
-	sendto_one(cptr, "PROTOCTL UDB2");
+	sendto_one(cptr, "PROTOCTL " UDB_VER);
 #endif
 }
 
@@ -215,51 +227,46 @@ void m_info_send(aClient *sptr)
 {
 	sendto_one(sptr, ":%s %d %s :=-=-=-= %s =-=-=-=",
 	    me.name, RPL_INFO, sptr->name, IRCDTOTALVERSION);
-	sendto_one(sptr, ":%s %d %s :| Brought to you by the following people:",
+	sendto_one(sptr, ":%s %d %s :| This release was brought to you by the following people:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Head coders:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Committers:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Stskeeps     <stskeeps@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * codemastr    <codemastr@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Syzop        <syzop@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Luke         <luke@unrealircd.com>",
+	sendto_one(sptr, ":%s %d %s :| * aquanight    <aquanight@unrealircd.com>",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * WolfSage     <wolfsage@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Contributors:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * djGrrr, w00t, Stealth, adrianp, Bock, fez,",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|   Trocotronic",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| RC Testers:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * Grunt, Bock, craftsman, Stealth, vonitsanet",
+	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * McSkaf       <mcskaf@unrealircd.com>",
+	sendto_one(sptr, ":%s %d %s :| Past UnrealIRCd3.2* coders/contributors:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * codemastr (ret. u3.2 head coder)",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Zogg         <zogg@unrealircd.org>",
+	sendto_one(sptr, ":%s %d %s :| * McSkaf, Zogg, NiQuiL, chasm, llthangel, nighthawk, ..",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * NiQuiL       <niquil@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * assyrian     <assyrian@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * chasm        <chasm@unrealircd.org>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * DrBin        <drbin@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * llthangel    <llthangel@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Griever      <griever@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * nighthawk    <nighthawk@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Credits - Type /Credits",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| DALnet Credits - Type /DalInfo",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| This is an UnrealIRCD-style server",
+	sendto_one(sptr, ":%s %d %s :| This is an UnrealIRCd-style server",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| If you find any bugs, please mail",
+	sendto_one(sptr, ":%s %d %s :| If you find any bugs, please report them at:",
 	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :|  bugs@lists.unrealircd.org",
+	sendto_one(sptr, ":%s %d %s :|  http://bugs.unrealircd.org/",
 	    me.name, RPL_INFO, sptr->name);
 
 	sendto_one(sptr,
@@ -280,12 +287,13 @@ void m_info_send(aClient *sptr)
 	    ":%s %d %s :| Sistema y protocolo UDB, traducción al castellano y extendido a helpers implementado por:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
-	    ":%s %d %s :|          * Trocotronic (trocotronic@telefonica.net)", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr,
-	    ":%s %d %s :| Soporte de infrastructura y testeado por:", me.name, RPL_INFO, sptr->name);
+	    ":%s %d %s :|          * Trocotronic (trocotronic@redyc.com)", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Beta tester:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr,
 	    ":%s %d %s :|          * MaD (mad@madito.net)", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.rallados.net", me.name, RPL_INFO, sptr->name, 31);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Más información en %c\00312http://www.redyc.com/", me.name, RPL_INFO, sptr->name, 31);
 #endif
 	sendto_one(sptr,
 	    ":%s %d %s :-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=", me.name,
@@ -296,6 +304,10 @@ void m_info_send(aClient *sptr)
 	    sptr->name, myctime(me.firsttime));
 	sendto_one(sptr, ":%s %d %s :ReleaseID (%s)", me.name, RPL_INFO,
 	    sptr->name, buildid);
+#ifdef UDB
+	sendto_one(sptr, ":%s %d %s :UDB ReleaseID (%s)", me.name, RPL_INFO,
+	    sptr->name, udbid);
+#endif
 	sendto_one(sptr, rpl_str(RPL_ENDOFINFO), me.name, sptr->name);
 }
 
@@ -392,212 +404,6 @@ CMD_FUNC(m_credits)
 		sendto_one(sptr, ":%s %d %s :On-line since %s",
 		    me.name, RPL_INFO, parv[0], myctime(me.firsttime));
 		sendto_one(sptr, rpl_str(RPL_ENDOFINFO), me.name, parv[0]);
-	}
-
-	return 0;
-}
-
-
-/*
- * RPL_NOWON	- Online at the moment (Succesfully added to WATCH-list)
- * RPL_NOWOFF	- Offline at the moement (Succesfully added to WATCH-list)
- * RPL_WATCHOFF	- Succesfully removed from WATCH-list.
- * ERR_TOOMANYWATCH - Take a guess :>  Too many WATCH entries.
- */
-static void show_watch(aClient *cptr, char *name, int rpl1, int rpl2)
-{
-	aClient *acptr;
-
-
-	if ((acptr = find_person(name, NULL)))
-	{
-		sendto_one(cptr, rpl_str(rpl1), me.name, cptr->name,
-		    acptr->name, acptr->user->username,
-		    IsHidden(acptr) ? acptr->user->virthost : acptr->user->
-		    realhost, acptr->lastnick);
-	}
-	else
-		sendto_one(cptr, rpl_str(rpl2), me.name, cptr->name,
-		    name, "*", "*", 0);
-}
-
-/*
- * m_watch
- */
-CMD_FUNC(m_watch)
-{
-	aClient *acptr;
-	char *s, **pav = parv, *user;
-	char *p = NULL, *def = "l";
-
-
-
-	if (parc < 2)
-	{
-		/*
-		 * Default to 'l' - list who's currently online
-		 */
-		parc = 2;
-		parv[1] = def;
-	}
-
-	for (s = (char *)strtoken(&p, *++pav, " "); s;
-	    s = (char *)strtoken(&p, NULL, " "))
-	{
-		if ((user = (char *)index(s, '!')))
-			*user++ = '\0';	/* Not used */
-
-		/*
-		 * Prefix of "+", they want to add a name to their WATCH
-		 * list.
-		 */
-		if (*s == '+')
-		{
-			if (do_nick_name(s + 1))
-			{
-				if (sptr->watches >= MAXWATCH)
-				{
-					sendto_one(sptr,
-					    err_str(ERR_TOOMANYWATCH), me.name,
-					    cptr->name, s + 1);
-
-					continue;
-				}
-
-				add_to_watch_hash_table(s + 1, sptr);
-			}
-
-			show_watch(sptr, s + 1, RPL_NOWON, RPL_NOWOFF);
-			continue;
-		}
-
-		/*
-		 * Prefix of "-", coward wants to remove somebody from their
-		 * WATCH list.  So do it. :-)
-		 */
-		if (*s == '-')
-		{
-			del_from_watch_hash_table(s + 1, sptr);
-			show_watch(sptr, s + 1, RPL_WATCHOFF, RPL_WATCHOFF);
-
-			continue;
-		}
-
-		/*
-		 * Fancy "C" or "c", they want to nuke their WATCH list and start
-		 * over, so be it.
-		 */
-		if (*s == 'C' || *s == 'c')
-		{
-			hash_del_watch_list(sptr);
-
-			continue;
-		}
-
-		/*
-		 * Now comes the fun stuff, "S" or "s" returns a status report of
-		 * their WATCH list.  I imagine this could be CPU intensive if its
-		 * done alot, perhaps an auto-lag on this?
-		 */
-		if (*s == 'S' || *s == 's')
-		{
-			Link *lp;
-			aWatch *anptr;
-			int  count = 0;
-
-			/*
-			 * Send a list of how many users they have on their WATCH list
-			 * and how many WATCH lists they are on.
-			 */
-			anptr = hash_get_watch(sptr->name);
-			if (anptr)
-				for (lp = anptr->watch, count = 1;
-				    (lp = lp->next); count++)
-					;
-			sendto_one(sptr, rpl_str(RPL_WATCHSTAT), me.name,
-			    parv[0], sptr->watches, count);
-
-			/*
-			 * Send a list of everybody in their WATCH list. Be careful
-			 * not to buffer overflow.
-			 */
-			if ((lp = sptr->watch) == NULL)
-			{
-				sendto_one(sptr, rpl_str(RPL_ENDOFWATCHLIST),
-				    me.name, parv[0], *s);
-				continue;
-			}
-			*buf = '\0';
-			strlcpy(buf, lp->value.wptr->nick, sizeof buf);
-			count =
-			    strlen(parv[0]) + strlen(me.name) + 10 +
-			    strlen(buf);
-			while ((lp = lp->next))
-			{
-				if (count + strlen(lp->value.wptr->nick) + 1 >
-				    BUFSIZE - 2)
-				{
-					sendto_one(sptr, rpl_str(RPL_WATCHLIST),
-					    me.name, parv[0], buf);
-					*buf = '\0';
-					count =
-					    strlen(parv[0]) + strlen(me.name) +
-					    10;
-				}
-				strcat(buf, " ");
-				strcat(buf, lp->value.wptr->nick);
-				count += (strlen(lp->value.wptr->nick) + 1);
-			}
-			sendto_one(sptr, rpl_str(RPL_WATCHLIST), me.name,
-			    parv[0], buf);
-
-			sendto_one(sptr, rpl_str(RPL_ENDOFWATCHLIST), me.name,
-			    parv[0], *s);
-			continue;
-		}
-
-		/*
-		 * Well that was fun, NOT.  Now they want a list of everybody in
-		 * their WATCH list AND if they are online or offline? Sheesh,
-		 * greedy arn't we?
-		 */
-		if (*s == 'L' || *s == 'l')
-		{
-			Link *lp = sptr->watch;
-
-			while (lp)
-			{
-				if ((acptr =
-				    find_person(lp->value.wptr->nick, NULL)))
-				{
-					sendto_one(sptr, rpl_str(RPL_NOWON),
-					    me.name, parv[0], acptr->name,
-					    acptr->user->username,
-					    IsHidden(acptr) ? acptr->user->
-					    virthost : acptr->user->realhost,
-					    acptr->lastnick);
-				}
-				/*
-				 * But actually, only show them offline if its a capital
-				 * 'L' (full list wanted).
-				 */
-				else if (isupper(*s))
-					sendto_one(sptr, rpl_str(RPL_NOWOFF),
-					    me.name, parv[0],
-					    lp->value.wptr->nick, "*", "*",
-					    lp->value.wptr->lasttime);
-				lp = lp->next;
-			}
-
-			sendto_one(sptr, rpl_str(RPL_ENDOFWATCHLIST), me.name,
-			    parv[0], *s);
-
-			continue;
-		}
-
-		/*
-		 * Hmm.. unknown prefix character.. Ignore it. :-)
-		 */
 	}
 
 	return 0;
@@ -734,52 +540,6 @@ void reset_help(void)
 	free_str_list(helpign);
 }
 
-/*
- * parv[0] = sender
- * parv[1] = server to query
- */
-CMD_FUNC(m_lusers)
-{
-	if (hunt_server_token(cptr, sptr, MSG_LUSERS, TOK_LUSERS, ":%s", 1, parc,
-	    parv) != HUNTED_ISME)
-		return 0;
-	/* Just to correct results ---Stskeeps */
-	if (IRCstats.clients > IRCstats.global_max)
-		IRCstats.global_max = IRCstats.clients;
-	if (IRCstats.me_clients > IRCstats.me_max)
-		IRCstats.me_max = IRCstats.me_clients;
-
-	sendto_one(sptr, rpl_str(RPL_LUSERCLIENT), me.name, parv[0],
-	    IRCstats.clients - IRCstats.invisible, IRCstats.invisible,
-	    IRCstats.servers);
-
-	if (IRCstats.operators)
-		sendto_one(sptr, rpl_str(RPL_LUSEROP),
-		    me.name, parv[0], IRCstats.operators);
-	if (IRCstats.unknown)
-		sendto_one(sptr, rpl_str(RPL_LUSERUNKNOWN),
-		    me.name, parv[0], IRCstats.unknown);
-	if (IRCstats.channels)
-		sendto_one(sptr, rpl_str(RPL_LUSERCHANNELS),
-		    me.name, parv[0], IRCstats.channels);
-	sendto_one(sptr, rpl_str(RPL_LUSERME),
-	    me.name, parv[0], IRCstats.me_clients, IRCstats.me_servers);
-	sendto_one(sptr, rpl_str(RPL_LOCALUSERS),
-	    me.name, parv[0], IRCstats.me_clients, IRCstats.me_max);
-	sendto_one(sptr, rpl_str(RPL_GLOBALUSERS),
-	    me.name, parv[0], IRCstats.clients, IRCstats.global_max);
-	if ((IRCstats.me_clients + IRCstats.me_servers) > max_connection_count)
-	{
-		max_connection_count =
-		    IRCstats.me_clients + IRCstats.me_servers;
-		if (max_connection_count % 10 == 0)	/* only send on even tens */
-			sendto_ops("Máximo conexiones: %d (%d clientes)",
-			    max_connection_count, IRCstats.me_clients);
-	}
-	return 0;
-}
-
-
 EVENT(save_tunefile)
 {
 	FILE *tunefile;
@@ -829,6 +589,10 @@ ConfigItem_tld *tlds;
 		tlds->rules = read_file(tlds->rules_file, &tlds->rules);
 		if (tlds->smotd_file)
 			tlds->smotd = read_file_ex(tlds->smotd_file, &tlds->smotd, &tlds->smotd_tm);
+		if (tlds->opermotd_file)
+			tlds->opermotd = read_file(tlds->opermotd_file, &tlds->opermotd);
+		if (tlds->botmotd_file)
+			tlds->botmotd = read_file(tlds->botmotd_file, &tlds->botmotd);
 	}
 }
 
@@ -840,6 +604,8 @@ void reread_motdsandrules()
 	botmotd = (aMotd *) read_file(BPATH, &botmotd);
 	opermotd = (aMotd *) read_file(OPATH, &opermotd);
 }
+
+extern void reinit_resolver(aClient *sptr);
 
 /*
 ** m_rehash
@@ -868,7 +634,7 @@ CMD_FUNC(m_rehash)
 	}
 	x = 0;
 
-	if (BadPtr(parv[2])) {
+	if ((parc < 3) || BadPtr(parv[2])) {
 		/* If the argument starts with a '-' (like -motd, -opermotd, etc) then it's
 		 * assumed not to be a server. -- Syzop
 		 */
@@ -924,6 +690,20 @@ CMD_FUNC(m_rehash)
 			{
 				loop.do_garbage_collect = 1;
 				RunHook3(HOOKTYPE_REHASHFLAG, cptr, sptr, parv[1]);
+				return 0;
+			}
+			if (!strnicmp("-dns", parv[1], 4))
+			{
+				reinit_resolver(sptr);
+				return 0;
+			}
+			if (!_match("-ssl*", parv[1]))
+			{
+#ifdef USE_SSL
+				reinit_ssl(sptr);
+#else
+				sendnotice(sptr, "SSL no activo en este servidor");
+#endif
 				return 0;
 			}
 			if (!_match("-o*motd", parv[1]))
@@ -996,69 +776,52 @@ CMD_FUNC(m_rehash)
 */
 CMD_FUNC(m_restart)
 {
-	char *reason = NULL;
+char *reason = parv[1];
+
 	/* Check permissions */
-        if (MyClient(sptr) && !OPCanRestart(sptr))
-        {
-                sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-                return 0;
-        }
-        if (!MyClient(sptr) && !IsNetAdmin(sptr)
-            && !IsULine(sptr))
-        {
-                sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
-                return 0;
-        }
+	if (MyClient(sptr) && !OPCanRestart(sptr))
+	{
+		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+		return 0;
+	}
+	if (!MyClient(sptr) && !IsNetAdmin(sptr) && !IsULine(sptr))
+	{
+		sendto_one(sptr, err_str(ERR_NOPRIVILEGES), me.name, parv[0]);
+		return 0;
+	}
+
+#ifdef CHROOTDIR
+	sendnotice(sptr, "/RESTART does not work on chrooted servers");
+	return 0;
+#endif
 
 	/* Syntax: /restart */
 	if (parc == 1)
 	{
 		if (conf_drpass)
 		{
-			sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name,
-                            parv[0], "RESTART");
-                        return 0;
+			sendto_one(sptr, err_str(ERR_NEEDMOREPARAMS), me.name, parv[0], "RESTART");
+			return 0;
 		}
-	}
-	else if (parc == 2)
+	} else
+	if (parc >= 2)
 	{
-		/* Syntax: /restart <pass> */
+		/* Syntax: /restart <pass> [reason] */
 		if (conf_drpass)
 		{
 			int ret;
 			ret = Auth_Check(cptr, conf_drpass->restartauth, parv[1]);
 			if (ret == -1)
 			{
-				sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name,
-					   parv[0]);
+				sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name, parv[0]);
 				return 0;
 			}
 			if (ret < 1)
 				return 0;
+			reason = parv[2];
 		}
-		/* Syntax: /rehash <reason> */
-		else 
-			reason = parv[1];
 	}
-	else if (parc == 3)
-	{
-		/* Syntax: /restart <pass> <reason> */
-		if (conf_drpass)
-		{
-			int ret;
-			ret = Auth_Check(cptr, conf_drpass->restartauth, parv[1]);
-			if (ret == -1)
-			{
-				sendto_one(sptr, err_str(ERR_PASSWDMISMATCH), me.name,
-					   parv[0]);
-				return 0;
-			}
-			if (ret < 1)
-				return 0;
-		}
-		reason = parv[2];
-	}
-	sendto_ops("%s resetea el servidor", parv[0]);
+	sendto_ops("Servidor reseteado por %s", parv[0]);
 	server_reboot(reason ? reason : "Sin razón");
 	return 0;
 }
@@ -1069,7 +832,7 @@ CMD_FUNC(m_restart)
  */
 int short_motd(aClient *sptr) {
 	ConfigItem_tld *ptr;
-	aMotd *temp, *temp2;
+	aMotd *temp;
 	struct tm *tm = &smotd_tm;
 	char userhost[HOSTLEN + USERLEN + 6];
 	char is_short = 1;
@@ -1212,6 +975,20 @@ HUNTED_ISME)
 CMD_FUNC(m_opermotd)
 {
 	aMotd *temp;
+	ConfigItem_tld *ptr;
+	char userhost[HOSTLEN + USERLEN + 6];
+	strlcpy(userhost,make_user_host(cptr->user->username, cptr->user->realhost), sizeof userhost);
+	ptr = Find_tld(sptr, userhost);
+
+	if (ptr)
+	{
+		if (ptr->opermotd)
+			temp = ptr->opermotd;
+		else
+			temp = opermotd;
+	}
+	else
+		temp = opermotd;
 
 	if (!IsAnOper(sptr))
 	{
@@ -1219,16 +996,15 @@ CMD_FUNC(m_opermotd)
 		return 0;
 	}
 
-	if (opermotd == (aMotd *) NULL)
+	if (!temp)
 	{
 		sendto_one(sptr, err_str(ERR_NOOPERMOTD), me.name, parv[0]);
 		return 0;
 	}
 	sendto_one(sptr, rpl_str(RPL_MOTDSTART), me.name, parv[0], me.name);
 	sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0],
-	    "\2IRC Operator Message of the Day\2");
+	    "IRC Operator Message of the Day");
 
-	temp = opermotd;
 	while (temp)
 	{
 		sendto_one(sptr, rpl_str(RPL_MOTD), me.name, parv[0],
@@ -1255,6 +1031,18 @@ aMotd *read_file(char *filename, aMotd **list)
 	return read_file_ex(filename, list, NULL);
 }
 
+void free_motd(aMotd *m)
+{
+aMotd *next;
+
+	for (; m; m = next)
+	{
+		next = m->next;
+		MyFree(m->line);
+		MyFree(m);
+	}
+}
+
 /** Read motd-like file, used for rules/motd/botmotd/opermotd/etc.
  * @param filename Filename of file to read.
  * @param list Reference to motd pointer (used for freeing if needed, NULL allowed)
@@ -1275,13 +1063,8 @@ aMotd *read_file_ex(char *filename, aMotd **list, struct tm *t)
 
 	if (list)
 	{
-		while (*list)
-		{
-			old = (*list)->next;
-			MyFree((*list)->line);
-			MyFree(*list);
-			*list  = old;
-		}
+		free_motd(*list);
+		*list = NULL;
 	}
 
 	if (t)
@@ -1330,11 +1113,30 @@ aMotd *read_file_ex(char *filename, aMotd **list, struct tm *t)
 CMD_FUNC(m_botmotd)
 {
 	aMotd *temp;
+	ConfigItem_tld *ptr;
+	char userhost[HOSTLEN + USERLEN + 6];
+
 	if (hunt_server_token(cptr, sptr, MSG_BOTMOTD, TOK_BOTMOTD, ":%s", 1, parc,
 	    parv) != HUNTED_ISME)
 		return 0;
 
-	if (botmotd == (aMotd *) NULL)
+	if (!IsPerson(sptr))
+		return 0;
+
+	strlcpy(userhost,make_user_host(sptr->user->username, sptr->user->realhost), sizeof userhost);
+	ptr = Find_tld(sptr, userhost);
+
+	if (ptr)
+	{
+		if (ptr->botmotd)
+			temp = ptr->botmotd;
+		else
+			temp = botmotd;
+	}
+	else
+		temp = botmotd;
+
+	if (!temp)
 	{
 		sendto_one(sptr, ":%s NOTICE %s :BOTMOTD No se encuentra archivo",
 		    me.name, sptr->name);
@@ -1343,7 +1145,6 @@ CMD_FUNC(m_botmotd)
 	sendto_one(sptr, ":%s NOTICE %s :- %s Bot Message of the Day - ",
 	    me.name, sptr->name, me.name);
 
-	temp = botmotd;
 	while (temp)
 	{
 		sendto_one(sptr, ":%s NOTICE %s :- %s", me.name, sptr->name, temp->line);

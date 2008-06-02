@@ -2,7 +2,7 @@
 **
 ** version.h
 ** UnrealIRCd
-** $Id: version.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+** $Id: version.h,v 1.1.1.1.2.48 2008-04-09 13:41:05 Trocotronic Exp $
 */
 #ifndef __versioninclude
 #define __versioninclude 1
@@ -23,22 +23,42 @@
 #endif
      /**/
 #define COMPILEINFO DEBUGMODESET DEBUGSET
-/*
- * Version Unreal3.2.1
+
+/* Version info follows
+ * Please be sure to update ALL fields when changing the version.
+ * Also don't forget to bump the protocol version every release.
  */
-#define UnrealProtocol 		2304
+
+/** These UNREAL_VERSION_* macros can be used so (3rd party) modules
+ * can easily distinguish versions.
+ */
+
+/** The generation version number (eg: 3 for Unreal3*) */
+#define UNREAL_VERSION_GENERATION   3
+
+/** The major version number (eg: 2 for Unreal3.2*) */
+#define UNREAL_VERSION_MAJOR        2
+
+/** The minor version number (eg: 1 for Unreal3.2.1), negative numbers for unstable/alpha/beta */
+#define UNREAL_VERSION_MINOR        7
+
+/** Year + week of the year (with Monday as first day of the week).
+ * Can be useful if the above 3 versionids are insufficient for you (eg: you want to support CVS).
+ * This is updated automatically on the CVS server every Monday. so don't touch it.
+ */
+#define UNREAL_VERSION_TIME         200809
+
+#define UnrealProtocol 		2309
 #define PATCH1  		"3"
 #define PATCH2  		".2"
-#define PATCH3  		".1"
+#define PATCH3  		".7"
 #ifdef UDB
-#define PATCH4 			"+UDB"
-#define PATCH5 			"-2.1"
-#define PATCH6			"es"
+#define PATCH4 			"+UDB-3.6es"
 #else
 #define PATCH4  		""
-#define PATCH5  		""
-#define PATCH6			""
 #endif
+#define PATCH5  		""
+#define PATCH6  		""
 #define PATCH7  		""
 #define PATCH8  		COMPILEINFO
 #define PATCH9  		""

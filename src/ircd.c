@@ -37,6 +37,7 @@ Computing Center and Jarkko Oikarinen";
 #ifndef _WIN32
 #include <sys/file.h>
 #include <pwd.h>
+#include <grp.h>
 #include <sys/time.h>
 #else
 #include <io.h>
@@ -96,6 +97,10 @@ extern MODVAR aMotd *rules;
 extern MODVAR aMotd *botmotd;
 extern MODVAR aMotd *smotd;
 MODVAR MemoryInfo StatsZ;
+#ifndef _WIN32
+uid_t irc_uid = 0;
+gid_t irc_gid = 0; 
+#endif
 
 int  R_do_dns, R_fin_dns, R_fin_dnsc, R_fail_dns, R_do_id, R_fin_id, R_fail_id;
 
@@ -166,14 +171,18 @@ extern void init_glines(void);
 extern void tkl_init(void);
 
 MODVAR TS   last_garbage_collect = 0;
+#ifndef _WIN32
 MODVAR char **myargv;
+#else
+LPCSTR cmdLine;
+#endif
 int  portnum = -1;		/* Server port number, listening this */
 char *configfile = CONFIGFILE;	/* Server configuration file */
 int  debuglevel = 10;		/* Server debug level */
 int  bootopt = 0;		/* Server boot option flags */
 char *debugmode = "";		/*  -"-    -"-   -"-  */
 char *sbrk0;			/* initial sbrk(0) */
-static int dorehash = 0;
+static int dorehash = 0, dorestart = 0;
 static char *dpath = DPATH;
 MODVAR int  booted = FALSE;
 MODVAR TS   nextconnect = 1;		/* time for next try_connections call */
@@ -270,6 +279,8 @@ void restart(char *mesg)
 
 VOIDSIG s_restart()
 {
+	dorestart = 1;
+#if 0
 	static int restarting = 0;
 
 	if (restarting == 0) {
@@ -280,6 +291,7 @@ VOIDSIG s_restart()
 		restarting = 1;
 		server_reboot("SIGINT");
 	}
+#endif
 }
 
 
@@ -354,7 +366,7 @@ void server_reboot(char *mesg)
 	if (!IsService)
 	{
 		CleanUp();
-		(void)execv(myargv[0], myargv);
+		WinExec(cmdLine, SW_SHOWDEFAULT);
 	}
 #endif
 #ifndef _WIN32
@@ -447,7 +459,7 @@ static TS try_connections(TS currenttime)
 		/*
 		 * Also when already connecting! (update holdtimes) --SRB 
 		 */
-		if (!(aconf->options & CONNECT_AUTO))
+		if (!(aconf->options & CONNECT_AUTO) || (aconf->flag.temporary == 1))
 			continue;
 
 		cltmp = aconf->class;
@@ -483,7 +495,7 @@ static TS try_connections(TS currenttime)
 				    && crule_eval(deny->rule))
 					break;
 
-			if (connect_server(aconf, (aClient *)NULL,
+			if (!deny && connect_server(aconf, (aClient *)NULL,
 			    (struct hostent *)NULL) == 0)
 				sendto_realops
 				    ("Conexión a %s[%s] activada.",
@@ -583,12 +595,11 @@ extern TS check_pings(TS currenttime)
 					    reason : "sin razón");
 				if (bconf->reason) {
 					if (IsPerson(cptr))
-						snprintf(banbuf,
-						    sizeof banbuf - 1,
-						    "Usuario baneado (%s)",
-						    bconf->reason);
-					snprintf(banbuf, sizeof banbuf - 1,
-					    "Baneado (%s)", bconf->reason);
+						snprintf(banbuf, sizeof banbuf - 1,
+						         "Usuario baneado (%s)", bconf->reason);
+					else
+						snprintf(banbuf, sizeof banbuf - 1,
+						         "Baneado (%s)", bconf->reason);
 					(void)exit_client(cptr, cptr, &me,
 					    banbuf);
 				} else {
@@ -603,6 +614,17 @@ extern TS check_pings(TS currenttime)
 				continue;
 			}
 
+		}
+		/* Do spamfilter 'user' banchecks.. */
+		if (loop.do_bancheck_spamf_user && IsPerson(cptr))
+		{
+			if (find_spamfilter_user(cptr, SPAMFLAG_NOWARN) == FLUSH_BUFFER)
+				continue;
+		}
+		if (loop.do_bancheck_spamf_away && IsPerson(cptr) && cptr->user->away)
+		{
+			if (dospamfilter(cptr, cptr->user->away, SPAMF_AWAY, NULL, SPAMFLAG_NOWARN, NULL) == FLUSH_BUFFER)
+				continue;
 		}
 		/*
 		 * We go into ping phase 
@@ -648,7 +670,7 @@ extern TS check_pings(TS currenttime)
 					Debug((DEBUG_NOTICE,
 					    "DNS/AUTH timeout %s",
 					    get_client_name(cptr, TRUE)));
-					del_queries((char *)cptr);
+					unrealdns_delreq_bycptr(cptr);
 					ClearAuth(cptr);
 					ClearDNS(cptr);
 					SetAccess(cptr);
@@ -725,8 +747,7 @@ extern TS check_pings(TS currenttime)
 	 * * - lucas
 	 * *
 	 */
-	if (loop.do_bancheck)
-		loop.do_bancheck = 0;
+	loop.do_bancheck = loop.do_bancheck_spamf_user = loop.do_bancheck_spamf_away = 0;
 	Debug((DEBUG_NOTICE, "Next check_ping() call at: %s, %d %d %d",
 	    myctime(currenttime+9), ping, currenttime+9, currenttime));
 
@@ -741,14 +762,8 @@ extern TS check_pings(TS currenttime)
 static int bad_command(void)
 {
 #ifndef _WIN32
-#ifdef CMDLINE_CONFIG
-#define CMDLINE_CFG "[-f config] "
-#else
-#define CMDLINE_CFG ""
-#endif
 	(void)printf
-	    ("Uso: ircd %s[-h servidor] [-p puerto] [-x nivel_log] [-t] [-H]\n",
-	    CMDLINE_CFG);
+	    ("Uso: ircd %s[-h servidor] [-p puerto] [-x nivel_log] [-t] [-H]\n");
 	(void)printf("Servidor no iniciado.\n\n");
 #else
 	if (!IsService) {
@@ -839,7 +854,7 @@ int error = 0;
 #ifdef ZIP_LINKS
 	runtime = zlibVersion();
 	compiledfor = ZLIB_VERSION;
-	if (strcasecmp((char *)compiledfor, (char *)runtime))
+	if (*compiledfor != *runtime)
 	{
 		version_check_logerror("Zlib version mismatch: compiled for '%s', library is '%s'",
 			compiledfor, runtime);
@@ -893,6 +908,8 @@ int error = 0;
 
 extern time_t TSoffset;
 
+extern int unreal_time_synch(int timeout);
+
 #ifndef _WIN32
 int main(int argc, char *argv[])
 #else
@@ -904,7 +921,10 @@ int InitwIRCD(int argc, char *argv[])
 	WSADATA wsaData;
 #else
 	uid_t uid, euid;
+	gid_t gid, egid;
 	TS   delay = 0;
+	struct passwd *pw;
+	struct group *gr;
 #endif
 #ifdef HAVE_PSTAT
 	union pstun pstats;
@@ -924,11 +944,28 @@ int InitwIRCD(int argc, char *argv[])
 	sbrk0 = (char *)sbrk((size_t)0);
 	uid = getuid();
 	euid = geteuid();
+	gid = getgid();
+	egid = getegid();
 # ifdef	PROFIL
 	(void)monstartup(0, etext);
 	(void)moncontrol(1);
 	(void)signal(SIGUSR1, s_monitor);
 # endif
+#endif
+#if defined(IRC_USER) && defined(IRC_GROUP)
+	if ((int)getuid() == 0) {
+
+		pw = getpwnam(IRC_USER);
+		gr = getgrnam(IRC_GROUP);
+
+		if ((pw == NULL) || (gr == NULL)) {
+			fprintf(stderr, "ERROR: Unable to lookup to specified user (IRC_USER) or group (IRC_GROUP): %s\n", strerror(errno));
+			exit(-1);
+		} else {
+			irc_uid = pw->pw_uid;
+			irc_gid = gr->gr_gid;
+		}
+	}
 #endif
 #ifdef	CHROOTDIR
 	if (chdir(dpath)) {
@@ -936,7 +973,10 @@ int InitwIRCD(int argc, char *argv[])
 		fprintf(stderr, "ERROR: Imposible cambiar al directorio '%s'\n", dpath);
 		exit(-1);
 	}
-	ircd_res_init();
+	if (geteuid() != 0)
+		fprintf(stderr, "WARNING: IRCd compiled with CHROOTDIR but effective user id is not root!? "
+		                "Booting is very likely to fail...\n");
+	init_resolver(1);
 	{
 		struct stat sb;
 		mode_t umaskold;
@@ -984,7 +1024,11 @@ int InitwIRCD(int argc, char *argv[])
 		exit(5);
 	}
 #endif	 /*CHROOTDIR*/
+#ifndef _WIN32
 	myargv = argv;
+#else
+	cmdLine = GetCommandLine();
+#endif
 #ifndef _WIN32
 	(void)umask(077);	/* better safe than sorry --SRB */
 #else
@@ -993,6 +1037,7 @@ int InitwIRCD(int argc, char *argv[])
 	bzero((char *)&me, sizeof(me));
 	bzero(&StatsZ, sizeof(StatsZ));
 	setup_signals();
+	charsys_reset();
 	init_ircstats();
 #ifdef USE_LIBCURL
 	url_init();
@@ -1048,12 +1093,17 @@ int InitwIRCD(int argc, char *argv[])
 			  bootopt |= BOOT_NOFORK;
 			  break;
 #ifndef _WIN32
-#ifdef CMDLINE_CONFIG
 		  case 'f':
+#ifndef CMDLINE_CONFIG
+		      if ((uid == euid) && (gid == egid))
+			       configfile = p;
+			  else
+			       printf("ERROR: Command line config with a setuid/setgid ircd is not allowed");
+#else
 			  (void)setuid((uid_t) uid);
 			  configfile = p;
-			  break;
 #endif
+			  break;
 		  case 'h':
 			  if (!strchr(p, '.')) {
 
@@ -1076,6 +1126,14 @@ int InitwIRCD(int argc, char *argv[])
 			  }
 			  p = *++argv;
 			  argc--;
+#ifdef AUTHENABLE_UNIXCRYPT
+			  if ((type == AUTHTYPE_UNIXCRYPT) && (strlen(p) > 8))
+			  {
+			      printf("WARNING: Password truncated to 8 characters due to 'crypt' algorithm. "
+		                 "You are suggested to use the 'md5' algorithm instead.");
+				  p[8] = '\0';
+			  }
+#endif
 			  if (!(result = Auth_Make(type, p))) {
 				  printf("Autentificación fallida\n");
 				  exit(0);
@@ -1114,7 +1172,11 @@ int InitwIRCD(int argc, char *argv[])
 			  bootopt |= BOOT_TTY;
 			  break;
 		  case 'v':
+  #ifdef UDB
+			  (void)printf("%s build %s %s\n", version, buildid, udbid);
+  #else
 			  (void)printf("%s build %s\n", version, buildid);
+  #endif
 #else
 		  case 'v':
 			  if (!IsService) {
@@ -1190,14 +1252,19 @@ int InitwIRCD(int argc, char *argv[])
 	}
 #endif
 
+	/* HACK! This ifndef should be removed when the restart-on-w32-brings-up-dialog bug
+	 * is fixed. This is just an ugly "ignore the invalid parameter" thing ;). -- Syzop
+	 */
+#ifndef _WIN32
 	if (argc > 0)
 		return bad_command();	/* This should exit out */
+#endif
 #ifndef _WIN32
 	fprintf(stderr, "%s", unreallogo);
 	fprintf(stderr, "                           v%s\n", VERSIONONLY);
-	fprintf(stderr, "                     usa TRE %s\n", tre_version());
+	fprintf(stderr, "                     usa %s\n", tre_version());
 #ifdef USE_SSL
-	fprintf(stderr, "                     usa %s\n", OPENSSL_VERSION_TEXT);
+	fprintf(stderr, "                     usa %s\n", SSLeay_version(SSLEAY_VERSION));
 #endif
 #ifdef ZIP_LINKS
 	fprintf(stderr, "                     usa zlib %s\n", zlibVersion());
@@ -1218,7 +1285,7 @@ int InitwIRCD(int argc, char *argv[])
 	DeleteTempModules();
 	booted = FALSE;
 /* Hack to stop people from being able to read the config file */
-#if !defined(_WIN32) && !defined(_AMIGA) && DEFAULT_PERMISSIONS != 0
+#if !defined(_WIN32) && !defined(_AMIGA) && !defined(OSXTIGER) && DEFAULT_PERMISSIONS != 0
 	chmod(CPATH, DEFAULT_PERMISSIONS);
 #endif
 	init_dynconf();
@@ -1253,6 +1320,8 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef EXTCMODE
 	make_extcmodestr();
 #endif
+	make_extbanstr();
+	isupport_init();
 	if (!find_Command_simple("AWAY") /*|| !find_Command_simple("KILL") ||
 		!find_Command_simple("OPER") || !find_Command_simple("PING")*/)
 	{ 
@@ -1321,6 +1390,7 @@ int InitwIRCD(int argc, char *argv[])
 	Debug((DEBUG_ERROR, "Puerto = %d", portnum));
 	if (inetport(&me, conf_listen->ip, portnum))
 		exit(1);
+	set_non_blocking(me.fd, &me);
 	conf_listen->options |= LISTENER_BOUND;
 	me.umodes = conf_listen->options;
 	conf_listen->listener = &me;
@@ -1371,7 +1441,7 @@ int InitwIRCD(int argc, char *argv[])
 	R_fin_id = strlen(REPORT_FIN_ID);
 	R_fail_id = strlen(REPORT_FAIL_ID);
 
-#if !defined(IRC_UID) && !defined(_WIN32)
+#if !defined(IRC_USER) && !defined(_WIN32)
 	if ((uid != euid) && !euid) {
 		(void)fprintf(stderr,
 		    "ERROR: no se puede iniciar ircd setuid root. Haz setuid con usuario normal.\n");
@@ -1379,29 +1449,42 @@ int InitwIRCD(int argc, char *argv[])
 	}
 #endif
 
-#if defined(IRC_UID) && defined(IRC_GID)
+#if defined(IRC_USER) && defined(IRC_GROUP)
 	if ((int)getuid() == 0) {
-		if ((IRC_UID == 0) || (IRC_GID == 0)) {
+		/* NOTE: irc_uid/irc_gid have been looked up earlier, before the chrooting code */
+
+		if ((irc_uid == 0) || (irc_gid == 0)) {
 			(void)fprintf(stderr,
 			    "ERROR: SETUID and SETGID have not been set properly"
-			    "\nPlease read your documentation\n(HINT:SETUID or SETGID can not be 0)\n");
+			    "\nPlease read your documentation\n(HINT: IRC_USER and IRC_GROUP in include/config.h cannot be root/wheel)\n");
 			exit(-1);
 		} else {
 			/*
 			 * run as a specified user 
 			 */
 
-			(void)fprintf(stderr,
-			    "WARNING: ircd invoked as root\n");
-			(void)fprintf(stderr, "         changing to uid %d\n",
-			    IRC_UID);
-			(void)fprintf(stderr, "         changing to gid %d\n",
-			    IRC_GID);
-			(void)setgid(IRC_GID);
-			(void)setuid(IRC_UID);
+			(void)fprintf(stderr, "WARNING: ircd invoked as root\n");
+			(void)fprintf(stderr, "         changing to uid %d\n", irc_uid);
+			(void)fprintf(stderr, "         changing to gid %d\n", irc_gid);
+			if (setgid(irc_gid))
+			{
+				fprintf(stderr, "ERROR: Unable to change group: %s\n", strerror(errno));
+				exit(-1);
+			}
+			if (setuid(irc_uid))
+			{
+				fprintf(stderr, "ERROR: Unable to change userid: %s\n", strerror(errno));
+				exit(-1);
+			}
 		}
 	}
 #endif
+	if (TIMESYNCH)
+	{
+		if (!unreal_time_synch(TIMESYNCH_TIMEOUT))
+			ircd_log(LOG_ERROR, "TIME SYNCH: Unable to synchronize time: %s. This happens sometimes, no error on your part.",
+				unreal_time_synch_error());
+	}
 	write_pidfile();
 	Debug((DEBUG_NOTICE, "Server ready..."));
 	SetupEvents();
@@ -1411,6 +1494,9 @@ int InitwIRCD(int argc, char *argv[])
 #ifdef NEWCHFLOODPROT
 	init_modef();
 #endif
+#ifdef UDB	
+	IniciaUDB();
+#endif	
 	loop.do_bancheck = 0;
 	loop.ircd_booted = 1;
 #if defined(HAVE_SETPROCTITLE)
@@ -1430,9 +1516,6 @@ int InitwIRCD(int argc, char *argv[])
 #ifndef NO_FDLIST
 	check_fdlists(TStime());
 #endif
-#ifdef UDB	
-	bdd_init();
-#endif	
 
 #ifdef _WIN32
 	return 1;
@@ -1492,13 +1575,7 @@ void SocketLoop(void *dummy)
 		 */
 		if (nextconnect && timeofday >= nextconnect)
 			nextconnect = try_connections(timeofday);
-		/*
-		 * ** DNS checks. One to timeout queries, one for cache expiries.
-		 */
-		if (timeofday >= nextdnscheck)
-			nextdnscheck = timeout_query_list(timeofday);
-		if (timeofday >= nextexpire)
-			nextexpire = expire_cache(timeofday);
+
 		/*
 		 * ** take the smaller of the two 'timed' event times as
 		 * ** the time of next event (stops us being late :) - avalon
@@ -1570,10 +1647,16 @@ void SocketLoop(void *dummy)
 		if ((timeofday >= nextping && !lifesux) || loop.do_bancheck)
 #endif
 			nextping = check_pings(timeofday);
-		if (dorehash) {
+		if (dorehash) 
+		{
 			(void)rehash(&me, &me, 1);
 			dorehash = 0;
 		}
+		if (dorestart)
+		{
+			server_reboot("SIGINT");
+		}
+
 		/*
 		 * ** Flush output buffers on all connections timeofday if they
 		 * ** have data in them (or at least try to flush)

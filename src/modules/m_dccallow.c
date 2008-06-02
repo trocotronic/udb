@@ -47,12 +47,11 @@
 DLLFUNC int m_dccallow(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
 #define MSG_DCCALLOW 	"DCCALLOW"
-#define TOK_DCCALLOW 	""
 
 ModuleHeader MOD_HEADER(m_dccallow)
   = {
 	"m_dccallow",
-	"$Id: m_dccallow.c,v 1.2 2004-07-04 02:47:36 Trocotronic Exp $",
+	"$Id: m_dccallow.c,v 1.1.2.3 2004-12-04 15:16:18 Trocotronic Exp $",
 	"command /dccallow", 
 	"3.2-b8-1",
 	NULL 
@@ -60,7 +59,7 @@ ModuleHeader MOD_HEADER(m_dccallow)
 
 DLLFUNC int MOD_INIT(m_dccallow)(ModuleInfo *modinfo)
 {
-	add_Command(MSG_DCCALLOW, TOK_DCCALLOW, m_dccallow, 1);
+	CommandAdd(modinfo->handle, MSG_DCCALLOW, NULL, m_dccallow, 1, M_USER|M_ANNOUNCE);
 	MARK_AS_OFFICIAL_MODULE(modinfo);
 	return MOD_SUCCESS;
 }
@@ -72,11 +71,6 @@ DLLFUNC int MOD_LOAD(m_dccallow)(int module_load)
 
 DLLFUNC int MOD_UNLOAD(m_dccallow)(int module_unload)
 {
-	if (del_Command(MSG_DCCALLOW, TOK_DCCALLOW, m_dccallow) < 0)
-	{
-		sendto_realops("Failed to delete commands when unloading %s",
-			MOD_HEADER(m_dccallow).name);
-	}
 	return MOD_SUCCESS;
 }
 
@@ -88,7 +82,7 @@ DLLFUNC int m_dccallow(aClient *cptr, aClient *sptr, int parc, char *parv[])
 {
 Link *lp;
 char *p, *s;
-aClient *acptr, *lastcptr = NULL;
+aClient *acptr;
 int didlist = 0, didhelp = 0, didanything = 0;
 char **ptr;
 static char *dcc_help[] =

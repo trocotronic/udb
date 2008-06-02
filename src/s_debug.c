@@ -186,6 +186,7 @@ void	flag_del(char ch)
 #endif /* _WIN32 */
 
 static char debugbuf[4096];
+
 #ifndef	USE_VARARGS
 /*VARARGS2*/
 void debug(level, form, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)
@@ -201,11 +202,13 @@ void debug(int level, char *form, ...)
 	static HANDLE *conh = NULL;
 	LPDWORD len = 0;
 #endif
+
 	va_list vl;
 	va_start(vl, form);
-#ifdef UDB
+#if defined(UDB) && defined(_WIN32)
 	debuglevel = 2;
 #endif
+
 	if ((debuglevel >= 0) && (level <= debuglevel))
 	{
 #ifndef USE_VARARGS
@@ -357,6 +360,12 @@ void send_usage(aClient *cptr, char *nick)
 	    writeb[5], writeb[6], writeb[7], writeb[8], writeb[9]);
 	return;
 }
+
+int checkprotoflags(aClient *sptr, int flags, char *file, int line)
+{
+	if (!MyConnect(sptr))
+		ircd_log(LOG_ERROR, "[Debug] [BUG] ERROR: %s:%d: IsToken(<%s>,%d) on remote client",
+		         file, line, sptr->name, flags);
+	return (sptr->proto & flags) ? 1 : 0;
+}
 #endif
-
-

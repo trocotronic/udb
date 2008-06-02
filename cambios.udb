@@ -1,0 +1,267 @@
+/*
+ * Empiezo este archivo de cambios. Mucho trabajo ya está hecho, por esta razón me es imposible saber cuándo empecé. Así, que digamos que la primera versión es esta y que los cambios que vendrán son a partir de esta primera versión. Cualquier nota será añadida.
+ * 21/03/2004 Trocotronic
+ *
+ * $Id: cambios.udb,v 1.1.4.153 2008-05-30 12:16:22 Trocotronic Exp $
+ */
+
+210305001 - Paso toda la documentación de la web a doc/technical/udb.html
+210305002 - Creo este archivo cambios.udb para loguear todos los cambios.
+210305003 - *** Unreal 3.2.3 + UDB 3.1 es
+090405004 - Ahora el modo +r en canales también se propaga cuando se registra un canal.
+090405005 - Arreglado un fallo en el que se sumaban modos en la bdd.
+090405006 - Arreglados cuantiosos fallos en los modos de la bdd.
+090405007 - Arreglada una desincronización en sjoin.
+090405008 - Arreglado un fallo en el borrado de bdd.
+090405009 - Añadido el envío de modos con canales vacíos en sjoin.
+090405010 - El founder, en un sjoin, se identifica con un . en vez de un *.
+120405011 - Arreglado un importante fallo con el +r, aviso de Davidlig y Mew (#0000028).
+120405012 - Arreglado un fallo estético en el +r de ChanServ.
+180405013 - El mensaje de nueva ip virtual sólo aparece si el usuario está +x.
+210405014 - Arreglado un fallo de prohibición de nicks, aviso de MaD (#0000030).
+210405015 - Se añaden unas macros de gestión de los bloques.
+210405016 - Se añade una comprobación: si hay un RES en progreso no pueden insertarse nuevos registros.
+210405017 - Se añade el comando FDR en UDB para indicar que ha terminado un RES.
+210405018 - Se sube al protocolo UDB3.2.
+220405019 - Se añade el bloque udb { } a la configración del programa. Allí irá toda la configuración sobre UDB.
+220405020 - Se añade el parámetro servidor_emisor para verificar que *sólo* un servidor es el que propaga datos.
+230405021 - Al linkar se manda PROTOCTL UDB3.2=servidor_emisor. Ahí irán los posteriores parámetros.
+260405022 - Los usuarios con modo +k pueden quitarse los modos de canal (qaohv).
+260405023 - Se le quitan todos los modos que pueda tener un usuario al hacer un svsnick.
+260405024 - Se deniega el uso de : y ! en los nicks por svsnick, aviso de ArthaS~ (#0000034).
+280405025 - Arreglado un cuelge con /nick, aviso de ArthaS~ (#0000036).
+290405026 - Añado la función chan_client() que devuelve el cliente que pertoca.
+290405027 - Las acciones de flood ahora las envía el bloque ChanServ, sugerido por MaD (#0000037).
+290405028 - Arreglado un fallo en el que el modo +r aparecía varias veces en canales.
+030505029 - Arreglados un par de problemas con UDB 3.2.
+050505030 - Algunas mejoras.
+080505031 - Cuando se hace un OPT no se remapea todo el bloque porque no es necesario.
+090505032 - Cambio el <censored> por (censurado).
+110505033 - El host virtual sólo se muestra si ha cambiado, sugerido por MaD (#0000041).
+110505034 - Una traducción de los kicks.
+150505035 - Se añaden los subbloques clones y nolines. El primero fija los clones permitidos por ip. El segundo las *lines que se salta.
+		- GZQST: glines, gzlines, gqlines, shuns y throttles.
+		El formato queda I::ip::clones *nº e I::ip::nolines GZQST
+150505036 - El fundador siempre puede invitarse siempre en su propio canal para saltarse bans, +i, +k, +l, etc.
+150505037 - Los opers (+h) pueden entrar en canales con +O.
+180505038 - Arreglado un fallo al insertar modos de canal en UDB.
+210505039 - Se tokeniza la DB.
+210505040 - Creo la utilidad actualiza_udb para que migre las DBs al nuevo formato. Debe especificarse la ruta en la que se encuentran los archivos .udb.
+		Ej: actualiza_udb C:/unreal/database
+280505041 - Arreglado un cuelgue al devolver el cliente ChanServ, aviso de MaD (#0000054).
+310505042 - Arreglado un fallo importante de duplicación de tokens.
+310505043 - Arreglado un fallo en el desafío plain, aviso de STeaL (#0000060).
+030605044 - Un par de optimizaciones.
+040606045 - Cuando se propaga un topic, aparece el nombre del bloque ChanServ (siempre que esté online), sugerencia de STeaL (#0000065).
+040606046 - Mejorado el envío de mensajes por ChanServ.
+040606047 - Las funciones chan_* pueden forzarse a devolver el bloque ChanServ o no.
+040606048 - Se cambia el orden de carga de los bloques.
+040606049 - Actualizo el programa actualiza_udb para soportar este cambio de orden.
+040606050 - Se añaden funciones para dar y quitar modos/snomasks/opers...
+040606051 - Se reescribe todo el código que hace referencia a todo lo que sea interactuar con nicks y UDB.
+040606052 - Arreglado un fallo en svsnick.
+050606053 - Se simplifica el uso de /nick nick{:|!}pass.
+050606054 - Los opers se saltan la restricción de canales con acceso.
+070606055 - Arreglado un fallo que mostraba el notice de OperOverride aunque fuera el fundador quien se invitaba, aviso de chuskyx (#0000073).
+070606056 - El notice de invite aparece como FounderOverride si es el fundador quién se invita.
+080606057 - Arreglado un fallo de desincronización cuando conectaban nicks migrados, aviso de MaD y chuskyx (#0000068, #0000074).
+080605058 - Se vuelve a traducir el sistema de TKLines.
+100605059 - Arreglado un cuelgue importante que daba muchos quebraderos de cabeza, aviso de MaD (#0000062, #0000063, #0000069 y #0000075).
+110605060 - Se arregla un fallo con el actualizador, aviso de chuskyx (#0000072).
+110605061 - Se mejora el sistema de inserción de registros especiales.
+120605062 - Arreglado un fallo en la propagación del comando INF, aviso de STeaL (#0000066).
+120605063 - Se añade un soporte para poder usar las contraseñas que devuelve /mkpasswd en UDB.
+150605064 - Arreglado un importante fallo en las listas internas del ircd.
+180605065 - Actualizo documentación.
+250605066 - Arreglado otro fallo relacionado con el invite y OperOverride (#0000073).
+270605067 - Arreglado un cuelgue al linkar servidores, aviso de STeaL (#0000085).
+010705068 - Mi aniversario.
+070705069 - Arreglado un fallo estético al mostrar el mensaje de nick en forbid, aviso de STeaL (#0000086).
+070705070 - Se muestran los motivos de forbids y suspendidos.
+070705071 - Arreglada documentación, aviso de STeaL (#0000087).
+080705072 - Añado la información UDB ReleaseID en /info para saber qué id de cvs se está usando.
+090705073 - Acuración de la documentación, aviso de chuskyx (#0000090).
+090705074 - Las excepciones de I también afectan a qlines locales, aviso de chuskyx (#0000088).
+110705075 - Arreglado un fallo al dar snomasks, aviso de chuskyx (#0000093).
+110705076 - Se quita el actualiza_udb para actualizar los archivos y se usa un método automático y eficaz.
+110705077 - Subo a la versión UDB3.2.
+130705078 - Añado el subloque HOST en el bloque IPS para resolver las ips, sugerencia de chuskyx (#0000084).
+140705079 - Cuando se elimina una ip de su bloque, se libera toda la memoria de los registros especiales (excepts y hosts dns).
+150705080 - Paso los mensajes notice de /dbq a raw 339.
+150705081 - Modifico /dbq para mostrar información sobre el bloque (/dbq [servidor] C|N|I|S), sugerencia de chuskyx (#0000077).
+150705082 - Cuando se especifica un registro sin datos, se muestran los datos inferiores (/dbq N::Trocotronic mostraría la contraseña, el desafío, snomasks, etc.)
+190705083 - Arreglado un fallo al identificarse con nicks sin desafío, aviso de STeaL (#0000100).
+200705084 - Arreglado un descuido en /dbq.
+250705085 - Añado udbid en los cores de Win32.
+270705086 - Añado la directriz pass-flood en el bloque udb { } para evitar ataques de fuerza bruta sobre los nicks migrados, (#000095).
+280705087 - Se ha cambiado la negociación del protocolo: ahora primero se comprueba el md5inf y luego los gmt.
+280705088 - Con este arreglo se ha conseguido no resumir con una opt de por medio pero con el mismo md5, un ahorro brutal de tráfico.
+290705089 - Arreglado un fallo de duplicación de ítems de pass-flood.
+290705090 - Arreglado un fallo en las NOLINES del bloque I, no funcionaban.
+290705091 - Arreglado un fallo en el borrado de NOLINES.
+190805092 - Arreglado un fallo estético al hacer /links.
+190805093 - Arreglado un fallo al hacer un OPT sobre un bloque vacío, aviso de STeaL (#0000108).
+200805094 - Se añade la directriz P (pass) y D (desafio) en el bloque C. Si se usa /join #canal pass, se otorga el estado de +ao. , sugerencia de chuskyx (#0000096).
+		Para poder usar invite y saltarse las restricciones, úsese /invite user #canal pass.
+		En ambos casos, el pass es el que se ha utilizado en la directriz P. Esta función debe utilizarse en casos de extrema necesidad.
+220805095 - Se ha añadido un índice en /dbq que indica el número de nicks, canales, ips. etc que hay en su correspondiente bloque.
+270805096 - Paso los permisos de *lines, override y algunos otros más del rango de Root al rango de Admin. Reservo para el Root los restart, die y addline.
+270805097 - Arreglado un fallo de conexión hub-leaf con UDB. Sólo podrá linkarse en caso de ser hub.
+280805098 - Paso unos numerics 339 al notice de NickServ.
+280805099 - Extiendo la protección de intento de robo de contraseñas a /ghost.
+290805100 - Los Administradores reciben +oa y los Roots +oN, sugerencia #0000064-0000310.
+290805101 - Los Roots también reciben los oflags de los admins, faltaría más.
+050905102 - Por una extraña razón, sólo se aceptan oflags locales.
+140905103 - Se cambia el mensaje de ERROR cuando linka un hub sin soporte UDB.
+140905104 - Subo a la versión 3.2.4pre1 + UDB 3.2.
+140905105 - Actualizo toda la documentación.
+140905106 - Se añade la versión de UDB al título de ventana.
+170905107 - Se arregla un fallo de sincronización, que nunca se daba (salvo en pruebas muy remotas).
+170905108 - Arreglado un fallo al hacer un DEL que añadía un byte de más, aviso de chuskyx (#0000094).
+170905109 - Arreglado un fallo al hacer fseek.
+170905110 - Arreglado un fallo al parsear una línea que sólo contiene un espacio en blanco (por error humano!).
+170905111 - Cambio la directriz servidor_emisor por propagador.
+170905112 - La directriz propagador acepta comodines, pero sólo un servidor propagador podrá estar linkado a la red.
+210905113 - Arreglado un fallo que se producía con el propagador cuando era remoto, aviso de MaD (#0000117).
+230905114 - *** Unreal 3.2.4pre1 + UDB 3.2 es
+260905115 - Se modifica el sistema de paso de valores y se quitan todos los casts. Podía causar desbordamiento de pila.
+270905116 - Arreglado un cuelge al cargar bloques que requieren cadenas y sólo tenían enteros, aviso de Arthas~ (#0000121).
+300905117 - Se añade la directriz S::desafio (o S::D) que establece el desafío global con el que las contraseñas se cifran.
+		El desafio individual para cada nick tendrá preferencia sobre el global. Sugerencia de MaD (#0000122).
+031005118 - Arreglado un fallo con el punto anterior.
+091005119 - Arreglado un fallo que no permitía compilar sin soporte UDB.
+151005120 - Añadidos un sistema para parsear variantes de UDB.
+151005121 - Añadida la variante PMODE: no es necesario que le manden los cambios de modos.
+151005122 - Añadida la variante SD: tiene soporte S::D.
+151005123 - Subo a la versión 3.2.4pre2 + UDB 3.2.1.
+161005124 - Arreglado un fallo con el refresco de S::D, aviso de STeaL (#0000127).
+201005125 - Se añaden los modos de usuario en la documentación, sugerencia de thunderz (#0000130).
+221005126 - *** Unreal 3.2.4pre2 + UDB 3.2.1 es
+271005127 - Arreglado un fallo al hacer dbq sobre el servidor local, aviso de thunderz (#0000137).
+281005128 - Cambiado un mensaje al echar un usuario con +q, sugerencia de thunderz (#0000138).
+011105129 - Arreglado un fallo con el modo +S y al desuspender.
+011105130 - Arreglado un fallo con el whois y sin soporte UDB.
+041105131 - Arreglado un fallo en el Config, aviso de Arthas- (#0000160).
+111105132 - Se arregla un fallo al introducir nicks con un solo caracter, aviso de KirO (#0000162).
+121105133 - Se quita la variante PMODE puesto que no funciona en servidores remotos, aviso de STeaL (#0000154).
+131105134 - Se quita el nivel BDD_DEVEL, puesto que no sirve para nada.
+181105135 - Se quita el nivel BDD_PREO, puesto que tampoco sirve para nada.
+181105136 - Por ese cambio, subo la versión de la bdd a la 3, con su función de compatibilización.
+111205137 - Arreglado un fallo de sincronización con la primera @ de los canales que no están en el bloque C.
+111205138 - Subo a la versión 3.2.4pre3 + UDB 3.2.2.
+251205139 - *** Unreal 3.2.4pre3 + UDB 3.2.2 es
+180206140 - Arreglado un fallo de integer overflow con los hashes.
+180206141 - Ahora se deja el descriptor del crcs abierto porque al linux no le gusta que se abra y se cierre rápidamente.
+180206142 - Después de cada fwrite se hace un fflush para obligar a escribir los buffers porque al linux no le gusta.
+250206143 - Cuando se recibe un topic vía UDB, sólo se propaga por el canal en el caso de que sea distinto al que hubiera.
+250206144 - Añadida una macro para compilar sin archivos CORE (se usa el de windows).
+020406145 - Arreglado un fallo al emitir el modo +f que salía muchas veces por el canal.
+020406146 - Arreglado un cuelgue generado por el borrado de los bloques en hash (raras veces se daba).
+030406147 - Arreglado un fallo grave al sincronizar modos de canales vacíos que están en BDD.
+030406148 - Los topics que son iguales durante un link, no se repropagan por el canal.
+060406149 - Arreglado un fallo muy tonto con el punto anterior, aviso de MaD (#0000181).
+080406150 - Subo a versión 3.2.3.
+120406151 - Añadida la directriz O en el bloque C para guardar configuraciones de canales migrados.
+120406152 - Añadida la configuración PROTBANS (protección de bans): sólo el autor de un ban puede quitar su propio ban.
+130406153 - Quito el tok en id para pasarlo a item.
+130406154 - Quito la función compara.
+170406155 - Arreglado un fallo al conectar operadores.
+220406156 - Adaptado el sistema de vhosts al nuevo de cloaked hosts.
+220406157 - Arreglado un fallo con el vhost y los bans.
+290406158 - Para evitar desincronizaciones en hosts, a partir de ahora sólo pueden unirse a la red aquellos servidores que soporten UDB.
+020506159 - Arreglado un fallo con el raw del nick suspendido.
+040506160 - Creado un nuevo error, E_UDB_REP, para saber si un registro no se ha insertado por duplicidad.
+040506161 - Las versiones con el segundo número de versión distinto no pueden linkar. Si el tercero es distinto pero el segundo no, sí.
+		Ej: un servidor 3.2.1 no puede linkar con un 3.3.2 pero sí con un 3.2.3.
+150506162 - *** Unreal 3.2.5pre1 + UDB 3.2.3 es
+200506163 - Arreglado un fallo al identificar un enlace como hub.
+200506164 - Arreglado un fallo grave al linkar servidores con opts distintos.
+200506165 - Arreglado un fallo que emitía un mensaje de resumen en progreso.
+270506166 - Se cambia la numeración de las versiones: impar > devel, par > estable.
+270506167 - Se crea un sistema de copias de seguridad.
+270506168 - Se complementa el sistema anterior con un sistema de restauración.
+280506169 - Se cambia el sistema de mapeo de memoria, agilizándolo notablemente.
+280506170 - Se cambia el sistema de manejo de bloques.
+280506171 - Con estos cambios se arregla un fallo muy grave.
+280506172 - Se cambian las funciones para unificar con los servicios de red Colossus.
+280506173 - Arreglado un fallo de duplicidad de modos al iniciar la sesión.
+280506174 - Arreglado un fallo relacionado con el opercount.
+310506175 - Arreglado un fallo al propagar los modos al inicio de sesión.
+310506176 - Arreglado un fallo con el OptimizaBloque, aviso de MaD (#0000183).
+310506177 - Arreglado un fallo al borrar una ipv.
+020606178 - Arreglado un fallo al truncar un bloque.
+040606179 - Arreglado un fallo con el comando DRP.
+050606180 - Arreglado un fallo con la ipv y +x en autoconectar.
+050606181 - Arreglado un fallo al conectar y realhost (#0000184).
+060606182 - Arreglado un fallo con el algoritmo del crc32.
+060606183 - Por ello subo a la versión 4 del archivo hash con su función de autoactualización.
+090606184 - Arreglado un fallo de desincronización cons los RESes en progreso.
+090606185 - Arreglado un fallo con un RES no recíproco.
+160606186 - *** Unreal 3.2.5 + UDB 3.3 es
+		(Requiescat In Pace - 16/06/2005)
+300606187 - Arreglado un fallo al optimizar después de restaurar.
+010706188 - Mi cumpleaños.
+020706189 - Se añade una forma de visualizar si está un resumen en curso vía DBQ.
+020706190 - Arreglado un fallo con el resumen de bloques.
+020706191 - Arreglado un fallo al borrar el último ítem de un bloque.
+020706192 - Arreglada una inconsistencia con la restauración de datos.
+130706193 - Se añade la directriz A en el bloque N.
+190806194 - Arreglado un fallo grave al poner :: en los campos de UDB.
+210906195 - Arreglado un fallo sin importancia con los permisos dados por la directriz oper.
+270906196 - Se cambian algunas rutinas de propagación. Ahora los datos sólo llegan si tienen que llegar.
+290906197 - Se deshace lo anterior.
+311006198 - Se sube a la versión 3.4.
+011106199 - *** Unreal 3.2.6pre1 + UDB 3.4 es
+111106200 - Se añade la opción C_OPT_RMOD para bloquear los modos de un canal.
+161106201 - Arreglado un fallo al eliminar bloques.
+261106202 - Arreglado un fallo al borrar registros especiales.
+261106203 - Optimizado el sistema de inserción y borrado de registros especiales.
+261106204 - Optimizada la búsqueda de bloques.
+271106205 - Se deshace lo anterior.
+271106206 - Se añade una macro para compilar con o sin soporte de tablas HASH.
+271106207 - Al compilar se detectan los cambios realizados en s_bdd.h
+271106208 - Se quita la macro BorraIpVirtual.
+281106209 - Se añade una macro para compilar con o sin soporte TOK (items tokenizados).
+291106210 - Se permite el uso de leafs no-UDB pero no pueden introducir clientes, para evitar desincronizaciones.
+021206211 - Se globaliza el parámetro pass-flood.
+021206212 - Se añade el bloque L.
+021206213 - Se añade la opción de servidores debug.
+021206214 - Se traspasa el sistema de propagador a la opción del bloque L.
+031206215 - Arreglado un fallo al no mandar el EOS a un servidor no-UDB.
+031206216 - Se mejora el motivo de rechazo por diferentes versiones. Aparecen la local y la remota.
+041206217 - Arreglado un fallo en el que no se propagaba el +t/-t a debugs.
+041206218 - Arreglado un fallo en el que no se enviaba el SETHOST a debugs.
+171206219 - Cambiado totalmente el sistema de ficheros de la BDD.
+171206220 - Se elimina la tabla de hashes y los descriptores se dejan abiertos.
+181206221 - Arreglado un fallo al resumir si no había servidor propagador.
+211206222 - Arreglado un fallo al volcar un hash.
+211206223 - Arreglado un fallo al cargar un bloque.
+221206224 - Se añade la opción L_OPT_CNTL para permitir la conexión de clientes en servidores no-UDB leafs que sean ulines.
+221206225 - Documentación actualizada.
+221206226 - Una pequeña optimización para propagar comandos.
+221206227 - *** Unreal 3.2.6 + UDB 3.5 es
+271206228 - Arreglado un cuelgue al hacer un backup.
+080107229 - Optimizada una función para evitar desbordamientos.
+120107230 - Se modifica la función para buscar clientes cuando se inserta un registro especial.
+160207231 - Arreglado un fallo con el modo server-debug, aviso de ReCoRD y Marquitox (#0000237 y #0000239).
+040207232 - Arreglado un cuelgue al hacer ghost, aviso de Mew y ReCoRD (#0000217 y #0000244).
+210307233 - *** Unreal 3.2.6 + UDB 3.5.1 es
+250507234 - Se elimina el CTCP Version al conectar.
+170607235 - Se precisa los mensajes de /dbq si tiene subbloques.
+220607236 - Arreglado un fallo en el que no se enviaba -r cuando se dropaba un canal.
+220607237 - Arreglado un fallo en el que no se borraba un canal cuando se dropaba, aviso de Mew (#0000266).
+140707238 - *** Unreal 3.2.7 + UDB 3.5.2 es
+011207239 - Arreglado un fallo al mostrar el mensaje de contraseña correcta, aviso de Mew (#0000291).
+080308240 - Añadida el subbloque S::GlobalServ para mandar mensajes globales de la forma $*máscara*, sugerencia de Mew (#0000293).
+080308241 - Se sube a la versión UDB 3.5.3
+090408242 - Se añade el subloque S::prefijos para fijar los prefijos de los modos qaohv (#0000296).
+090408243 - Se sube el protocolo a UDB 3.6
+090408244 - Se elimina la opción de poner ~ en los nicks.
+090408245 - Para poder escribir campos en UDB que empiecen por * y no sean numéricos, deben escaparse mediante \*.
+110408246 - Se quita el bloque GlobalServ porque técnicamente es imposible mandar mensajes con otro nick.
+240408247 - Se añade el soporte Base 64 para items UDB. Deben ir precedidos por '=' (necesario para enviar spamfilters con espacio).
+250408248 - Arreglado un fallo grave en el protocolo UDB. Cuando se resume, las líneas no deben parsearse. Sólo guardarlas en el archivo. Cuando se recibe el FDR, se recarga el bloque.
+100508249 - Un arreglo para acelerar la optimización.
+110508250 - Añadido el bloque K para poner *lines permanentes y fijas a nivel de red, sugerencia de MaD (#0000295).
+250508251 - *** Unreal 3.2.7 + UDB 3.6 es
+300508252 - Desago el cambio en los mensajes globales por inconsistencia, aviso de MaD (#0000302).

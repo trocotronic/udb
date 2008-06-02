@@ -81,14 +81,17 @@ static int oper_access[] = {
         OFLAG_HIDE, 'H',
 	OFLAG_TKL, 't',
 	OFLAG_GZL, 'Z',
-	OFLAG_OVERRIDE, 'v', 
+	OFLAG_OVERRIDE, 'v',
+	OFLAG_UMODEQ, 'q',
+	OFLAG_DCCDENY, 'd',
+	OFLAG_ADDLINE, 'X',
         0, 0
 };
 
 ModuleHeader MOD_HEADER(m_svso)
   = {
 	"m_svso",
-	"$Id: m_svso.c,v 1.2 2004-07-04 02:47:37 Trocotronic Exp $",
+	"$Id: m_svso.c,v 1.1.1.1.2.5 2007-03-20 14:50:15 Trocotronic Exp $",
 	"command /svso", 
 	"3.2-b8-1",
 	NULL 
@@ -170,11 +173,11 @@ int m_svso(aClient *cptr, aClient *sptr, int parc, char *parv[])
                         delfrom_fdlist(acptr->slot, &oper_fdlist);
                 acptr->umodes &=
                     ~(UMODE_OPER | UMODE_LOCOP | UMODE_HELPOP |UMODE_SERVICES |
-                    UMODE_SADMIN | UMODE_ADMIN);
+                    UMODE_SADMIN | UMODE_ADMIN | UMODE_COADMIN);
                 acptr->umodes &=
                     ~(UMODE_NETADMIN | UMODE_WHOIS);
                 acptr->umodes &=
-                    ~(UMODE_KIX | UMODE_DEAF | UMODE_HIDEOPER);
+                    ~(UMODE_KIX | UMODE_DEAF | UMODE_HIDEOPER | UMODE_VICTIM);
                 acptr->oflag = 0;
 		remove_oper_snomasks(acptr);
 		RunHook2(HOOKTYPE_LOCAL_OPER, acptr, 0);

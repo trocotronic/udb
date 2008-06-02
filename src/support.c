@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * $Id: support.c,v 1.1.1.11 2007-07-14 13:00:35 Trocotronic Exp $
+ * $Id: support.c,v 1.1.1.1.2.15 2007-06-29 22:39:53 Trocotronic Exp $
  */
 
 #ifndef CLEAN_COMPILE

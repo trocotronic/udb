@@ -140,34 +140,43 @@ unsigned long our_crc32(const unsigned char *s, unsigned int len)
   unsigned long crc32val;
   
   crc32val = 0;
+#ifdef UDB
+	crc32val = 0xffffffffL;
+#endif
   for (i = 0;  i < len;  i ++)
     {
       crc32val =
         crc32_tab[(crc32val ^ s[i]) & 0xff] ^
           (crc32val >> 8);
     }
+#ifdef UDB
+	crc32val ^= 0xffffffffL;
+#endif
   return crc32val;
 }
 
 /* mode = 0, just use strncpyzt, 1 = Realloc new and return new pointer */
-char *make_virthost(char *curr, char *new, int mode)
+char *make_virthost(aClient *sptr, char *curr, char *new, int mode)
 {
 char host[256], *mask, *x, *p, *q;
 
 	if (!curr)
 		return NULL;
 
-	strlcpy(host, curr, sizeof(curr));
-	for (p = curr, q = host; *p; p++, q++)
+	/* Convert host to lowercase and cut off at 255 bytes just to be sure */
+	for (p = curr, q = host; *p && (q < host+sizeof(host)-1); p++, q++)
 		*q =  tolower(*p);
 	*q = '\0';
 
 	/* Call the cloaking layer */
-	mask = RCallbacks[CALLBACKTYPE_CLOAK]->func.pcharfunc(host);
+	if (RCallbacks[CALLBACKTYPE_CLOAK_EX])
+		mask = RCallbacks[CALLBACKTYPE_CLOAK_EX]->func.pcharfunc(sptr, host);
+	else
+		mask = RCallbacks[CALLBACKTYPE_CLOAK]->func.pcharfunc(host);
 
 	if (mode == 0)
 	{
-		strncpyzt(new, mask, HOSTLEN);	/* */
+		strlcpy(new, mask, HOSTLEN + 1);
 		return NULL;
 	}
 	if (new)

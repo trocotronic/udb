@@ -16,7 +16,7 @@
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *   $Id: common.h,v 1.2 2004-07-04 02:47:34 Trocotronic Exp $
+ *   $Id: common.h,v 1.1.1.1.2.16 2005-04-21 17:30:52 Trocotronic Exp $
  */
 
 #ifndef	__common_include__
@@ -96,12 +96,12 @@ void free();
 #define TS time_t
 
 
-extern int match(char *, char *);
+extern int match(const char *, const char *);
 #define mycmp(a,b) \
  ( (toupper(a[0])!=toupper(b[0])) || smycmp((a)+1,(b)+1) )
-extern int smycmp(char *, char *);
+extern int smycmp(const char *, const char *);
 #ifndef GLIBC2_x
-extern int myncmp(char *, char *, int);
+extern int myncmp(const char *, const char *, int);
 #endif
 
 #ifdef NEED_STRTOK
@@ -150,8 +150,9 @@ extern char *strtoken(char **, char *, char *);
 
 extern MODVAR u_char tolowertab[], touppertab[];
 
-#if defined(CHINESE_NICK) || defined(JAPANESE_NICK)
+#if defined(NICK_GB2312) || defined(NICK_GBK) || defined(NICK_GBK_JAP)
 #define USE_LOCALE
+#include <ctype.h>
 #endif
 
 #ifndef USE_LOCALE
@@ -183,6 +184,7 @@ extern MODVAR unsigned char char_atribs[];
 #define DIGIT 16
 #define SPACE 32
 #define ALLOW 64
+#define ALLOWN 128
 
 #ifndef KLINE_TEMP
 #define KLINE_PERM 0
@@ -207,6 +209,7 @@ extern MODVAR unsigned char char_atribs[];
 #define isgraph(c) ((char_atribs[(u_char)(c)]&PRINT) && ((u_char)(c) != 0x32))
 #define ispunct(c) (!(char_atribs[(u_char)(c)]&(CNTRL|ALPHA|DIGIT)))
 #endif
+#define iswseperator(c) (!isalnum(c) && !((u_char)c >= 128))
 
 #ifndef MALLOCD
 #define MyFree free
@@ -248,71 +251,22 @@ extern struct SLink *find_user_link( /* struct SLink *, struct Client * */ );
  #define EXPAR4 ""
 #endif /* EXTCMODE */
 
-#define PROTOCTL_CLIENT_1         \
-		"MAP"             \
-		" KNOCK"          \
-		" SAFELIST"       \
-		" HCN"	          \
-		" MAXCHANNELS=%i" \
-		" MAXBANS=%i"     \
-		" NICKLEN=%i"     \
-		" TOPICLEN=%i"    \
-		" KICKLEN=%i"     \
-		" MAXTARGETS=%i"  \
-		" AWAYLEN=%i"	  \
-		" :se soportan por este servidor"
-#define PROTOCTL_PARAMETERS_1	  \
-		MAXCHANNELSPERUSER, \
-		MAXBANS, \
-		NICKLEN, \
-		TOPICLEN, \
-		TOPICLEN, \
-		MAXTARGETS, \
-		TOPICLEN
-
 #ifdef PREFIX_AQ
 #ifdef UDB
 #define CHPFIX	"(qaohv).&@%+"
 #else
 #define CHPFIX	"(qaohv)~&@%+"
 #endif /* UDB */
-#define CHPAR1	"be"
+#define CHPAR1	"beI"
 #else
 #define CHPFIX	"(ohv)@%+"
-#define CHPAR1	"beqa"
+#define CHPAR1	"beIqa"
 #endif /* PREFIX_AQ */
 
-#define CHPAR2	"kfL"
-#define CHPAR3	"l"
-#define CHPAR4	"psmntirRcOAQKVGCuzNSM"
+#define CHPAR2        "kfL"
+#define CHPAR3        "l"
+#define CHPAR4        "psmntirRcOAQKVCuzNSM"
 
-#define PROTOCTL_CLIENT_2	  \
-		"WALLCHOPS"	  \
-		" WATCH=%i"	  \
-		" SILENCE=%i"	  \
-		" MODES=%i"	  \
-		" CHANTYPES=%s"   \
-		" PREFIX=%s"      \
-		" CHANMODES=%s%s,%s%s,%s%s,%s%s" \
-		" NETWORK=%s" 	  \
-		" CASEMAPPING=%s" \
-		" EXTBAN=~,%s" \
-		" ELIST=MNUCT" \
-		" :se soportan por este servidor"
-
-#define PROTOCTL_PARAMETERS_2	  \
-		MAXWATCH, \
-		SILENCE_LIMIT, \
-		MAXMODEPARAMS, \
-		"#", \
-		CHPFIX, \
-		CHPAR1, EXPAR1, \
-		CHPAR2, EXPAR2, \
-		CHPAR3, EXPAR3, \
-		"psmntirRcOAQKVGCuzNSM", EXPAR4, \
-		ircnet005, \
-		"ascii", \
-		extbanstr
 
 /* Server-Server PROTOCTL -Stskeeps
  * Please check send_proto() for more. -- Syzop
