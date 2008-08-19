@@ -50,16 +50,16 @@
 DLLFUNC CMD_FUNC(m_nick);
 DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost, char *ip);
 
-#define MSG_NICK 	"NICK"	
-#define TOK_NICK 	"&"	
+#define MSG_NICK 	"NICK"
+#define TOK_NICK 	"&"
 
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
 	"$Id: m_nick.c,v 1.1.2.80 2008/04/23 18:44:31 Trocotronic Exp $",
-	"command /nick", 
+	"command /nick",
 	"3.2-b8-1",
-	NULL 
+	NULL
     };
 
 DLLFUNC int MOD_TEST(m_nick)(ModuleInfo *modinfo)
@@ -127,7 +127,7 @@ DLLFUNC CMD_FUNC(m_nick)
 	int val = 0;
 	char *pass, *botname;
 	Udb *reg, *bloq;
-#endif		
+#endif
 	unsigned char newusr = 0, removemoder = 1;
 	/*
 	 * If the user didn't specify a nickname, complain
@@ -154,7 +154,7 @@ DLLFUNC CMD_FUNC(m_nick)
 #endif
 	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
 	{
-		if ((sptr->user->flood.nick_c >= NICK_COUNT) && 
+		if ((sptr->user->flood.nick_c >= NICK_COUNT) &&
 		    (TStime() - sptr->user->flood.nick_t < NICK_PERIOD))
 		{
 			/* Throttle... */
@@ -170,7 +170,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		botname = bloq->data_char;
 	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr) && pases && intervalo)
 	{
-		if ((sptr->user->flood.udb_c >= pases) && 
+		if ((sptr->user->flood.udb_c >= pases) &&
 		    (TStime() - sptr->user->flood.udb_t < intervalo))
 		{
 			sendto_one(sptr, ":%s NOTICE %s :*** Demasiadas contraseñas incorrectas. No puedes utilizar este comando hasta %i segundos.", botname, sptr->name, (int)(intervalo - (TStime() - sptr->user->flood.udb_t)));
@@ -353,7 +353,7 @@ DLLFUNC CMD_FUNC(m_nick)
 				    && !IsServer(sptr) ? sptr->name : "(sin registrar)"),
 				    acptrs ? acptrs->name : "servidor desconocido");
 		}
-		
+
 		if (IsServer(cptr) && IsPerson(sptr) && !ishold) /* remote user changing nick */
 		{
 			sendto_snomask(SNO_QLINE, "Q:line nick %s de %s en %s", nick,
@@ -448,7 +448,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		goto nickkilldone;
 	}
 #ifdef UDB
-	if (!IsServer(sptr) && strchr(parv[1],'!') && acptr != sptr && val > 1) 
+	if (!IsServer(sptr) && strchr(parv[1],'!') && acptr != sptr && val > 1)
 	{
 		char quitbuf[BUFSIZE], who[NICKLEN + 2];
 		if (!IsRegistered(sptr))
@@ -689,24 +689,24 @@ DLLFUNC CMD_FUNC(m_nick)
 					sendto_one(sptr, ":%s NOTICE %s :*** Ha ocurrido un fallo grave (1). Informe de esto en http://www.redyc.com/.", botname, sptr->name, nick);
 				else
 				{
-					sendto_one(sptr, ":%s NOTICE %s :*** Este nick está prohibido", botname, sptr->name);
+					sendto_one(sptr, ":%s NOTICE %s :*** \002ERROR\002: Este nick está prohibido", botname, sptr->name);
 					sendto_one(sptr, ":%s NOTICE %s :*** Motivo: %s", botname, sptr->name, bline->data_char);
 				}
 				return 0;
 			}
 			case -2:
-				sendto_one(sptr, ":%s NOTICE %s :*** Contraseña incorrecta para el nick %s.", botname, sptr->name, nick);
+				sendto_one(sptr, ":%s NOTICE %s :*** \002ERROR\002: Contraseña incorrecta.", botname, sptr->name, nick);
 				if (sptr->user && !IsAnOper(sptr) && pases && intervalo)
 				{
 					if (TStime() - sptr->user->flood.udb_t >= intervalo)
 					{
 						sptr->user->flood.udb_t = TStime();
 						sptr->user->flood.udb_c = 1;
-					} 
+					}
 					else
 					{
 						if (++sptr->user->flood.udb_c >= pases)
-							sendto_one(sptr, ":%s NOTICE %s :*** Demasiadas contraseñas incorrectas. Has sido bloqueado durante %i segundos", me.name, botname, NICK_PERIOD);
+							sendto_one(sptr, ":%s NOTICE %s :*** \002ERROR\002: Demasiadas contraseñas incorrectas. Has sido bloqueado durante %i segundos", me.name, botname, NICK_PERIOD);
 					}
 					sptr->since += 3; /* lo lagueamos */
 				}
@@ -716,7 +716,7 @@ DLLFUNC CMD_FUNC(m_nick)
 				sendto_one(sptr, ":%s NOTICE %s :*** Utiliza \002/NICK %s%cclave\002 para identificarte.", botname, sptr->name, nick, strchr(parv[1], '!') ? '!' : ':');
 				return 0;
 			case -4:
-				sendto_one(sptr, ":%s NOTICE %s :*** No se permite el uso de este nick desde su ip.", botname, sptr->name);
+				sendto_one(sptr, ":%s NOTICE %s :*** \002ERROR\002: No se permite el uso de este nick desde su ip.", botname, sptr->name);
 				return 0;
 		}
 	}
@@ -930,7 +930,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			{
 				do_chanflood_action(chptr, FLD_NICK, "nick");
 			}
-		}	
+		}
 	}
 #endif
 #ifdef UDB
@@ -959,7 +959,7 @@ DLLFUNC CMD_FUNC(m_nick)
 		DaleCosas(val, sptr, reg, NULL);
 	if (IsHidden(sptr))
 		sptr->user->virthost = MakeVirtualHost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
-#endif	
+#endif
 	if (newusr && !MyClient(sptr) && IsPerson(sptr))
 	{
 		RunHook(HOOKTYPE_REMOTE_CONNECT, sptr);
@@ -1028,7 +1028,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	parv[1] = parv[2] = NULL;
 	nick = sptr->name; /* <- The data is always the same, but the pointer is sometimes not,
 	                    *    I need this for one of my modules, so do not remove! ;) -- Syzop */
-	
+
 	if (MyConnect(sptr))
 	{
 		if ((i = check_client(sptr, username))) {
@@ -1053,7 +1053,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		{
 			/* reject ascci < 32 and ascii >= 127 (note: upper resolver might be even more strict) */
 			for (tmpstr = sptr->sockhost; *tmpstr > ' ' && *tmpstr < 127; tmpstr++);
-			
+
 			/* if host contained invalid ASCII _OR_ the DNS reply is an IP-like reply
 			 * (like: 1.2.3.4), then reject it and use IP instead.
 			 */
@@ -1075,9 +1075,9 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		 *
 		 * Moved the noident stuff here. -OnyxDragon
 		 */
-		if (!(sptr->flags & FLAGS_DOID)) 
+		if (!(sptr->flags & FLAGS_DOID))
 			strncpyzt(user->username, username, USERLEN + 1);
-		else if (sptr->flags & FLAGS_GOTID) 
+		else if (sptr->flags & FLAGS_GOTID)
 			strncpyzt(user->username, sptr->username, USERLEN + 1);
 		else
 		{
@@ -1108,7 +1108,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		 *
 		 * Moved the noident thing to the right place - see above
 		 * -OnyxDragon
-		 * 
+		 *
 		 * No longer use nickname if the entire ident is invalid,
                  * if thats the case, it is likely the user is trying to cause
 		 * problems so just ban them. (Using the nick could introduce
@@ -1216,7 +1216,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	make_virthost(sptr, user->realhost, user->cloakedhost, 0);
 	user->virthost = strdup(user->cloakedhost);
 
-#endif	 	    
+#endif
 	if (MyConnect(sptr))
 	{
 		IRCstats.unknown--;
