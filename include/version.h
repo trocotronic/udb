@@ -53,7 +53,7 @@
 #define PATCH2  		".2"
 #define PATCH3  		".7"
 #ifdef UDB
-#define PATCH4 			"+UDB-3.6es"
+#define PATCH4 			"+UDB-3.6.1"
 #else
 #define PATCH4  		""
 #endif

@@ -16,7 +16,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- * 
+ *
  *   $Id: struct.h,v 1.1.1.1.2.50 2008/03/08 14:13:35 Trocotronic Exp $
  */
 
@@ -34,7 +34,7 @@
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <openssl/err.h>    
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/md5.h>
@@ -63,7 +63,7 @@
 #ifdef ZIP_LINKS
 #include "zip.h"
 #endif
-#include "auth.h" 
+#include "auth.h"
 #ifndef _WIN32
 #include "tre/regex.h"
 #else
@@ -941,7 +941,7 @@ typedef struct {
 #define LISTENER_BOUND		0x000080
 
 #define CONNECT_SSL		0x000001
-#define CONNECT_ZIP		0x000002 
+#define CONNECT_ZIP		0x000002
 #define CONNECT_AUTO		0x000004
 #define CONNECT_QUARANTINE	0x000008
 #define CONNECT_NODNSCACHE	0x000010
@@ -1040,7 +1040,7 @@ struct Client {
 */
 
 /* Config flags */
- 
+
 struct _configfile
 {
         char            *cf_filename;
@@ -1056,7 +1056,7 @@ struct _configentry
         ConfigEntry     *ce_entries, *ce_prevlevel, *ce_next;
 };
 
-struct _configflag 
+struct _configflag
 {
 	unsigned	temporary : 1;
 	unsigned	permanent : 1;
@@ -1130,7 +1130,7 @@ struct _configitem_me {
 struct _configitem_admin {
 	ConfigItem *prev, *next;
 	ConfigFlag flag;
-	char	   *line; 
+	char	   *line;
 };
 
 #define CLASS_OPT_NOFAKELAG		0x1
@@ -1157,7 +1157,7 @@ struct _configitem_allow {
 	ConfigItem			*prev, *next;
 	ConfigFlag			flag;
 	char				*ip, *hostname, *server;
-	anAuthStruct		*auth;	
+	anAuthStruct		*auth;
 	unsigned short		maxperip;
 	int					port;
 	ConfigItem_class	*class;
@@ -1365,7 +1365,7 @@ struct _configitem_unknown_ext {
 };
 
 
-typedef enum { 
+typedef enum {
 	ALIAS_SERVICES=1, ALIAS_STATS, ALIAS_NORMAL, ALIAS_COMMAND, ALIAS_CHANNEL, ALIAS_REAL
 } AliasType;
 
@@ -1391,7 +1391,7 @@ struct _configitem_alias_format {
 #define INCLUDE_REMOTE     0x2
 #define INCLUDE_DLQUEUED   0x4
 #define INCLUDE_USED       0x8
-	
+
 struct _configitem_include {
 	ConfigItem *prev, *next;
 	ConfigFlag_ban flag;
@@ -1581,7 +1581,7 @@ struct SMembershipL
 	struct SMembership 	*next;
 	struct Channel		*chptr;
 	int			flags;
-	aFloodOpt		flood;		
+	aFloodOpt		flood;
 };
 
 struct SMembership

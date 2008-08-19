@@ -266,3 +266,6 @@
 250508251 - *** Unreal 3.2.7 + UDB 3.6 es
 300508252 - Desago el cambio en los mensajes globales por inconsistencia, aviso de MaD (#0000302).
 020508253 - Entrada para el synch del SVN.
+190808254 - Se cambian ligeramente los mensajes de nick con contraseña.
+190808255 - Se sube a UDB 3.6.1
+190808256 - Se elimina el sufijo "es" de la versión.

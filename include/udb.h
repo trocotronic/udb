@@ -37,7 +37,7 @@
 #define DB_DIR "database/"
 #define DB_DIR_BCK DB_DIR "backup/"
 #endif
-#define UDB_VER "UDB3.6"
+#define UDB_VER "UDB3.6.1"
 typedef struct _udb Udb;
 typedef struct _bloque UDBloq;
 struct _udb
