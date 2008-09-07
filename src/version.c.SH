@@ -43,7 +43,7 @@ cat >version.c <<!SUB!THIS!
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- * 
+ *
  *   $Id: version.c.SH,v 1.1.1.1.2.28 2007/06/29 22:39:51 Trocotronic Exp $
  */
 
@@ -64,7 +64,7 @@ char *buildid = "$id";
 char *udbid = "$udbid";
 #endif
 /* moved to s_serv.c */
-char *infotext[] = 
+char *infotext[] =
 { 0 };
 
 char *unrealcredits[] =
@@ -98,7 +98,7 @@ char *unrealcredits[] =
 	"FrostByghte - irc.coldfront.net, SdgNem - irc.RealmOfGaming.net,",
 	"MagicalTux - irc.FF.st, irc.P2Pchat.net, Ganja51 - irc.lcirc.net,",
 	"^White_Magic^ - irc.chatuniverse.net, Nick - irc.plasmachat.net,",
-	"Matridom - www.WinDrivers.com, anaconda - irc.lightmoon.org,", 
+	"Matridom - www.WinDrivers.com, anaconda - irc.lightmoon.org,",
 	"mnslinky - http://www.secure-computing.net, Justin Furnas,",
 	"Andy Hansis - irc.technerd.net, Crimson - www.n00bstories.com",
 	"Devin Reams, Cleggo - irc.ugcentral.net, Tillo - irc.OSirc.net,",
@@ -151,14 +151,14 @@ char *unrealcredits[] =
 	"support through the years. See the page for a more extensive",
 	"list of all the coders' credits. ",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-",
-	"This IRCd is dedicated to those who have kept us rocking and", 
+	"This IRCd is dedicated to those who have kept us rocking and",
 	"in good mood all through the years we've struggled with this",
 	"project. Unreal3.0 and up is dedicated to Morrigan.",
 	0
-}; 
+};
 
 
-char unreallogo[] = 
+char unreallogo[] =
 {
 32,95,32,32,32,95,32,32,32,32,32,
 32,32,32,32,32,32,32,32,32,32,32,
@@ -211,7 +211,7 @@ char *dalinfotext[] =
 	"GZ                                    gz@starchat.net",
 	"binary                                ",
 	"Dianora      Diane Bruce",
-	"lucas", 
+	"lucas",
 	"Roar Thronaas <roart@nvg.ntnu.no> added IPv6 support.",
 	"",
 	"",
