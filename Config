@@ -3,7 +3,7 @@
 # Config script for UnrealIRCd
 # (C) 2001 The UnrealIRCd Team
 #
-# This configure script is free software; the UnrealIRCd Team gives 
+# This configure script is free software; the UnrealIRCd Team gives
 # unlimited permission to copy, distribute and modify as long as the
 # copyright headers stay intact
 #
@@ -434,7 +434,7 @@ echo $n "[$TEST] -> $c"
     read cc
 if [ -z "$cc" ] ; then
     SPATH=$TEST
-else 
+else
     SPATH=`eval echo $cc` # modified
 fi
 
@@ -542,7 +542,7 @@ echo $n "[$TEST] -> $c"
     read cc
 if [ -z "$cc" ] ; then
     SSLDIR="$TEST"
-else 
+else
     SSLDIR=`eval echo $cc` # modified
 fi
 fi
@@ -614,7 +614,7 @@ echo $n "[$TEST] -> $c"
     read cc
 if [ -z "$cc" ] ; then
     ZIPLINKSDIR="$TEST"
-else 
+else
     ZIPLINKSDIR=`eval echo $cc` # modified
 fi
 fi
