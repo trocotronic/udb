@@ -15,7 +15,7 @@
 #*   You should have received a copy of the GNU General Public License
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#*   
+#*
 #*   $Id: Makefile,v 1.1.1.1.2.11 2008/04/23 18:44:32 Trocotronic Exp $
 #*/
 
@@ -228,7 +228,7 @@ s_serv.o: s_serv.c $(INCLUDES)
 
 s_numeric.o: s_numeric.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c s_numeric.c
-	
+
 #UDB
 tea.o: tea.c $(INCLUDES)
 	$(CC) $(CFLAGS) -c tea.c
