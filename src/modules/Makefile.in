@@ -15,7 +15,7 @@
 #*   You should have received a copy of the GNU General Public License
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#*   
+#*
 #*   $Id: Makefile.in,v 1.1.1.1.2.25 2007/11/09 19:41:47 Trocotronic Exp $
 #*/
 # major edit from fez - to compile objects individually...
@@ -88,7 +88,7 @@ build: $(MODULES)
 
 custommodule: $(MODULEFILE).c
 	$(CC) $(CFLAGS) $(MODULEFLAGS) $(EXLIBS) -DDYNAMIC_LINKING \
-		-o $(MODULEFILE).so $(MODULEFILE).c		
+		-o $(MODULEFILE).so $(MODULEFILE).c
 
 commands.so: l_commands.c $(COMMANDS) $(INCLUDES)
 	$(CC) $(CFLAGS) $(MODULEFLAGS) -o commands.so l_commands.c \

@@ -15,7 +15,7 @@
 #*   You should have received a copy of the GNU General Public License
 #*   along with this program; if not, write to the Free Software
 #*   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#*  
+#*
 #*   $Id: Makefile.in,v 1.1.1.1.2.7 2006/06/09 19:02:25 Trocotronic Exp $
 #*/
 
@@ -57,7 +57,7 @@ XCFLAGS=-I@TREINCDIR@ -I@CARESINCDIR@ @CARESLIBDIR@ @CFLAGS@
 # Dynix/ptx V2.0.x
 #CFLAGS= -I$(INCLUDEDIR) -O -Xo
 #IRCDLIBS= -lsocket -linet -lnsl -lseq
-# 
+#
 # Dynix/ptx V1.x.x
 #IRCDLIBS= -lsocket -linet -lnsl -lseq
 #
@@ -86,7 +86,7 @@ XCFLAGS=-I@TREINCDIR@ -I@CARESINCDIR@ @CARESLIBDIR@ @CFLAGS@
 # The 4 at the front is important (allows for setuidness)
 #
 # WARNING: if you are making ircd SUID or SGID, check config.h to make sure
-#          you are not defining CMDLINE_CONFIG 
+#          you are not defining CMDLINE_CONFIG
 IRCDMODE = 711
 
 # [CHANGEME]
@@ -157,9 +157,9 @@ build:
 	@echo '| make a donation, please read the Donation file in|'
 	@echo '| this archive. :)                                 |'
 	@echo '|                                                  |'
-	@echo '| Thanks for using Unreal IRCd! If you are in need |' 
+	@echo '| Thanks for using Unreal IRCd! If you are in need |'
 	@echo '| for any kind of help regarding the IRCd please   |'
-	@echo '| read the Unreal.nfo file.                        |' 
+	@echo '| read the Unreal.nfo file.                        |'
 	@echo '|__________________________________________________|'
 
 clean:

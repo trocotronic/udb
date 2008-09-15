@@ -301,7 +301,7 @@ done
 echo checking for working alloca.h
 cat > conftest.c <<EOF
 #include <alloca.h>
-main() { exit(0); } 
+main() { exit(0); }
 t() { char *p = alloca(2 * sizeof(int)); }
 EOF
 if eval $compile; then
@@ -326,7 +326,7 @@ char *alloca ();
 echo checking for alloca
 cat > conftest.c <<EOF
 $decl
-main() { exit(0); } 
+main() { exit(0); }
 t() { char *p = (char *) alloca(1); }
 EOF
 if eval $compile; then
@@ -355,7 +355,7 @@ p2 = (char const* const*) p;'
 echo checking for working const
 cat > conftest.c <<EOF
 
-main() { exit(0); } 
+main() { exit(0); }
 t() { $prog }
 EOF
 if eval $compile; then

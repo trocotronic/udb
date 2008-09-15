@@ -72,7 +72,7 @@ AC_DEFUN(CHECK_LIBCURL,
 			fi
 			CURLLIBS="$XCURLLIBS"
 		fi
-		
+
 		IRCDLIBS="$IRCDLIBS $CURLLIBS"
 		CFLAGS="$CFLAGS $CURLCFLAG -DUSE_LIBCURL"
 		URL="url.o"
@@ -80,13 +80,13 @@ AC_DEFUN(CHECK_LIBCURL,
 	])
 ])
 
-dnl the following 2 macros are based on CHECK_SSL by Mark Ethan Trostler <trostler@juniper.net> 
+dnl the following 2 macros are based on CHECK_SSL by Mark Ethan Trostler <trostler@juniper.net>
 
 AC_DEFUN([CHECK_SSL],
 [
 AC_ARG_ENABLE(ssl,
 [AC_HELP_STRING([--enable-ssl=],[enable ssl will check /usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr])],
-[ 
+[
 AC_MSG_CHECKING(for openssl)
     for dir in $enableval /usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr; do
         ssldir="$dir"
@@ -134,7 +134,7 @@ AC_DEFUN([CHECK_ZLIB],
 [
 AC_ARG_ENABLE(ziplinks,
 [AC_HELP_STRING([--enable-ziplinks],[enable ziplinks will check /usr/local /usr /usr/pkg])],
-[ 
+[
 AC_MSG_CHECKING(for zlib)
     for dir in $enableval /usr/local /usr /usr/pkg; do
         zlibdir="$dir"
@@ -165,7 +165,7 @@ AC_MSG_CHECKING(for zlib)
         IRCDLIBS="$IRCDLIBS -lz";
 	if test "$zlibdir" != "/usr" ; then
              LDFLAGS="$LDFLAGS -L$zlibdir/lib";
-	fi 
+	fi
         HAVE_ZLIB=yes
     fi
     AC_SUBST(HAVE_ZLIB)
