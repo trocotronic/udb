@@ -1850,7 +1850,7 @@ CMD_FUNC(m_db)
 		return 0;
 	if (parc < 5)
 	{
-		sendto_one(cptr, ":%s DB %s ERR 0 %i", me.name, sptr->name, E_UDB_PARAMS);
+		sendto_one(cptr, ":%s DB %s ERR 0 %i 0", me.name, sptr->name, E_UDB_PARAMS);
 		return 1;
 	}
 	mascara = (strchr(parv[1], '?') || strchr(parv[1], '*')) ? 1 : 0;
@@ -1958,7 +1958,7 @@ CMD_FUNC(m_db)
 	{
 		if (!strcmp(cptr->name, parv[0]) && !cptr->serv->conf->hubmask) /* el nodo emisor no es hub, paramos */
 		{
-			sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_NOHUB);
+			sendto_one(cptr, ":%s DB %s ERR INS %i %c", me.name, sptr->name, E_UDB_NOHUB, *parv[4]);
 			return 0;
 		}
 		if (!match(parv[1], me.name))
@@ -1968,7 +1968,7 @@ CMD_FUNC(m_db)
 			UDBloq *bloq;
 			if (parc < 6)
 			{
-				sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_PARAMS);
+				sendto_one(cptr, ":%s DB %s ERR INS %i %c", me.name, sptr->name, E_UDB_PARAMS, *r);
 				return 1;
 			}
 			if (!(bloq = CogeDeId(*r)))
@@ -2017,7 +2017,7 @@ CMD_FUNC(m_db)
 			{
 				if (ParseaLinea(bloq, buf, 1))
 				{
-					sendto_one(cptr, ":%s DB %s ERR INS %i", me.name, sptr->name, E_UDB_REP);
+					sendto_one(cptr, ":%s DB %s ERR INS %i %c", me.name, sptr->name, E_UDB_REP, *parv[4]);
 					return 1;
 				}
 			}
@@ -2036,7 +2036,7 @@ CMD_FUNC(m_db)
 	{
 		if (!strcmp(cptr->name, parv[0]) && !cptr->serv->conf->hubmask)
 		{
-			sendto_one(cptr, ":%s DB %s ERR DEL %i", me.name, sptr->name, E_UDB_NOHUB);
+			sendto_one(cptr, ":%s DB %s ERR DEL %i %c", me.name, sptr->name, E_UDB_NOHUB, *parv[4]);
 			return 0;
 		}
 		if (!match(parv[1], me.name))
@@ -2085,7 +2085,7 @@ CMD_FUNC(m_db)
 			{
 				if (ParseaLinea(bloq, r, 1))
 				{
-					sendto_one(cptr, ":%s DB %s ERR DEL %i", me.name, sptr->name, E_UDB_REP);
+					sendto_one(cptr, ":%s DB %s ERR DEL %i %c", me.name, sptr->name, E_UDB_REP, *parv[4]);
 					return 1;
 				}
 			}
@@ -2104,7 +2104,7 @@ CMD_FUNC(m_db)
 	{
 		if (!strcmp(cptr->name, parv[0]) && !cptr->serv->conf->hubmask)
 		{
-			sendto_one(cptr, ":%s DB %s ERR DRP %i", me.name, sptr->name, E_UDB_NOHUB);
+			sendto_one(cptr, ":%s DB %s ERR DRP %i %c", me.name, sptr->name, E_UDB_NOHUB, *parv[3]);
 			return 0;
 		}
 		if (!match(parv[1], me.name))
@@ -2171,7 +2171,7 @@ CMD_FUNC(m_db)
 		UDBloq *bloq;
 		if (!strcmp(cptr->name, parv[0]) && !cptr->serv->conf->hubmask)
 		{
-			sendto_one(cptr, ":%s DB %s ERR OPT %i", me.name, sptr->name, E_UDB_NOHUB);
+			sendto_one(cptr, ":%s DB %s ERR OPT %i %c", me.name, sptr->name, E_UDB_NOHUB, *parv[3]);
 			return 0;
 		}
 		if (!(bloq = CogeDeId(*parv[3])))

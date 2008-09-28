@@ -269,3 +269,4 @@
 190808254 - Se cambian ligeramente los mensajes de nick con contraseña.
 190808255 - Se sube a UDB 3.6.1
 190808256 - Se elimina el sufijo "es" de la versión.
+280808257 - Arreglado un cuelgue potencial al enviar datos erróneos.
