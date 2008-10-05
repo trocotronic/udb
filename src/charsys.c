@@ -148,11 +148,7 @@ static int do_nick_name_standard(char *nick);
  * [CHANGING THIS WILL CAUSE SECURITY/SYNCH PROBLEMS AND WILL
  *  VIOLATE YOUR ""RIGHT"" ON SUPPORT IMMEDIATELY]
  */
-#ifdef UDB
-const char *illegalnickchars = "\xA0+%@&~#$'\"?*,.";
-#else
 const char *illegalnickchars = "\xA0!+%@&~#$:'\"?*,.";
-#endif
 
 /** Called on boot and just before config run */
 void charsys_reset(void)
@@ -170,11 +166,7 @@ MBList *m, *m_next;
 	}
 	mblist=mblist_tail=NULL;
 	/* Then add the default which will always be allowed */
-#ifdef UDB
-	charsys_addallowed("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzy{|}:!");
-#else
 	charsys_addallowed("0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyzy{|}");
-#endif
 	langav = 0;
 	langsinuse[0] = '\0';
 #ifdef DEBUGMODE
@@ -228,7 +220,7 @@ ILangList *e, *e_next;
 		if (e->next)
 			strlcat(langsinuse, ",", sizeof(langsinuse));
 	}
-	
+
 	/* Free everything */
 	for (e=ilanglist; e; e=e_next)
 	{
@@ -508,7 +500,7 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 		w1251 = 1;
 	else if (!strcmp(name, "chinese") || !strcmp(name, "gbk"))
 		chinese = 1;
-	
+
 	/* INDIVIDUAL CHARSETS */
 
 	/* [LATIN1] */
@@ -567,7 +559,7 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 	if (latin1 || !strcmp(name, "swedish"))
 	{
 		/* supplied by Tank */
-		/* ao, Ao, a", A", o", O" */ 
+		/* ao, Ao, a", A", o", O" */
 		charsys_addallowed("Â≈‰ƒˆ÷");
 	}
 	if (latin1 || !strcmp(name, "icelandic"))
@@ -591,7 +583,7 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 		/* 'S,' 's,' 'A^' 'A<' 'I^' 'T,' 'a^' 'a<' 'i^' 't,' */
 		charsys_addallowed("™∫¬√Œﬁ‚„Ó˛");
 	}
-	
+
 	if (latin2 || !strcmp(name, "polish"))
 	{
 		/* supplied by k4be */
@@ -623,7 +615,7 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 		 */
 		charsys_addallowed("¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ®∏");
 	}
-	
+
 	if (w1251 || !strcmp(name, "belarussian-w1251"))
 	{
 		/* supplied by Bock (Samets Anton) & ss:
@@ -631,8 +623,8 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 		 * Corrected 01.11.2006 to more "correct" behavior by Bock
 		 */
 		charsys_addallowed("¿¡¬√ƒ≈®∆«≤… ÀÃÕŒœ–—“”°‘’÷◊ÿ€‹›ﬁﬂ‡·‚„‰Â∏ÊÁ≥ÈÍÎÏÌÓÔÒÚÛ¢Ùıˆ˜¯˚¸˝˛ˇ");
-	}	
-	
+	}
+
 	if (w1251 || !strcmp(name, "ukrainian-w1251"))
 	{
 		/* supplied by Anton Samets & ss:
@@ -640,9 +632,9 @@ char latin1=0, latin2=0, w1250=0, w1251=0, chinese=0;
 		 * Corrected 01.11.2006 to more "correct" behavior by core
 		 */
 		charsys_addallowed("¿¡¬√•ƒ≈™∆«»≤Ø… ÀÃÕŒœ–—“”‘’÷◊ÿŸ‹ﬁﬂ‡·‚„¥‰Â∫ÊÁË≥øÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘¸˛ˇ");
-	}	
+	}
 
-	/* [GREEK] */	
+	/* [GREEK] */
 	if (!strcmp(name, "greek"))
 	{
 		/* supplied by GSF */

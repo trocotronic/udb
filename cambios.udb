@@ -270,3 +270,4 @@
 190808255 - Se sube a UDB 3.6.1
 190808256 - Se elimina el sufijo "es" de la versión.
 280808257 - Arreglado un cuelgue potencial al enviar datos erróneos.
+051008258 - Se permite el uso de caracteres no alfanuméricos en las contraseñas de los nicks.

@@ -151,6 +151,17 @@ DLLFUNC CMD_FUNC(m_nick)
 			return 0;
 		}
 	}
+	/* debido al charsys ahora tenemos que quitar toda la paja de los : o ! */
+	if ((pass = strchr(nick, '!')))
+		*pass = '\0';
+	if ((pass = strchr(nick, ':')))
+		*pass = '\0';
+	if (BadPtr(nick))
+	{
+		sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME),
+		    me.name, parv[0], parv[1], "Caracteres inválidos");
+		return 0;
+	}
 #endif
 	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
 	{
@@ -229,17 +240,6 @@ DLLFUNC CMD_FUNC(m_nick)
 		return 0;
 	}
 #ifdef UDB
-	/* debido al charsys ahora tenemos que quitar toda la paja de los : o ! */
-	if ((pass = strchr(nick, '!')))
-		*pass = '\0';
-	if ((pass = strchr(nick, ':')))
-		*pass = '\0';
-	if (BadPtr(nick))
-	{
-		sendto_one(sptr, err_str(ERR_ERRONEUSNICKNAME),
-		    me.name, parv[0], parv[1], "Caracteres inválidos");
-		return 0;
-	}
 	reg = BuscaBloque(nick, UDB_NICKS);
 	if (!IsServer(cptr))
 	{
