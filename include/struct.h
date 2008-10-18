@@ -363,6 +363,7 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define PROTO_CLK		0x8000	/* Send cloaked host in the NICK command (regardless of +x/-x) */
 #ifdef UDB
 #define PROTO_UDB       0x10000 /* soporta UDB */
+#define PROTO_NAMESRFC  0x20000
 #endif
 
 /*
@@ -527,7 +528,8 @@ typedef unsigned int u_int32_t;	/* XXX Hope this works! */
 #define DontSendQuit(x)		(CHECKPROTO(x, PROTO_NOQUIT))
 #define IsToken(x)		(CHECKPROTO(x, PROTO_TOKEN))
 #ifdef UDB
-#define IsUDB(x)		((x)->proto & PROTO_UDB)
+#define IsUDB(x)		(CHECKPROTO(x, PROTO_UDB))
+#define SupportNAMESRFC(x)	(CHECKPROTO(x, PROTO_NAMESRFC))
 #endif
 #define SupportSJOIN(x)		(CHECKPROTO(x, PROTO_SJOIN))
 #define SupportNICKv2(x)	(CHECKPROTO(x, PROTO_NICKv2))

@@ -56,9 +56,9 @@ ModuleHeader MOD_HEADER(m_names)
   = {
 	"m_names",
 	"$Id: m_names.c,v 1.1.2.1 2006/02/26 13:29:21 syzop Exp $",
-	"command /names", 
+	"command /names",
 	"3.2-b8-1",
-	NULL 
+	NULL
     };
 
 DLLFUNC int MOD_INIT(m_names)(ModuleInfo *modinfo)
@@ -173,7 +173,16 @@ DLLFUNC CMD_FUNC(m_names)
 				    flags & (CHFL_CHANOP | CHFL_CHANPROT |
 				    CHFL_CHANOWNER)) && acptr != sptr)
 					continue;
-
+#ifdef UDB
+		if (SupportNAMESRFC(sptr))
+		{
+			if (cm->flags & CHFL_CHANOP)
+				buf[idx++] = '@';
+			else if (cm->flags & CHFL_VOICE)
+				buf[idx++] = '+';
+		}
+		else
+#endif
 		if (!SupportNAMESX(sptr))
 		{
 			/* Standard NAMES reply */
@@ -205,7 +214,7 @@ DLLFUNC CMD_FUNC(m_names)
 				buf[idx++] = PF_HALF;
 			if (cm->flags & CHFL_VOICE)
 				buf[idx++] = PF_VOICE;
-#else
+#else //UDB
 #ifdef PREFIX_AQ
 			if (cm->flags & CHFL_CHANOWNER)
 				buf[idx++] = '~';
@@ -233,7 +242,7 @@ DLLFUNC CMD_FUNC(m_names)
 				buf[idx++] = '%';
 			if (cm->flags & CHFL_VOICE)
 				buf[idx++] = '+';
-#endif
+#endif //UDB
 		}
 		for (s = acptr->name; *s; s++)
 			buf[idx++] = *s;

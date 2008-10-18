@@ -49,16 +49,16 @@
 
 DLLFUNC int m_protoctl(aClient *cptr, aClient *sptr, int parc, char *parv[]);
 
-#define MSG_PROTOCTL 	"PROTOCTL"	
-#define TOK_PROTOCTL 	"_"	
+#define MSG_PROTOCTL 	"PROTOCTL"
+#define TOK_PROTOCTL 	"_"
 
 ModuleHeader MOD_HEADER(m_protoctl)
   = {
 	"m_protoctl",
 	"$Id: m_protoctl.c,v 1.1.2.25 2008/04/23 18:44:31 Trocotronic Exp $",
-	"command /protoctl", 
+	"command /protoctl",
 	"3.2-b8-1",
-	NULL 
+	NULL
     };
 
 DLLFUNC int MOD_INIT(m_protoctl)(ModuleInfo *modinfo)
@@ -382,6 +382,11 @@ CMD_FUNC(m_protoctl)
 				ircsprintf(buf, "ERROR: Versión UDB incorrecta (%s <=> %s)", s, UDB_VER);
 				return exit_client(cptr, sptr, &me, buf);
 			}
+		}
+		else if (strcmp(s, "NAMESRFC") == 0)
+		{
+			Debug((DEBUG_ERROR, "Chose protocol %s for link %s", proto, cptr->name));
+			cptr->proto |= PROTO_NAMESRFC;
 		}
 #endif
 	}

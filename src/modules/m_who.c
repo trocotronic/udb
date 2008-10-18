@@ -65,7 +65,7 @@ ModuleHeader MOD_HEADER(m_who)
 	"$Id: m_who.c,v 1.1.1.1.2.11 2008/04/23 18:44:31 Trocotronic Exp $", /* Version */
 	"command /who", /* Short description of module */
 	"3.2-b8-1",
-	NULL 
+	NULL
     };
 
 /* This is called on module init, before Server Ready */
@@ -191,7 +191,7 @@ int i = 0;
 		return 0;
 	}
 
-	if (wfl.channel && wfl.want_channel == WHO_WANT && 
+	if (wfl.channel && wfl.want_channel == WHO_WANT &&
 	    (target_channel = find_channel(wfl.channel, NULL)) != NULL)
 	{
 		do_channel_who(sptr, target_channel, mask);
@@ -389,7 +389,7 @@ int i = 1;
 					break;
 				if (what == WHO_ADD)
 					who_flags |= WF_IP;
-				
+
 				else
 					who_flags &= ~WF_IP;
 				break;
@@ -565,7 +565,7 @@ char has_common_chan = 0;
 
 			if (IsInvisible(acptr) && !has_common_chan)
 			{
-				/* don't show them unless it's an exact match 
+				/* don't show them unless it's an exact match
 				   or it is the user requesting the /who */
 				if ((who_flags & WF_WILDCARD) && sptr != acptr)
 					break;
@@ -607,7 +607,7 @@ static void do_channel_who(aClient *sptr, aChannel *channel, char *mask)
     }
 }
 
-static void make_who_status(aClient *sptr, aClient *acptr, aChannel *channel, 
+static void make_who_status(aClient *sptr, aClient *acptr, aChannel *channel,
 			    Member *cm, char *status, int cansee)
 {
 int i = 0;
@@ -634,7 +634,7 @@ int i = 0;
 	if (IsAnOper(acptr) && (IsHideOper(acptr) && sptr != acptr && IsAnOper(sptr)))
 #endif
 		status[i++] = '!';
-  
+
 	if (cansee & WHO_OPERSEE)
 		status[i++] = '?';
 
@@ -686,7 +686,7 @@ int oper = IsAnOper(sptr);
                     sptr->name, "/WHO");
 		return;
 	}
-#endif		
+#endif
 	if (strchr(mask, '*') || strchr(mask, '?'))
 	{
 		int i = 0;
@@ -756,7 +756,7 @@ matchok:
 	}
 }
 
-static void send_who_reply(aClient *sptr, aClient *acptr, 
+static void send_who_reply(aClient *sptr, aClient *acptr,
 			   char *channel, char *status, char *xstat)
 {
 	char *stat;
@@ -771,14 +771,14 @@ static void send_who_reply(aClient *sptr, aClient *acptr,
 		if (who_flags & WF_REALHOST)
 			host = acptr->user->realhost;
 		else if (who_flags & WF_IP)
-			host = (acptr->user->ip_str ? acptr->user->ip_str : 
+			host = (acptr->user->ip_str ? acptr->user->ip_str :
 			        acptr->user->realhost);
 		else
 			host = GetHost(acptr);
 	}
 	else
 		host = GetHost(acptr);
-					
+
 
 	if (IsULine(acptr) && !IsOper(sptr) && HIDE_ULINES)
 	        sendto_one(sptr, getreply(RPL_WHOREPLY), me.name, sptr->name,
@@ -793,14 +793,14 @@ static void send_who_reply(aClient *sptr, aClient *acptr,
              	);
 
 	else
-		sendto_one(sptr, getreply(RPL_WHOREPLY), me.name, sptr->name,      
+		sendto_one(sptr, getreply(RPL_WHOREPLY), me.name, sptr->name,
 		     channel,       /* channel name */
 		     acptr->user->username,      /* user name */
 		     host,		         /* hostname */
 		     acptr->user->server,        /* server name */
 		     acptr->name,                /* nick */
 		     stat,                       /* status */
-		     flat ? 0 : acptr->hopcount, /* hops */ 
+		     flat ? 0 : acptr->hopcount, /* hops */
 		     acptr->info                 /* realname */
 		     );
 	free(stat);
