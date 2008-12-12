@@ -614,7 +614,7 @@ void RegeneraClaves()
 }*/
 void DaleVhost(aClient *sptr)
 {
-	if (!IsARegNick(sptr))
+	if (!IsARegNick(sptr) || !sptr->user)
 		return;
 	sptr->user->virthost = MakeVirtualHost(sptr, sptr->user->realhost, sptr->user->virthost, 1);
 }

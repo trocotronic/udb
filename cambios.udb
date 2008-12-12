@@ -272,3 +272,4 @@
 280808257 - Arreglado un cuelgue potencial al enviar datos erróneos.
 051008258 - Se permite el uso de caracteres no alfanuméricos en las contraseñas de los nicks.
 181008259 - Se añade el protocolo NAMESRFC para clientes estándar (webchats).
+121208260 - Arreglado un cuelgue, aviso de MaD (#0000318).
