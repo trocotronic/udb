@@ -50,16 +50,16 @@
 DLLFUNC CMD_FUNC(m_nick);
 DLLFUNC int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, char *umode, char *virthost, char *ip);
 
-#define MSG_NICK 	"NICK"
-#define TOK_NICK 	"&"
+#define MSG_NICK 	"NICK"	
+#define TOK_NICK 	"&"	
 
 ModuleHeader MOD_HEADER(m_nick)
   = {
 	"m_nick",
 	"$Id: m_nick.c,v 1.1.2.80 2008/04/23 18:44:31 Trocotronic Exp $",
-	"command /nick",
+	"command /nick", 
 	"3.2-b8-1",
-	NULL
+	NULL 
     };
 
 DLLFUNC int MOD_TEST(m_nick)(ModuleInfo *modinfo)
@@ -165,7 +165,7 @@ DLLFUNC CMD_FUNC(m_nick)
 #endif
 	if (MyConnect(sptr) && sptr->user && !IsAnOper(sptr))
 	{
-		if ((sptr->user->flood.nick_c >= NICK_COUNT) &&
+		if ((sptr->user->flood.nick_c >= NICK_COUNT) && 
 		    (TStime() - sptr->user->flood.nick_t < NICK_PERIOD))
 		{
 			/* Throttle... */
@@ -930,7 +930,7 @@ DLLFUNC CMD_FUNC(m_nick)
 			{
 				do_chanflood_action(chptr, FLD_NICK, "nick");
 			}
-		}
+		}	
 	}
 #endif
 #ifdef UDB
@@ -1028,7 +1028,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	parv[1] = parv[2] = NULL;
 	nick = sptr->name; /* <- The data is always the same, but the pointer is sometimes not,
 	                    *    I need this for one of my modules, so do not remove! ;) -- Syzop */
-
+	
 	if (MyConnect(sptr))
 	{
 		if ((i = check_client(sptr, username))) {
@@ -1053,7 +1053,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		{
 			/* reject ascci < 32 and ascii >= 127 (note: upper resolver might be even more strict) */
 			for (tmpstr = sptr->sockhost; *tmpstr > ' ' && *tmpstr < 127; tmpstr++);
-
+			
 			/* if host contained invalid ASCII _OR_ the DNS reply is an IP-like reply
 			 * (like: 1.2.3.4), then reject it and use IP instead.
 			 */
@@ -1075,9 +1075,9 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		 *
 		 * Moved the noident stuff here. -OnyxDragon
 		 */
-		if (!(sptr->flags & FLAGS_DOID))
+		if (!(sptr->flags & FLAGS_DOID)) 
 			strncpyzt(user->username, username, USERLEN + 1);
-		else if (sptr->flags & FLAGS_GOTID)
+		else if (sptr->flags & FLAGS_GOTID) 
 			strncpyzt(user->username, sptr->username, USERLEN + 1);
 		else
 		{
@@ -1108,7 +1108,7 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 		 *
 		 * Moved the noident thing to the right place - see above
 		 * -OnyxDragon
-		 *
+		 * 
 		 * No longer use nickname if the entire ident is invalid,
                  * if thats the case, it is likely the user is trying to cause
 		 * problems so just ban them. (Using the nick could introduce
@@ -1366,10 +1366,24 @@ int _register_user(aClient *cptr, aClient *sptr, char *nick, char *username, cha
 	{
 		char userhost[USERLEN + HOSTLEN + 6];
 		if (sptr->passwd && (nsptr = find_person(NickServ, NULL)))
-			sendto_one(nsptr, ":%s %s %s@%s :IDENTIFY %s",
-			    sptr->name,
-			    (IsToken(nsptr->from) ? TOK_PRIVATE : MSG_PRIVATE),
-			    NickServ, SERVICES_NAME, sptr->passwd);
+		{
+			int do_identify = 1;
+			Hook *h;
+			for (h = Hooks[HOOKTYPE_LOCAL_NICKPASS]; h; h = h->next)
+			{
+				i = (*(h->func.intfunc))(sptr,nsptr);
+				if (i == HOOK_DENY)
+				{
+					do_identify = 0;
+					break;
+				}
+			}
+			if (do_identify)
+				sendto_one(nsptr, ":%s %s %s@%s :IDENTIFY %s",
+				    sptr->name,
+				    (IsToken(nsptr->from) ? TOK_PRIVATE : MSG_PRIVATE),
+				    NickServ, SERVICES_NAME, sptr->passwd);
+		}
 		if (buf[0] != '\0' && buf[1] != '\0')
 			sendto_one(cptr, ":%s MODE %s :%s", cptr->name,
 			    cptr->name, buf);

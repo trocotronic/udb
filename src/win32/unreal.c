@@ -1,7 +1,7 @@
 /************************************************************************
  *   IRC - Internet Relay Chat, win32/unreal.c
  *   Copyright (C) 2002 Dominick Meglio (codemastr)
- *   
+ *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation; either version 1, or (at your option)
@@ -29,7 +29,7 @@ UCHANGESERVICECONFIG2 uChangeServiceConfig2;
 void show_usage() {
 	fprintf(stderr, "unreal start|stop|rehash|restart|install|uninstall|config <option> <value>");
 	fprintf(stderr, "\nValid config options:\nstartup auto|manual\n");
-	if (VerInfo.dwMajorVersion == 5) 
+	if (VerInfo.dwMajorVersion == 5)
 		fprintf(stderr, "crashrestart delay\n");
 }
 
@@ -62,14 +62,14 @@ int main(int argc, char *argv[]) {
 		GetModuleFileName(NULL,path,MAX_PATH);
 		if ((bslash = strrchr(path, '\\')))
 			*bslash = 0;
-		
+
 		strcpy(binpath,path);
 		strcat(binpath, "\\wircd.exe");
 		hService = CreateService(hSCManager, "UnrealIRCd", "UnrealIRCd",
 				 SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
 				 SERVICE_AUTO_START, SERVICE_ERROR_NORMAL, binpath,
-				 NULL, NULL, NULL, NULL, NULL); 
-		if (hService) 
+				 NULL, NULL, NULL, NULL, NULL);
+		if (hService)
 		{
 			printf("Servicio UnrealIRCd NT instalado correctamente");
 			if (VerInfo.dwMajorVersion >= 5) {
@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
 	}
 	else if (!stricmp(argv[1], "uninstall")) {
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", DELETE); 
-		if (DeleteService(hService)) 
+		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", DELETE);
+		if (DeleteService(hService))
 			printf("Servicio UnrealIRCd NT desinstalado");
 		else
 			printf("No se puede desinstalar el Servicio UnrealIRCd NT - %s", show_error(GetLastError()));
@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
 	}
 	else if (!stricmp(argv[1], "start")) {
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_START); 
-		if (StartService(hService, 0, NULL)) 
+		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_START);
+		if (StartService(hService, 0, NULL))
 			printf("Servicio UnrealIRCd NT iniciado");
 		else
 			printf("No se puede iniciar el Servicio UnrealIRCd NT - %s", show_error(GetLastError()));
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 	else if (!stricmp(argv[1], "stop")) {
 		SERVICE_STATUS status;
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_STOP); 
+		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_STOP);
 		ControlService(hService, SERVICE_CONTROL_STOP, &status);
 		printf("Servicio UnrealIRCd NT detenido");
 		CloseServiceHandle(hService);
@@ -118,9 +118,9 @@ int main(int argc, char *argv[]) {
 	else if (!stricmp(argv[1], "restart")) {
 		SERVICE_STATUS status;
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_STOP|SERVICE_START); 
+		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_STOP|SERVICE_START);
 		ControlService(hService, SERVICE_CONTROL_STOP, &status);
-		if (StartService(hService, 0, NULL)) 
+		if (StartService(hService, 0, NULL))
 			printf("Servicio UnrealIRCd NT reiniciado");
 		CloseServiceHandle(hService);
 		CloseServiceHandle(hSCManager);
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 	else if (!stricmp(argv[1], "rehash")) {
 		SERVICE_STATUS status;
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_USER_DEFINED_CONTROL); 
+		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd", SERVICE_USER_DEFINED_CONTROL);
 		ControlService(hService, IRCD_SERVICE_CONTROL_REHASH, &status);
 		printf("Servicio UnrealIRCd NT refrescado");
 	}
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
 		SERVICE_STATUS status;
 		SC_HANDLE hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 		SC_HANDLE hService = OpenService(hSCManager, "UnrealIRCd",
-						 SERVICE_CHANGE_CONFIG|SERVICE_START); 
+						 SERVICE_CHANGE_CONFIG|SERVICE_START);
 		if (argc < 3) {
 			show_usage();
 			return -1;
@@ -146,10 +146,10 @@ int main(int argc, char *argv[]) {
 			if (ChangeServiceConfig(hService, SERVICE_NO_CHANGE,
 					    !stricmp(argv[3], "auto") ? SERVICE_AUTO_START
 						: SERVICE_DEMAND_START, SERVICE_NO_CHANGE,
-					    NULL, NULL, NULL, NULL, NULL, NULL, NULL)) 
+					    NULL, NULL, NULL, NULL, NULL, NULL, NULL))
 				printf("Servicio UnrealIRCd NT configuración cambiada");
 			else
-				printf("Servicio UnrealIRCd NT configuración no refrescada - %s", show_error(GetLastError()));	
+				printf("Servicio UnrealIRCd NT configuración no refrescada - %s", show_error(GetLastError()));
 		}
 		else if (!stricmp(argv[2], "crashrestart") && VerInfo.dwMajorVersion == 5) {
 			SERVICE_FAILURE_ACTIONS hFailActions;
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
 				hAction.Type = SC_ACTION_RESTART;
 				hAction.Delay = atoi(argv[3])*60000;
 				hFailActions.lpsaActions = &hAction;
-				if (uChangeServiceConfig2(hService, SERVICE_CONFIG_FAILURE_ACTIONS, 	
+				if (uChangeServiceConfig2(hService, SERVICE_CONFIG_FAILURE_ACTIONS,
 						     &hFailActions))
 					printf("Servicio UnrealIRCd NT configuración cambiada");
 				else
@@ -173,25 +173,25 @@ int main(int argc, char *argv[]) {
 				hAction.Type = SC_ACTION_NONE;
 				hFailActions.lpsaActions = &hAction;
 				if (uChangeServiceConfig2(hService, SERVICE_CONFIG_FAILURE_ACTIONS,
-						     &hFailActions)) 
+						     &hFailActions))
 					printf("Servicio UnrealIRCd NT configuración cambiada");
 				else
-					printf("Servicio UnrealIRCd NT configuración no refrescada - %s", show_error(GetLastError()));	
+					printf("Servicio UnrealIRCd NT configuración no refrescada - %s", show_error(GetLastError()));
 
-				
+
 			}
 		}
 		else {
 			show_usage();
 			return -1;
-		}	
+		}
 	}
 	else {
 		show_usage();
 		return -1;
 	}
 
-		
-			
+
+
 }
 

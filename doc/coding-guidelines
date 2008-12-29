@@ -5,7 +5,7 @@ Some minor rules about patches & modifications to UnrealIRCd
    BOTTOM
 
 2. If new files are made, it must contain proper copyright headers,
-   and a $Id: coding-guidelines,v 1.1.2.7 2007/06/29 22:39:44 Trocotronic Exp $ somewhere.
+   and a $Id$ somewhere.
 
 3. /*  
     * These kind of comments

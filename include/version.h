@@ -40,20 +40,20 @@
 #define UNREAL_VERSION_MAJOR        2
 
 /** The minor version number (eg: 1 for Unreal3.2.1), negative numbers for unstable/alpha/beta */
-#define UNREAL_VERSION_MINOR        7
+#define UNREAL_VERSION_MINOR        8
 
 /** Year + week of the year (with Monday as first day of the week).
  * Can be useful if the above 3 versionids are insufficient for you (eg: you want to support CVS).
  * This is updated automatically on the CVS server every Monday. so don't touch it.
  */
-#define UNREAL_VERSION_TIME         200809
+#define UNREAL_VERSION_TIME         200851
 
 #define UnrealProtocol 		2309
 #define PATCH1  		"3"
 #define PATCH2  		".2"
-#define PATCH3  		".7"
+#define PATCH3  		".8"
 #ifdef UDB
-#define PATCH4 			"+UDB-3.6.1"
+#define PATCH4 			"-rc1+UDB-3.6.1"
 #else
 #define PATCH4  		""
 #endif

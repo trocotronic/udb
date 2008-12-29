@@ -146,7 +146,7 @@
  * then you cannot add a ban like *!*@*blah.com. In other words.. the ircd tries to be "smart".
  * In general this is considered quite annoying. This was on by default until Unreal 3.2.8.
  */
-#define SOCALLEDSMARTBANNING
+#undef SOCALLEDSMARTBANNING
 
 /*
 ** Freelinks garbage collector -Stskeeps
@@ -316,7 +316,7 @@
  * NOTE: you can now also set this in class::recvq, if that's not present,
  *       this default value will be used.
  */
-#define	CLIENT_FLOOD	2048
+#define	CLIENT_FLOOD	8000
 
 /* Anti-Flood options
  * NO_FLOOD_AWAY - enables limiting of how frequently a client can set /away
@@ -461,6 +461,16 @@
  * count on just ~10-50k.
  */
 #define JOINTHROTTLE
+
+/* Detect slow spamfilters? This requires a little more cpu time when processing
+ * any spamfilter (like on text/connect/..) but will save you from slowing down
+ * your IRCd to a near-halt (well, in most cases.. there are still cases like when
+ * it goes into a loop that it will still stall completely... forever..).
+ * This is kinda experimental, and requires getrusage.
+ */
+#ifndef _WIN32
+#define SPAMFILTER_DETECTSLOW
+#endif
 
 /* ------------------------- END CONFIGURATION SECTION -------------------- */
 #define MOTD MPATH

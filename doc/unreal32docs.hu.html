@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.hu.html,v 1.1.2.43 2007/11/09 19:41:43 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.hu.html,v 1.1.2.87 2008/12/28 14:31:34 syzop Exp $ -->
 
 <body>
 <a href="unreal32docs.html">English</a> | 
@@ -31,7 +31,7 @@ Hungarian |
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com/">http://www.unrealircd.com</a></font><br>
-  <font size="4">Verzió: 3.2.7</font><br>
+  <font size="4">Verzió: 3.2.8-rc1</font><br>
   <b>Utolsó dokumentáció frissítés:</b> 2007-07-10</div>
 <br>
   <b>Fejlesztõk:</b> Stskeeps / codemastr / Syzop / Luke / aquanight / WolfSage <br>
@@ -2271,6 +2271,9 @@ set {
   MEGJEGYZÉS: lehet, hogy ezek a csatornamódok még mindig használhatóak IRC szolgáltatásokon keresztül
   az MLOCK alkalmazásával. Sajnos mi nem tudunk sokat tenni ezügyben, a szolgáltatás fejlesztõket
   kellene megkérned, hogy megvalósítsanak egy restrict-channelmodes funkciót is.</p>
+<p><font class="set">set::level-on-join &lt;op|none&gt;;</font><br>
+  Milyen módot kapjon az a felhasználó, aki elsõként lép be egy csatornára.
+  Lehet 'op' (csatorna operátor, az alapértelmezés) vagy 'none' (nincs mód).</p>
 <p><font class="set">set::restrict-extendedbans &lt;típusok|*&gt;</font><br>
   Nem ad engedélyt a felhasználóknak egyetlen kiterjesztett ban típus használatára sem ("*"), vagy csak bizonyos típusokat utasít vissza (pl.: "qc").</p>
 <p><font class="set">set::auto-join &lt;csatornák&gt;;</font><br>
@@ -3049,12 +3052,12 @@ további információt kapj.</p>
   </tr>
   <tr> 
     <td height="39">globops &lt;üzenet&gt;</td>
-    <td>Üzenetet küld minden IRCopnak.</td>
+    <td>Üzenetet küld minden globális IRCopnak.</td>
     <td>IRCop</td>
   </tr>
   <tr> 
     <td height="39">chatops &lt;üzenet&gt;</td>
-    <td>Üzenetet küld minden +c módú IRCopnak</td>
+    <td>Üzenetet küld minden (globális és lokális) IRCopnak</td>
     <td>IRCop</td>
   </tr>
   <tr>

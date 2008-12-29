@@ -564,6 +564,8 @@ void init_sys(void)
 	limit.rlim_cur = limit.rlim_max;	/* make soft limit the max */
 	if (setrlimit(RLIMIT_FD_MAX, &limit) == -1)
 	{
+/* HACK: if it's mac os X then don't error... */
+#ifndef OSXTIGER
 #ifndef LONG_LONG_RLIM_T
 		(void)fprintf(stderr, "error setting max fd's to %ld\n",
 #else
@@ -571,6 +573,7 @@ void init_sys(void)
 #endif
 		    limit.rlim_cur);
 		exit(-1);
+#endif
 	}
 }
 #endif
@@ -2430,6 +2433,12 @@ int  connect_server(ConfigItem_link *aconf, aClient *by, struct hostent *hp)
 #else
 			aconf->ipnum.S_ADDR = 0;
 #endif
+			/* We need this 'aconf->refcount++' or else there's a race condition between
+			 * starting resolving the host and the result of the resolver (we could
+			 * REHASH in that timeframe) leading to an invalid (freed!) 'aconf'.
+			 * -- Syzop, bug #0003689.
+			 */
+			aconf->refcount++;
 			unrealdns_gethostbyname_link(aconf->hostname, aconf);
 			return -2;
 		}

@@ -46,6 +46,10 @@ static char sccsid[] =
 #ifdef USE_LIBCURL
 #include <curl/curl.h>
 #endif
+#ifndef _WIN32
+/* for uname(), is POSIX so should be OK... */
+#include <sys/utsname.h>
+#endif
 extern VOIDSIG s_die();
 #ifdef UDB
 #include "udb.h"
@@ -137,6 +141,33 @@ extern void reinit_ssl(aClient *);
 */
 #ifndef NO_FDLIST
 extern fdlist serv_fdlist;
+#endif
+
+#ifndef _WIN32
+char *getosname(void)
+{
+static char buf[1024];
+struct utsname osinf;
+char *p;
+
+	memset(&osinf, 0, sizeof(osinf));
+	if (uname(&osinf) != 0)
+		return "<unknown>";
+	snprintf(buf, sizeof(buf), "%s %s %s %s %s",
+		osinf.sysname,
+		osinf.nodename,
+		osinf.release,
+		osinf.version,
+		osinf.machine);
+	/* get rid of cr/lf */
+	for (p=buf; *p; p++)
+		if ((*p == '\n') || (*p == '\r'))
+		{
+			*p = '\0';
+			break;
+		}
+	return buf;
+}
 #endif
 
 /*
@@ -675,7 +706,7 @@ CMD_FUNC(m_rehash)
 		parv[1] = parv[2];
 	}
 
-	if (!BadPtr(parv[1]) && strcmp(parv[1], "-all"))
+	if (!BadPtr(parv[1]) && stricmp(parv[1], "-all"))
 	{
 
 		if (!IsAdmin(sptr) && !IsCoAdmin(sptr))
@@ -777,7 +808,8 @@ CMD_FUNC(m_rehash)
 CMD_FUNC(m_restart)
 {
 char *reason = parv[1];
-
+	aClient *acptr;
+	int i;
 	/* Check permissions */
 	if (MyClient(sptr) && !OPCanRestart(sptr))
 	{
@@ -821,8 +853,22 @@ char *reason = parv[1];
 			reason = parv[2];
 		}
 	}
-	sendto_ops("Servidor reseteado por %s", parv[0]);
-	server_reboot(reason ? reason : "Sin razón");
+	sendto_ops("Server is Restarting by request of %s", parv[0]);
+	
+	for (i = 0; i <= LastSlot; i++)
+	{
+		if (!(acptr = local[i]))
+			continue;
+		if (IsClient(acptr))
+			sendto_one(acptr,
+			    ":%s %s %s :Server Restarting. %s",
+			    me.name, IsWebTV(acptr) ? "PRIVMSG" : "NOTICE", acptr->name, sptr->name);
+		else if (IsServer(acptr))
+			sendto_one(acptr, ":%s ERROR :Restarted by %s: %s",
+			    me.name, get_client_name(sptr, TRUE), reason ? reason : "No reason");
+	}
+
+	server_reboot(reason ? reason : "No reason");
 	return 0;
 }
 

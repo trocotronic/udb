@@ -325,6 +325,7 @@ ConfigEntry		*config_find_entry(ConfigEntry *ce, char *name);
  * Error handling
 */
 
+void			config_warn(char *format, ...);
 void 			config_error(char *format, ...);
 void 			config_status(char *format, ...);
 void 			config_progress(char *format, ...);
@@ -1027,7 +1028,7 @@ static ConfigFile *config_parse(char *filename, char *confdata)
 {
 	char		*ptr;
 	char		*start;
-	int			linenumber = 1;
+	int		linenumber = 1;
 	ConfigEntry	*curce;
 	ConfigEntry	**lastce;
 	ConfigEntry	*cursection;
@@ -1161,6 +1162,17 @@ static ConfigFile *config_parse(char *filename, char *confdata)
 				}
 				break;
 			case '\"':
+				if (curce && curce->ce_varlinenum != linenumber && cursection)
+				{
+					config_warn("%s:%i: Falta semicolon al final de la linea\n",
+						filename, curce->ce_varlinenum);
+					
+					*lastce = curce;
+					lastce = &(curce->ce_next);
+					curce->ce_fileposend = (ptr - confdata);
+					curce = NULL;
+				}
+
 				start = ++ptr;
 				for(;*ptr;ptr++)
 				{
@@ -1506,6 +1518,7 @@ void	free_iConf(aConfiguration *i)
 #ifdef USE_SSL
 	ircfree(i->x_server_cert_pem);
 	ircfree(i->x_server_key_pem);
+	ircfree(i->x_server_cipher_list);
 	ircfree(i->trusted_ca_file);
 #endif	
 	ircfree(i->restrict_usermodes);
@@ -1551,6 +1564,8 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->spamfilter_ban_time = 86400; /* 1d */
 	i->spamfilter_ban_reason = strdup("Spam/advertising");
 	i->spamfilter_virus_help_channel = strdup("#help");
+	i->spamfilter_detectslow_warn = 250;
+	i->spamfilter_detectslow_fatal = 500;
 	i->maxdccallow = 10;
 	i->channel_command_prefix = strdup("`!.");
 	i->check_target_nick_bans = 1;
@@ -1561,6 +1576,7 @@ void config_setdefaultsettings(aConfiguration *i)
 	i->timesynch_server = strdup("193.67.79.202,192.43.244.18,128.250.36.3"); /* nlnet (EU), NIST (US), uni melbourne (AU). All open acces, nonotify, nodns. */
 	i->name_server = strdup("127.0.0.1"); /* default, especially needed for w2003+ in some rare cases */
 	i->level_on_join = CHFL_CHANOP;
+	i->watch_away_notification = 1;
 }
 
 /* 1: needed for set::options::allow-part-if-shunned,
@@ -1587,6 +1603,8 @@ char *encoded;
 	}
 
 	encoded = unreal_encodespace(SPAMFILTER_BAN_REASON);
+	if (!encoded)
+		abort(); /* hack to trace 'impossible' bug... */
 	for (tk = tklines[tkl_hash('q')]; tk; tk = tk->next)
 	{
 		if (tk->type != TKL_NICK)
@@ -1617,6 +1635,17 @@ char *encoded;
 				tk->setby = strdup(me.name);
 			else
 				tk->setby = strdup(conf_me->name ? conf_me->name : "~server~");
+		}
+	}
+	if (loop.ircd_booted) /* only has to be done for rehashes, api-isupport takes care of boot */
+	{
+		if (WATCH_AWAY_NOTIFICATION)
+		{
+			IsupportAdd(NULL, "WATCHOPTS", "A");
+		} else {
+			Isupport *hunted = IsupportFind("WATCHOPTS");
+			if (hunted)
+				IsupportDel(hunted);
 		}
 	}
 }
@@ -3152,6 +3181,13 @@ int	_test_me(ConfigFile *conf, ConfigEntry *ce)
 				config_error("%s:%i: illegal me::name contiene caracteres inválidos, sólo a-z, 0-9, _, -, .",
 					cep->ce_fileptr->cf_filename, 
 					cep->ce_varlinenum);
+				errors++;
+			}
+			if (strlen(cep->ce_vardata) > HOSTLEN)
+			{
+				config_error("%s:%i: me::name incorrecto, debe ser menor o igual de %i caracteres",
+					cep->ce_fileptr->cf_filename, 
+					cep->ce_varlinenum, HOSTLEN);
 				errors++;
 			}
 		}
@@ -5626,7 +5662,7 @@ int _conf_spamfilter(ConfigFile *conf, ConfigEntry *ce)
 	nl->ptr.spamf = unreal_buildspamfilter(word);
 	nl->ptr.spamf->action = action;
 
-	if (has_reason)
+	if (has_reason && reason)
 		nl->ptr.spamf->tkl_reason = strdup(unreal_encodespace(reason));
 	else
 		nl->ptr.spamf->tkl_reason = strdup("(añadida por el ircd)");
@@ -6794,6 +6830,9 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
 			tempiConf.pingpong_warning = config_checkval(cep->ce_vardata, CFG_YESNO);
 		}
+		else if (!strcmp(cep->ce_varname, "watch-away-notification")) {
+			tempiConf.watch_away_notification = config_checkval(cep->ce_vardata, CFG_YESNO);
+		}
 		else if (!strcmp(cep->ce_varname, "allow-userhost-change")) {
 			if (!stricmp(cep->ce_vardata, "always"))
 				tempiConf.userhost_allowed = UHALLOW_ALWAYS;
@@ -7060,13 +7099,13 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 			{
 				if (!strcmp(cepp->ce_varname, "ban-time"))
 					tempiConf.spamfilter_ban_time = config_checkval(cepp->ce_vardata,CFG_TIME);
-				if (!strcmp(cepp->ce_varname, "ban-reason"))
+				else if (!strcmp(cepp->ce_varname, "ban-reason"))
 					ircstrdup(tempiConf.spamfilter_ban_reason, cepp->ce_vardata);
-				if (!strcmp(cepp->ce_varname, "virus-help-channel"))
+				else if (!strcmp(cepp->ce_varname, "virus-help-channel"))
 					ircstrdup(tempiConf.spamfilter_virus_help_channel, cepp->ce_vardata);
-				if (!strcmp(cepp->ce_varname, "virus-help-channel-deny"))
+				else if (!strcmp(cepp->ce_varname, "virus-help-channel-deny"))
 					tempiConf.spamfilter_vchan_deny = config_checkval(cepp->ce_vardata,CFG_YESNO);
-				if (!strcmp(cepp->ce_varname, "except"))
+				else if (!strcmp(cepp->ce_varname, "except"))
 				{
 					char *name, *p;
 					SpamExcept *e;
@@ -7082,6 +7121,14 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 							AddListItem(e, tempiConf.spamexcept);
 						}
 					}
+				}
+				else if (!strcmp(cepp->ce_varname, "detect-slow-warn"))
+				{
+					tempiConf.spamfilter_detectslow_warn = atol(cepp->ce_vardata);
+				}
+				else if (!strcmp(cepp->ce_varname, "detect-slow-fatal"))
+				{
+					tempiConf.spamfilter_detectslow_fatal = atol(cepp->ce_vardata);
 				}
 			}
 		}
@@ -7111,6 +7158,10 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 					if (cepp->ce_vardata)
 						tempiConf.egd_path = strdup(cepp->ce_vardata);
 				}
+				else if (!strcmp(cepp->ce_varname, "server-cipher-list"))
+				{
+					ircstrdup(tempiConf.x_server_cipher_list, cepp->ce_vardata);
+				}
 				else if (!strcmp(cepp->ce_varname, "certificate"))
 				{
 					ircstrdup(tempiConf.x_server_cert_pem, cepp->ce_vardata);	
@@ -7122,6 +7173,14 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 				else if (!strcmp(cepp->ce_varname, "trusted-ca-file"))
 				{
 					ircstrdup(tempiConf.trusted_ca_file, cepp->ce_vardata);
+				}
+				else if (!strcmp(cepp->ce_varname, "renegotiate-bytes"))
+				{
+					tempiConf.ssl_renegotiate_bytes = config_checkval(cepp->ce_vardata, CFG_TIME);
+				}
+				else if (!strcmp(cepp->ce_varname, "renegotiate-timeout"))
+				{
+					tempiConf.ssl_renegotiate_timeout = config_checkval(cepp->ce_vardata, CFG_TIME);
 				}
 				else if (!strcmp(cepp->ce_varname, "options"))
 				{
@@ -7358,6 +7417,10 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 		else if (!strcmp(cep->ce_varname, "pingpong-warning")) {
 			CheckNull(cep);
 			CheckDuplicate(cep, pingpong_warning, "pingpong-warning");
+		}
+		else if (!strcmp(cep->ce_varname, "watch-away-notification")) {
+			CheckNull(cep);
+			CheckDuplicate(cep, watch_away_notification, "watch-away-notification");
 		}
 		else if (!strcmp(cep->ce_varname, "channel-command-prefix")) {
 			CheckNull(cep);
@@ -7956,6 +8019,14 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 				{ 
 					CheckDuplicate(cepp, spamfilter_except, "spamfilter::except");
 				} else
+#ifdef SPAMFILTER_DETECTSLOW
+				if (!strcmp(cepp->ce_varname, "detect-slow-warn"))
+				{ 
+				} else
+				if (!strcmp(cepp->ce_varname, "detect-slow-fatal"))
+				{ 
+				} else
+#endif
 				{
 					config_error_unknown(cepp->ce_fileptr->cf_filename,
 						cepp->ce_varlinenum, "set::spamfilter",
@@ -8022,6 +8093,19 @@ int	_test_set(ConfigFile *conf, ConfigEntry *ce)
 			for (cepp = cep->ce_entries; cepp; cepp = cepp->ce_next) {
 				if (!strcmp(cepp->ce_varname, "egd")) {
 					CheckDuplicate(cep, ssl_egd, "ssl::egd");
+				}
+				else if (!strcmp(cepp->ce_varname, "renegotiate-timeout"))
+				{
+					CheckDuplicate(cep, renegotiate_timeout, "ssl::renegotiate-timeout");
+				}
+				else if (!strcmp(cepp->ce_varname, "renegotiate-bytes"))
+				{
+					CheckDuplicate(cep, renegotiate_bytes, "ssl::renegotiate-bytes");
+				}
+				else if (!strcmp(cepp->ce_varname, "server-cipher-list"))
+				{
+					CheckNull(cepp);
+					CheckDuplicate(cep, ssl_server_cipher_list, "ssl::server-cipher-list");
 				}
 				else if (!strcmp(cepp->ce_varname, "certificate"))
 				{

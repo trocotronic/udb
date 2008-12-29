@@ -16,7 +16,7 @@
 </style>
 </head>
 
-<!-- $Id: unreal32docs.html,v 1.1.2.67 2007/11/09 19:41:45 Trocotronic Exp $ -->
+<!-- $Id: unreal32docs.html,v 1.1.2.144.2.124 2008/12/28 14:31:33 syzop Exp $ -->
 
 <body>
 English | 
@@ -31,7 +31,7 @@ English |
 <br><br>
 <div align="center"><b><font size="7">UnrealIRCd</font></b><br>
   <font size="4"><a href="http://www.unrealircd.com">http://www.unrealircd.com</a></font><br>
-  <font size="4">Version: 3.2.7</font><br>
+  <font size="4">Version: 3.2.8-rc1</font><br>
   <b>Last doc update:</b> 2007-07-10</div>
 <br>
   <b>Coders:</b> Stskeeps / codemastr / Syzop / Luke / aquanight / WolfSage <br>
@@ -2260,6 +2260,9 @@ set {
   The snomask that will be set on a user when they /oper.</p>
 <p><font class="set">set::modes-on-join &lt;+modes&gt;;</font><br>
   The modes that will be set on a channel when it is first created. Not all modes can be set using this command. +qaohvbeOAzlLk can NOT be set using this command.</p>
+<p><font class="set">set::level-on-join &lt;op|none&gt;;</font><br>
+  The mode that a user will get when he's the first to join a channel. This
+  is either 'op' (channel operator, the default) or 'none'.</p>
 <p><font class="set">set::restrict-usermodes &lt;modes&gt;</font><br>
   Restrict users to set/unset the modes listed here (don't use + or -).<br>
   For example you can set +G in modes-on-connect and G in restrict-usermodes,
@@ -3049,12 +3052,12 @@ to get more information on a command.</p>
   </tr>
   <tr> 
     <td height="39">globops &lt;message&gt;</td>
-    <td>Sends a message to all IRCops</td>
+    <td>Sends a message to all global IRCops</td>
     <td>IRCop</td>
   </tr>
   <tr> 
     <td height="39">chatops &lt;message&gt;</td>
-    <td>Send a message to all IRCops with umode +c</td>
+    <td>Sends a message to all IRCops (local and global)</td>
     <td>IRCop</td>
   </tr>
   <tr> 
