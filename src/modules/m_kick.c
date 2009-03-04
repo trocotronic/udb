@@ -167,7 +167,7 @@ CMD_FUNC(m_kick)
 							   me.name, sptr->name, "KICK", 
 							   errbuf);
 						sendto_one(who,
-						    ":%s %s %s :*** Q: %s intenta expulsarte del canal %s (%s)",
+						    ":%s %s %s :*** q: %s intenta expulsarte del canal %s (%s)",
 						    me.name, IsWebTV(who) ? "PRIVMSG" : "NOTICE", who->name,
 						    parv[0],
 						    chptr->chname, comment);

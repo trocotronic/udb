@@ -2342,8 +2342,17 @@ int	config_run()
 #ifdef THROTTLING
 	{
 		EventInfo eInfo;
+		long v;
 		eInfo.flags = EMOD_EVERY;
-		eInfo.every = THROTTLING_PERIOD ? THROTTLING_PERIOD/2 : 86400;
+		if (!THROTTLING_PERIOD)
+			v = 120;
+		else
+		{
+			v = THROTTLING_PERIOD/2;
+			if (v > 5)
+				v = 5; /* accuracy, please */
+		}
+		eInfo.every = v;
 		EventMod(EventFind("bucketcleaning"), &eInfo);
 	}
 #endif
@@ -6144,7 +6153,7 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 #ifndef USE_SSL
 				if (ofp->flag == CONNECT_SSL)
 				{
-					config_warn("%s:%i: link %s con opción SSL sin soporte SSL",
+					config_error("%s:%i: link %s con opción SSL sin soporte SSL",
 						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
 					errors++;
 				}
@@ -6152,7 +6161,7 @@ int	_test_link(ConfigFile *conf, ConfigEntry *ce)
 #ifndef ZIP_LINKS
 				if (ofp->flag == CONNECT_ZIP)
 				{
-					config_warn("%s:%i: link %s con opción ZIP sin soporte ZIP",
+					config_error("%s:%i: link %s con opción ZIP sin soporte ZIP",
 						cep->ce_fileptr->cf_filename, cep->ce_varlinenum, ce->ce_vardata);
 					errors++;
 				}
@@ -7176,7 +7185,7 @@ int	_conf_set(ConfigFile *conf, ConfigEntry *ce)
 				}
 				else if (!strcmp(cepp->ce_varname, "renegotiate-bytes"))
 				{
-					tempiConf.ssl_renegotiate_bytes = config_checkval(cepp->ce_vardata, CFG_TIME);
+					tempiConf.ssl_renegotiate_bytes = config_checkval(cepp->ce_vardata, CFG_SIZE);
 				}
 				else if (!strcmp(cepp->ce_varname, "renegotiate-timeout"))
 				{

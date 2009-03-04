@@ -64,7 +64,7 @@ char *buildid = "$id";
 char *udbid = "$udbid";
 #endif
 /* moved to s_serv.c */
-char *infotext[] =
+char *infotext[] = 
 { 0 };
 
 char *unrealcredits[] =
@@ -83,13 +83,13 @@ char *unrealcredits[] =
 	"  and supporting the project all through its life. Thanks for",
 	"  helping to get this project to take off.",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=[Donations]=-=-=-=-=-=-=-=-=-=-=-=-=-=",
-	"BlueFlame^, [Real] - ChatFIRST.com, Jameno123 - ByteHosting",
+	"BlueFlame^, [Real] - ChatFIRST.com, Jameno123 - ByteHosting,",
 	"Internet Services, Interlink Access Corp, Jan Knutar, ThePlayer,",
 	"Headband, noriko, powerstorm.net, RedMaxima, IronHelix, xnet.org,",
 	"Pierce - irc.AAcNet.org, Franky75 - Betas-Online.com, irc.vco.se,",
 	"Beldock - irc.coldfront.net, Kusau - chat.tochat.org, Japsclan,",
 	"WolfLord - UplinkCorp, Isaiah - irc.frogstar.us, Kedrin Milborn,",
-	"Dionisios Koutsikos, Tank - irc.scifi-fans.net, irc.P2Pchat.net",
+	"Dionisios Koutsikos, Tank - irc.scifi-fans.net, irc.P2Pchat.net,",
 	"Leo Zhadanovsky - irc.leozh.net, Lyote - ZodiaCIrC/DecayOnline,",
 	"Jesse Lanning - Secure Technology Networks, HERZ - insiderZ.DE,",
 	"James Yerge - Kronical Internet Solutions, djw - irc.perldev.org,",
@@ -98,7 +98,7 @@ char *unrealcredits[] =
 	"FrostByghte - irc.coldfront.net, SdgNem - irc.RealmOfGaming.net,",
 	"MagicalTux - irc.FF.st, irc.P2Pchat.net, Ganja51 - irc.lcirc.net,",
 	"^White_Magic^ - irc.chatuniverse.net, Nick - irc.plasmachat.net,",
-	"Matridom - www.WinDrivers.com, anaconda - irc.lightmoon.org,",
+	"Matridom - www.WinDrivers.com, anaconda - irc.lightmoon.org,", 
 	"mnslinky - http://www.secure-computing.net, Justin Furnas,",
 	"Andy Hansis - irc.technerd.net, Crimson - www.n00bstories.com",
 	"Devin Reams, Cleggo - irc.ugcentral.net, Tillo - irc.OSirc.net,",
@@ -118,11 +118,15 @@ char *unrealcredits[] =
 	"Voodoohosting - www.voodoohosting.com,",
 	"RealityBytez IRC Network - irc.realitybytez.net,",
 	"LFS - www.linuxfromscratch.org, The_devil - chat.snyggast.se,",
-	"Stephen - dirac.betas-online.com, NationWars - www.nationwars.com",
-	"SurrealChat.net - www.surrealchat.net, NamesDir - www.namesdir.com",
-	"Muisje - www.elitez0r.com, Jaya Sri - www.krisna.cc",
-	"DiabloClone.Org - irc.diabloclone.org, RisingNet - www.RisingNet.net",
-	"DCloneIRC.net - irc.dcloneirc.net, L.E.-Nation - irc.le-nation.de",
+	"Stephen - dirac.betas-online.com, NationWars - www.nationwars.com,",
+	"SurrealChat.net - www.surrealchat.net, NamesDir - www.namesdir.com,",
+	"Muisje - www.elitez0r.com, Jaya Sri - www.krisna.cc,",
+	"DiabloClone.Org - irc.diabloclone.org, RisingNet - www.RisingNet.net,",
+	"DCloneIRC.net - irc.dcloneirc.net, L.E.-Nation - irc.le-nation.de,",
+	"RomeoIRC - irc.romeoirc.net, Comparison Shopping - www.order.com,",
+	"Atak Trucking - www.AtakTrucking.com, www.Gamehostingprovider.com,",
+	"Xzibition.com - irc.xzibition.com, www.TheBookmarkShop.com,",
+	"Compare Prices - www.PriceV.com, Joe Gronlund - www.joegronlund.com",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-[Hosting]=-=-=-=-=-=-=-=-=-=-=-=-=-=-=",
 	"Phil Veale - email@phillipveale.com - http://www.tiefighter.org",
 	"- Donating webhosting for the project amongst other things",
@@ -151,14 +155,14 @@ char *unrealcredits[] =
 	"support through the years. See the page for a more extensive",
 	"list of all the coders' credits. ",
 	"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-",
-	"This IRCd is dedicated to those who have kept us rocking and",
+	"This IRCd is dedicated to those who have kept us rocking and", 
 	"in good mood all through the years we've struggled with this",
 	"project. Unreal3.0 and up is dedicated to Morrigan.",
 	0
-};
+}; 
 
 
-char unreallogo[] =
+char unreallogo[] = 
 {
 32,95,32,32,32,95,32,32,32,32,32,
 32,32,32,32,32,32,32,32,32,32,32,
@@ -211,7 +215,7 @@ char *dalinfotext[] =
 	"GZ                                    gz@starchat.net",
 	"binary                                ",
 	"Dianora      Diane Bruce",
-	"lucas",
+	"lucas", 
 	"Roar Thronaas <roart@nvg.ntnu.no> added IPv6 support.",
 	"",
 	"",

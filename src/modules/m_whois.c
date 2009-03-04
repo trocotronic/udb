@@ -60,7 +60,7 @@ ModuleHeader MOD_HEADER(m_whois)
 	"$Id: m_whois.c,v 1.1.1.1.2.17 2008/04/23 18:44:30 Trocotronic Exp $", /* Version */
 	"command /whois", /* Short description of module */
 	"3.2-b8-1",
-	NULL 
+	NULL
     };
 
 /* This is called on module init, before Server Ready */
@@ -108,7 +108,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 	int  found, len, mlen, cnt = 0;
 	char querybuf[BUFSIZE];
 
-	if (IsServer(sptr))	
+	if (IsServer(sptr))
 		return 0;
 
 	if (parc < 2)
@@ -194,7 +194,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			{
 				char sno[512];
 				strcpy(sno, get_sno_str(acptr));
-				
+
 				/* send the target user's modes */
 				sendto_one(sptr, rpl_str(RPL_WHOISMODES),
 				    me.name, parv[0], name,
@@ -211,8 +211,8 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 
 			if (IsARegNick(acptr))
 				sendto_one(sptr, rpl_str(RPL_WHOISREGNICK), me.name, parv[0], name);
-#endif	
-			
+#endif
+
 			found = 1;
 			mlen = strlen(me.name) + strlen(parv[0]) + 10 + strlen(name);
 			for (len = 0, *buf = '\0', lp = user->channel; lp; lp = lp->next)
@@ -303,7 +303,7 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			}
 
 			if (buf[0] != '\0')
-				sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), me.name, parv[0], name, buf); 
+				sendto_one(sptr, rpl_str(RPL_WHOISCHANNELS), me.name, parv[0], name, buf);
 
                         if (!(IsULine(acptr) && !IsOper(sptr) && HIDE_ULINES))
 				sendto_one(sptr, rpl_str(RPL_WHOISSERVER),
@@ -323,13 +323,13 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 			if (IsSuspended(acptr))
 	    			sendto_one(sptr, rpl_str(RPL_WHOISSUSPEND), me.name, parv[0],
 				name);
-			
+
 			if (LevelOperUdb(acptr->name) && !hideoper)
 			{
 				u_int level = LevelOperUdb(acptr->name);
 				buf[0] = '\0';
 				if (level >= BDD_ROOT)
-					strlcat(buf, "ROOT de los servicios y", sizeof buf);
+					strlcat(buf, "ROOT de los servicios", sizeof buf);
 				else if (level >= BDD_ADMIN)
 					strlcat(buf, "ADMINistrador", sizeof buf);
 				else if (level >= BDD_OPER)
@@ -339,11 +339,11 @@ DLLFUNC int  m_whois(aClient *cptr, aClient *sptr, int parc, char *parv[])
 				if (buf[0])
 					sendto_one(sptr, rpl_str(RPL_WHOISHELPOP), me.name, parv[0], name, buf);
 			}
-				
+
 			if (IsHidden(acptr) && (IsShowIp(sptr) || acptr == sptr))
 	    			sendto_one(sptr, rpl_str(RPL_WHOISHOST),
-					me.name, parv[0], name, GetVisibleHost(acptr, NULL)); 
-#endif					    
+					me.name, parv[0], name, GetVisibleHost(acptr, NULL));
+#endif
 			/* makesure they aren't +H (we'll also check
 			   before we display a helpop or IRCD Coder msg)
 			   -- codemastr */

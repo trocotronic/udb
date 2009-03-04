@@ -261,27 +261,27 @@ void m_info_send(aClient *sptr)
 	sendto_one(sptr, ":%s %d %s :| This release was brought to you by the following people:",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Committers:", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Stskeeps     <stskeeps@unrealircd.com>",
-	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Coders:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * Syzop        <syzop@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| Contributors:", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * aquanight    <aquanight@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * WolfSage     <wolfsage@unrealircd.com>",
 	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * Stealth, tabrisnet, Bock, fbi, Trocotronic",
+	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| Contributors:", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * djGrrr, w00t, Stealth, adrianp, Bock, fez,",
-	    me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :|   Trocotronic",
-	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| RC Testers:", me.name, RPL_INFO, sptr->name);
-	sendto_one(sptr, ":%s %d %s :| * Grunt, Bock, craftsman, Stealth, vonitsanet",
+	sendto_one(sptr, ":%s %d %s :| * Bock, Apocalypse, StrawberryKittens, wax, Elemental,",
+	    me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :|   Golden|Wolf, and everyone else who tested the RC's",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :|", me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| Past UnrealIRCd3.2* coders/contributors:", me.name, RPL_INFO, sptr->name);
+	sendto_one(sptr, ":%s %d %s :| * Stskeeps (ret. head coder / project leader)",
+	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * codemastr (ret. u3.2 head coder)",
 	    me.name, RPL_INFO, sptr->name);
 	sendto_one(sptr, ":%s %d %s :| * McSkaf, Zogg, NiQuiL, chasm, llthangel, nighthawk, ..",

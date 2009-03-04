@@ -1,5 +1,5 @@
-Unreal3.2.8-RC1 Release Notes
-==============================
+Unreal3.2.8 Release Notes
+==========================
 
 ==[ GENERAL INFORMATION ]==
 - If you are upgrading on *NIX, make sure you run 'make clean' and './Config'
@@ -17,13 +17,13 @@ Unreal3.2.8-RC1 Release Notes
   one week is generally not a problem, but having mixed versions on a network for several
   weeks or months is not recommended.
 - The purpose of the sections below (NEW, CHANGED, MINOR, etc) is to be a SUMMARY of
-  the changes in this release. There have been XX+ changes, and trying to mention them
+  the changes in this release. There have been 70+ changes, and trying to mention them
   all would be useless, see the Changelog for the full list of changes.
 
 ==[ NEW ]==
-- set::level-on-join: this defines which privilegs a user receives when creating a
+- set::level-on-join: this defines which privileges a user receives when creating a
   channel, default is 'chanop', the only other available setting is 'none' (opless).
-- Away notification through WATCH: This allows clients to recieve a notification
+- Away notification through WATCH: This allows clients to receive a notification
   when someone goes away or comes back, along with a reason, a bit like IM's.
   There's probably no current client supporting this but it would be a nice feature
   in notify lists. Client developers: see Changes file for full protocol details.
@@ -57,15 +57,24 @@ Unreal3.2.8-RC1 Release Notes
 
 ==[ MAJOR BUGS FIXED ]==
 - Zip links issue (Overflowed unzipbuf)
-- Crash issue with 3rd party modules that introduce new channelmodes w/parameters
+- Crash issue with 3rd party modules that introduce new channel modes w/parameters
 - Mac OS X: Various issues which prevented the IRCd from booting up
+- Remote includes (constant) crash with new curl/c-ares versions
 - A few rare crash issues, including a crash when linking to another server
+- In case of clock adjustments, the IRCd will no longer freeze when the time is
+  adjusted backwards, nor will it incorrectly throttle clients when adjusted forward.
+  However, because clock adjustments (time shifts) of more than xx seconds are 
+  so dangerous (and will still cause a number of issues), big warnings are now
+  printed when they happen.
+  Morale: synchronize your system clock, or use the built-in timesync feature.
 
 ==[ MINOR BUGS FIXED ]==
 - CGI:IRC: Several IPv6 issues, both on IPv6 IRCd's and CGI:IRC gateways
 - IP masks in oper::from::userhost sometimes didn't match when they should
 - (G)ZLINE's on IPv6 users were sometimes rejected
 - CHROOTDIR works again
+- OperOverride fixes
+- Throttling is now more accurate
 - And more... see Changelog
 
 ==[ KNOWN ISSUES ]==
@@ -75,6 +84,8 @@ Unreal3.2.8-RC1 Release Notes
   but might not work in worst-case scenario's.
 - Regexes: Possessive quantifiers such as, for example, "++" (not to be confused with "+")
   are not safe to use, they can easily freeze the IRCd.
+- Suse 10.3 in 64 bit mode (amd64, x64) is known to crash UnrealIRCd on-boot, this is
+  likely to be a Suse 10.3 bug as over 3 people reported it with that exact OS / arch.
 
 ==[ ADDITIONAL INFO ]==
 * See Changelog for more details

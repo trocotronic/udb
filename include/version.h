@@ -46,14 +46,14 @@
  * Can be useful if the above 3 versionids are insufficient for you (eg: you want to support CVS).
  * This is updated automatically on the CVS server every Monday. so don't touch it.
  */
-#define UNREAL_VERSION_TIME         200851
+#define UNREAL_VERSION_TIME         200909
 
 #define UnrealProtocol 		2309
 #define PATCH1  		"3"
 #define PATCH2  		".2"
 #define PATCH3  		".8"
 #ifdef UDB
-#define PATCH4 			"-rc1+UDB-3.6.1"
+#define PATCH4 			"+UDB-3.6.1"
 #else
 #define PATCH4  		""
 #endif

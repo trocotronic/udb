@@ -1058,6 +1058,9 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 			break;
 		  }
 
+		  /* This check not only prevents unprivileged users from doing a -q on chanowners,
+		   * it also protects against -o/-h/-v on them.
+		   */
 		  if (is_chanowner(member->cptr, chptr)
 		      && member->cptr != cptr
 		      && !is_chanowner(cptr, chptr) && !IsServer(cptr)
@@ -1065,11 +1068,17 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  {
 			  if (MyClient(cptr))
 			  {
-				char errbuf[NICKLEN+30];
-				ircsprintf(errbuf, "%s es un fundador de canal", member->cptr->name);
-				sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
-				   modechar, errbuf);
-				break;
+			  	/* Need this !op_can_override() here again, even with the !opermode
+			  	 * check a few lines up, all due to halfops. -- Syzop
+			  	 */
+				if (!op_can_override(cptr))
+				{
+					char errbuf[NICKLEN+30];
+					ircsprintf(errbuf, "%s es un fundador de canal", member->cptr->name);
+					sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
+					   modechar, errbuf);
+					break;
+				}
 			  } else
 #ifdef UDB
 			  if (IsHOper(cptr))
@@ -1078,6 +1087,10 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 #endif
 			      opermode = 1;
 		  }
+
+		  /* This check not only prevents unprivileged users from doing a -a on chanadmins,
+		   * it also protects against -o/-h/-v on them.
+		   */
 		  if (is_chanprot(member->cptr, chptr)
 		      && member->cptr != cptr
 		      && !is_chanowner(cptr, chptr) && !IsServer(cptr) && !opermode && !samode_in_progress
@@ -1085,11 +1098,17 @@ int  do_mode_char(aChannel *chptr, long modetype, char modechar, char *param,
 		  {
 			  if (MyClient(cptr))
 			  {
-				char errbuf[NICKLEN+30];
-				ircsprintf(errbuf, "%s es un admin de canal", member->cptr->name);
-				sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
-				   modechar, errbuf);
-				break;
+			  	/* Need this !op_can_override() here again, even with the !opermode
+			  	 * check a few lines up, all due to halfops. -- Syzop
+			  	 */
+			  	if (!op_can_override(cptr))
+			  	{
+					char errbuf[NICKLEN+30];
+					ircsprintf(errbuf, "%s es un admin de canal", member->cptr->name);
+					sendto_one(cptr, err_str(ERR_CANNOTCHANGECHANMODE), me.name, cptr->name,
+					   modechar, errbuf);
+					break;
+				}
 			  } else
 #ifdef UDB
 			  if (IsHOper(cptr))
